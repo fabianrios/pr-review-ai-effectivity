@@ -1,0 +1,19 @@
+fix(router): Fix RouterLink href not updating with `queryParamsHandling`
+
+There was a bug introduced in #60875. While RouterLink doesn't
+necessarily depend on Router state, its link can change when navigations
+cause the `ActivatedRoute` paths to change. It is difficult to determine
+which segments the link depends on. Luckily, the commit had flawed
+logic:
+
+```
+!this.queryParamsHandling && !dependsOnRouterState(this.options?.defaultQueryParamsHandling);
+```
+
+The subscription gets created whenever `queryParamsHandling` was not
+defined, or it was non-default. This is pretty much all scenarios since
+nobody is likely to set it explicitly to the default value. In addition,
+the `click` handler recomputes the tree because `urlTree` is a getter
+that does the computation.
+
+This commit effectively rolls back #60875

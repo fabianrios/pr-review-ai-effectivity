@@ -1,0 +1,7 @@
+Fixed #36309 -- Made email alternatives and attachments pickleable.
+
+Regression in aba0e541caaa086f183197eaaca0ac20a730bbe4 and in
+d5bebc1c26d4c0ec9eaa057aefc5b38649c0ba3b.
+
+Thanks Florent Messa for the report, and Jake Howard and Claude
+Paroz for the review.

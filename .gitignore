@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+# API response cache: never commit (may contain request metadata); regenerate with the harness
+cache/
+# local clone of angular/angular used by the miner
+work/
+.env
+
+# Private benchmark data (work repositories): config, cases, diffs, reviews, results, notes. Never committed.
+internal/

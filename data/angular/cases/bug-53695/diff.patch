@@ -1,0 +1,356 @@
+diff --git a/packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts b/packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts
+index f8cd309075..6e94349734 100644
+--- a/packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts
++++ b/packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts
+@@ -483,12 +483,16 @@ export class ComponentDecoratorHandler implements
+     // (if it exists) and populate the `DeferredSymbolTracker` state. These operations are safe
+     // for the local compilation mode, since they don't require accessing/resolving symbols
+     // outside of the current source file.
+-    let explicitlyDeferredTypes: Map<string, string>|null = null;
++    let explicitlyDeferredTypes: Map<string, {importPath: string, isDefaultImport: boolean}>|null =
++        null;
+     if (metadata.isStandalone && rawDeferredImports !== null) {
+       const deferredTypes = this.collectExplicitlyDeferredSymbols(rawDeferredImports);
+       for (const [deferredType, importDetails] of deferredTypes) {
+         explicitlyDeferredTypes ??= new Map();
+-        explicitlyDeferredTypes.set(importDetails.name, importDetails.from);
++        explicitlyDeferredTypes.set(importDetails.name, {
++          importPath: importDetails.from,
++          isDefaultImport: isDefaultImport(importDetails.node),
++        });
+         this.deferredSymbolTracker.markAsDeferrableCandidate(
+             deferredType, importDetails.node, node, true /* isExplicitlyDeferred */);
+       }
+@@ -1255,9 +1259,8 @@ export class ComponentDecoratorHandler implements
+    * Computes a list of deferrable symbols based on dependencies from
+    * the `@Component.imports` field and their usage in `@defer` blocks.
+    */
+-  private collectDeferredSymbols(resolution: Readonly<ComponentResolutionData>):
+-      Map<string, string> {
+-    const deferrableTypes = new Map<string, string>();
++  private collectDeferredSymbols(resolution: Readonly<ComponentResolutionData>) {
++    const deferrableTypes = new Map<string, {importPath: string, isDefaultImport: boolean}>();
+     // Go over all dependencies of all defer blocks and update the value of
+     // the `isDeferrable` flag and the `importPath` to reflect the current
+     // state after visiting all components during the `resolve` phase.
+@@ -1272,7 +1275,10 @@ export class ComponentDecoratorHandler implements
+         if (importDecl !== null && this.deferredSymbolTracker.canDefer(importDecl)) {
+           deferBlockDep.isDeferrable = true;
+           deferBlockDep.importPath = (importDecl.moduleSpecifier as ts.StringLiteral).text;
+-          deferrableTypes.set(deferBlockDep.symbolName, deferBlockDep.importPath);
++          deferrableTypes.set(deferBlockDep.symbolName, {
++            importPath: deferBlockDep.importPath,
++            isDefaultImport: isDefaultImport(importDecl),
++          });
+         }
+       }
+     }
+@@ -1368,13 +1374,14 @@ export class ComponentDecoratorHandler implements
+           continue;
+         }
+         // Collect initial information about this dependency.
+-        // The `isDeferrable` flag and the `importPath` info would be
++        // `isDeferrable`, `importPath` and `isDefaultImport` will be
+         // added later during the `compile` step.
+         deps.push({
+           type: decl.type as WrappedNodeExpr<ts.Identifier>,
+           symbolName: decl.ref.node.name.escapedText as string,
+           isDeferrable: false,
+           importPath: null,
++          isDefaultImport: false,
+           // Extra info to match corresponding import during the `compile` phase.
+           classDeclaration: decl.ref.node as ts.ClassDeclaration,
+         });
+@@ -1532,7 +1539,8 @@ function extractPipes(dependencies: Array<PipeMeta|DirectiveMeta|NgModuleMeta>):
+  * in the `setClassMetadataAsync` call. Otherwise, an import declaration gets retained.
+  */
+ function removeDeferrableTypesFromComponentDecorator(
+-    analysis: Readonly<ComponentAnalysisData>, deferrableTypes: Map<string, string>) {
++    analysis: Readonly<ComponentAnalysisData>,
++    deferrableTypes: Map<string, {importPath: string, isDefaultImport: boolean}>) {
+   if (analysis.classMetadata) {
+     const deferrableSymbols = new Set(deferrableTypes.keys());
+     const rewrittenDecoratorsNode = removeIdentifierReferences(
+@@ -1608,3 +1616,8 @@ function validateStandaloneImports(
+ 
+   return diagnostics;
+ }
++
++/** Returns whether an ImportDeclaration is a default import. */
++function isDefaultImport(node: ts.ImportDeclaration): boolean {
++  return node.importClause !== undefined && node.importClause.namedBindings === undefined;
++}
+diff --git a/packages/compiler-cli/src/ngtsc/annotations/component/src/metadata.ts b/packages/compiler-cli/src/ngtsc/annotations/component/src/metadata.ts
+index 1a6cc81a67..f1a406d39f 100644
+--- a/packages/compiler-cli/src/ngtsc/annotations/component/src/metadata.ts
++++ b/packages/compiler-cli/src/ngtsc/annotations/component/src/metadata.ts
+@@ -77,7 +77,7 @@ export interface ComponentAnalysisData {
+   /**
+    * Map of symbol name -> import path for types from `@Component.deferredImports` field.
+    */
+-  explicitlyDeferredTypes: Map<string, string>|null;
++  explicitlyDeferredTypes: Map<string, {importPath: string, isDefaultImport: boolean}>|null;
+ 
+   schemas: SchemaMetadata[]|null;
+ 
+diff --git a/packages/compiler-cli/src/ngtsc/reflection/src/typescript.ts b/packages/compiler-cli/src/ngtsc/reflection/src/typescript.ts
+index 0a8623dd97..fd8553ecca 100644
+--- a/packages/compiler-cli/src/ngtsc/reflection/src/typescript.ts
++++ b/packages/compiler-cli/src/ngtsc/reflection/src/typescript.ts
+@@ -670,13 +670,19 @@ function getFarLeftIdentifier(propertyAccess: ts.PropertyAccessExpression): ts.I
+ }
+ 
+ /**
+- * Return the ImportDeclaration for the given `node` if it is either an `ImportSpecifier` or a
+- * `NamespaceImport`. If not return `null`.
++ * Gets the closest ancestor `ImportDeclaration` to a node.
+  */
+ export function getContainingImportDeclaration(node: ts.Node): ts.ImportDeclaration|null {
+-  return ts.isImportSpecifier(node) ? node.parent!.parent!.parent! :
+-      ts.isNamespaceImport(node)    ? node.parent.parent :
+-                                      null;
++  let parent = node.parent;
++
++  while (parent && !ts.isSourceFile(parent)) {
++    if (ts.isImportDeclaration(parent)) {
++      return parent;
++    }
++    parent = parent.parent;
++  }
++
++  return null;
+ }
+ 
+ /**
+diff --git a/packages/compiler-cli/test/ngtsc/ngtsc_spec.ts b/packages/compiler-cli/test/ngtsc/ngtsc_spec.ts
+index edbf759b54..5647229770 100644
+--- a/packages/compiler-cli/test/ngtsc/ngtsc_spec.ts
++++ b/packages/compiler-cli/test/ngtsc/ngtsc_spec.ts
+@@ -9559,6 +9559,55 @@ function allTests(os: string) {
+           expect(jsContents).not.toContain('import { CmpA }');
+           expect(jsContents).not.toContain('import { CmpB }');
+         });
++
++        it('should handle deferred dependencies imported through a default import', () => {
++          env.write('cmp-a.ts', `
++            import { Component } from '@angular/core';
++
++            @Component({
++              standalone: true,
++              selector: 'cmp-a',
++              template: 'CmpA!'
++            })
++            export default class CmpA {}
++          `);
++
++          env.write('/test.ts', `
++            import { Component } from '@angular/core';
++            import CmpA from './cmp-a';
++
++            @Component({
++              selector: 'local-dep',
++              standalone: true,
++              template: 'Local dependency',
++            })
++            export class LocalDep {}
++
++            @Component({
++              selector: 'test-cmp',
++              standalone: true,
++              imports: [CmpA, LocalDep],
++              template: \`
++                @defer {
++                  <cmp-a />
++                  <local-dep />
++                }
++              \`,
++            })
++            export class TestCmp {}
++          `);
++
++          env.driveMain();
++
++          const jsContents = env.getContents('test.js');
++
++          expect(jsContents).toContain('ɵɵdefer(1, 0, TestCmp_Defer_1_DepsFn)');
++          expect(jsContents).toContain('() => [import("./cmp-a").then(m => m.default)]');
++
++          // The `CmpA` symbol wasn't referenced elsewhere, so it can be defer-loaded
++          // via dynamic imports and an original import can be removed.
++          expect(jsContents).not.toContain('import CmpA');
++        });
+       });
+ 
+       it('should detect pipe used in the `when` trigger as an eager dependency', () => {
+@@ -10118,6 +10167,60 @@ function allTests(os: string) {
+              expect(jsContents).toContain('setClassMetadata');
+            });
+       });
++
++      it('should generate setClassMetadataAsync for default imports', () => {
++        env.write('cmp-a.ts', `
++          import {Component} from '@angular/core';
++
++          @Component({
++            standalone: true,
++            selector: 'cmp-a',
++            template: 'CmpA!'
++          })
++          export default class CmpA {}
++        `);
++
++        env.write('/test.ts', `
++          import {Component} from '@angular/core';
++          import CmpA from './cmp-a';
++
++          @Component({
++            selector: 'local-dep',
++            standalone: true,
++            template: 'Local dependency',
++          })
++          export class LocalDep {}
++
++          @Component({
++            selector: 'test-cmp',
++            standalone: true,
++            imports: [CmpA, LocalDep],
++            template: \`
++              @defer {
++                <cmp-a />
++                <local-dep />
++              }
++            \`,
++          })
++          export class TestCmp {}
++        `);
++
++        env.driveMain();
++
++        const jsContents = env.getContents('test.js');
++
++        expect(jsContents).toContain('ɵɵdefer(1, 0, TestCmp_Defer_1_DepsFn)');
++        expect(jsContents)
++            .toContain(
++                // ngDevMode check is present
++                '(() => { (typeof ngDevMode === "undefined" || ngDevMode) && ' +
++                // Main `setClassMetadataAsync` call
++                'i0.ɵsetClassMetadataAsync(TestCmp, ' +
++                // Dependency loading function (note: no local `LocalDep` here)
++                '() => [import("./cmp-a").then(m => m.default)], ' +
++                // Callback that invokes `setClassMetadata` at the end
++                'CmpA => { i0.ɵsetClassMetadata(TestCmp');
++      });
+     });
+ 
+     describe('debug info', () => {
+diff --git a/packages/compiler/src/render3/r3_class_metadata_compiler.ts b/packages/compiler/src/render3/r3_class_metadata_compiler.ts
+index ef390aca82..e091edb2b1 100644
+--- a/packages/compiler/src/render3/r3_class_metadata_compiler.ts
++++ b/packages/compiler/src/render3/r3_class_metadata_compiler.ts
+@@ -72,7 +72,9 @@ export function compileClassMetadata(metadata: R3ClassMetadata): o.Expression {
+  * check to tree-shake away this code in production mode.
+  */
+ export function compileComponentClassMetadata(
+-    metadata: R3ClassMetadata, deferrableTypes: Map<string, string>|null): o.Expression {
++    metadata: R3ClassMetadata,
++    deferrableTypes: Map<string, {importPath: string, isDefaultImport: boolean}>|
++    null): o.Expression {
+   if (deferrableTypes === null || deferrableTypes.size === 0) {
+     // If there are no deferrable symbols - just generate a regular `setClassMetadata` call.
+     return compileClassMetadata(metadata);
+@@ -80,10 +82,13 @@ export function compileComponentClassMetadata(
+ 
+   const dynamicImports: o.Expression[] = [];
+   const importedSymbols: o.FnParam[] = [];
+-  for (const [symbolName, importPath] of deferrableTypes) {
++  for (const [symbolName, {importPath, isDefaultImport}] of deferrableTypes) {
+     // e.g. `(m) => m.CmpA`
+     const innerFn =
+-        o.arrowFn([new o.FnParam('m', o.DYNAMIC_TYPE)], o.variable('m').prop(symbolName));
++        // Default imports are always accessed through the `default` property.
++        o.arrowFn(
++            [new o.FnParam('m', o.DYNAMIC_TYPE)],
++            o.variable('m').prop(isDefaultImport ? 'default' : symbolName));
+ 
+     // e.g. `import('./cmp-a').then(...)`
+     const importExpr = (new o.DynamicImportExpr(importPath)).prop('then').callFn([innerFn]);
+diff --git a/packages/compiler/src/render3/view/api.ts b/packages/compiler/src/render3/view/api.ts
+index a5cf236c54..07fb2d0dcc 100644
+--- a/packages/compiler/src/render3/view/api.ts
++++ b/packages/compiler/src/render3/view/api.ts
+@@ -219,6 +219,11 @@ export interface R3DeferBlockTemplateDependency {
+    * Import path where this dependency is located.
+    */
+   importPath: string|null;
++
++  /**
++   * Whether the symbol is the default export.
++   */
++  isDefaultImport: boolean;
+ }
+ 
+ /**
+@@ -282,7 +287,7 @@ export interface R3ComponentMetadata<DeclarationT extends R3TemplateDependency>
+   /**
+    * Map of deferrable symbol names -> corresponding import paths.
+    */
+-  deferrableTypes: Map<string, string>;
++  deferrableTypes: Map<string, {importPath: string, isDefaultImport: boolean}>;
+ 
+   /**
+    * Specifies how the 'directives' and/or `pipes` array, if generated, need to be emitted.
+diff --git a/packages/compiler/src/render3/view/compiler.ts b/packages/compiler/src/render3/view/compiler.ts
+index 0dc989d4a5..c4862e4486 100644
+--- a/packages/compiler/src/render3/view/compiler.ts
++++ b/packages/compiler/src/render3/view/compiler.ts
+@@ -164,14 +164,16 @@ export function compileDirectiveFromMetadata(
+  * deferrable dependencies.
+  */
+ function createDeferredDepsFunction(
+-    constantPool: ConstantPool, name: string, deps: Map<string, string>) {
++    constantPool: ConstantPool, name: string,
++    deps: Map<string, {importPath: string, isDefaultImport: boolean}>) {
+   // This defer block has deps for which we need to generate dynamic imports.
+   const dependencyExp: o.Expression[] = [];
+ 
+-  for (const [symbolName, importPath] of deps) {
++  for (const [symbolName, {importPath, isDefaultImport}] of deps) {
+     // Callback function, e.g. `m () => m.MyCmp;`.
+-    const innerFn =
+-        o.arrowFn([new o.FnParam('m', o.DYNAMIC_TYPE)], o.variable('m').prop(symbolName));
++    const innerFn = o.arrowFn(
++        [new o.FnParam('m', o.DYNAMIC_TYPE)],
++        o.variable('m').prop(isDefaultImport ? 'default' : symbolName));
+ 
+     // Dynamic import, e.g. `import('./a').then(...)`.
+     const importExpr = (new o.DynamicImportExpr(importPath)).prop('then').callFn([innerFn]);
+diff --git a/packages/compiler/src/render3/view/template.ts b/packages/compiler/src/render3/view/template.ts
+index 38d4986b3a..cb7581a263 100644
+--- a/packages/compiler/src/render3/view/template.ts
++++ b/packages/compiler/src/render3/view/template.ts
+@@ -1389,7 +1389,9 @@ export class TemplateDefinitionBuilder implements t.Visitor<void>, LocalResolver
+       if (deferredDep.isDeferrable) {
+         // Callback function, e.g. `m () => m.MyCmp;`.
+         const innerFn = o.arrowFn(
+-            [new o.FnParam('m', o.DYNAMIC_TYPE)], o.variable('m').prop(deferredDep.symbolName));
++            [new o.FnParam('m', o.DYNAMIC_TYPE)],
++            // Default imports are always accessed through the `default` property.
++            o.variable('m').prop(deferredDep.isDefaultImport ? 'default' : deferredDep.symbolName));
+ 
+         // Dynamic import, e.g. `import('./a').then(...)`.
+         const importExpr =
+diff --git a/packages/compiler/src/template/pipeline/src/phases/create_defer_deps_fns.ts b/packages/compiler/src/template/pipeline/src/phases/create_defer_deps_fns.ts
+index 0f7f113f6c..dd2fbd9a42 100644
+--- a/packages/compiler/src/template/pipeline/src/phases/create_defer_deps_fns.ts
++++ b/packages/compiler/src/template/pipeline/src/phases/create_defer_deps_fns.ts
+@@ -28,7 +28,9 @@ export function createDeferDepsFns(job: ComponentCompilationJob): void {
+           if (dep.isDeferrable) {
+             // Callback function, e.g. `m () => m.MyCmp;`.
+             const innerFn = o.arrowFn(
+-                [new o.FnParam('m', o.DYNAMIC_TYPE)], o.variable('m').prop(dep.symbolName));
++                // Default imports are always accessed through the `default` property.
++                [new o.FnParam('m', o.DYNAMIC_TYPE)],
++                o.variable('m').prop(dep.isDefaultImport ? 'default' : dep.symbolName));
+ 
+             // Dynamic import, e.g. `import('./a').then(...)`.
+             const importExpr =

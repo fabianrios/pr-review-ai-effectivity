@@ -1,0 +1,33 @@
+{
+  "repo": "django/django",
+  "number": 20009,
+  "url": "https://github.com/django/django/pull/20009",
+  "commit_url": "https://github.com/django/django/commit/9b8e4c6d7d47f7b2e96817ba334e9fd53c10a0df",
+  "title": "Fixed #36689 -- Fixed top-level JSONField __in lookup failures on MySQL and Oracle.",
+  "description": "Added a JSONIn lookup to handle correct serialization and extraction for JSONField __in queries on backends without native JSON support. KeyTransformIn now subclasses JSONIn.\r\n\r\nThanks @jacobtylerwalls for the report.\r\n\r\n#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\nticket-36689\r\n\r\nNot sure if a release note is required.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Refs #36689 -- Serialized JSONIn rhs parameters wrapped in Value expressions.",
+  "labels": [],
+  "author": "Clifford Gama",
+  "merged_at": "2025-11-14T09:18:09+02:00",
+  "tickets": [
+    36689
+  ],
+  "base_commit": "66fed37ecb78daf0a50e95151a752b5760293514",
+  "head_commit": "9b8e4c6d7d47f7b2e96817ba334e9fd53c10a0df",
+  "changed_lines": 8,
+  "files": [
+    {
+      "path": "django/db/models/fields/json.py",
+      "added": 3,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "tests/model_fields/test_jsonfield.py",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

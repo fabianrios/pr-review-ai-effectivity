@@ -1,0 +1,32 @@
+diff --git a/django/contrib/auth/password_validation.py b/django/contrib/auth/password_validation.py
+index 6067858b005a..38e7c5c3a80f 100644
+--- a/django/contrib/auth/password_validation.py
++++ b/django/contrib/auth/password_validation.py
+@@ -106,15 +106,20 @@ def __init__(self, min_length=8):
+ 
+     def validate(self, password, user=None):
+         if len(password) < self.min_length:
+-            raise ValidationError(self.get_error_message(), code="password_too_short")
++            raise ValidationError(
++                self.get_error_message(),
++                code="password_too_short",
++                params={"min_length": self.min_length},
++            )
+ 
+     def get_error_message(self):
+-        return ngettext(
+-            "This password is too short. It must contain at least %d character."
+-            % self.min_length,
+-            "This password is too short. It must contain at least %d characters."
+-            % self.min_length,
+-            self.min_length,
++        return (
++            ngettext(
++                "This password is too short. It must contain at least %d character.",
++                "This password is too short. It must contain at least %d characters.",
++                self.min_length,
++            )
++            % self.min_length
+         )
+ 
+     def get_help_text(self):

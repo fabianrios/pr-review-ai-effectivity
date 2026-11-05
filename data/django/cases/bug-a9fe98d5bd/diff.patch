@@ -1,0 +1,52 @@
+diff --git a/django/utils/html.py b/django/utils/html.py
+index d3b904a822..734d7fbfb3 100644
+--- a/django/utils/html.py
++++ b/django/utils/html.py
+@@ -10,7 +10,7 @@ from urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit, urlunsp
+ 
+ from django.conf import settings
+ from django.core.exceptions import SuspiciousOperation, ValidationError
+-from django.core.validators import EmailValidator
++from django.core.validators import DomainNameValidator, EmailValidator
+ from django.utils.deprecation import RemovedInDjango70Warning
+ from django.utils.functional import Promise, cached_property, keep_lazy, keep_lazy_text
+ from django.utils.http import MAX_URL_LENGTH, RFC3986_GENDELIMS, RFC3986_SUBDELIMS
+@@ -296,7 +296,9 @@ class Urlizer:
+ 
+     simple_url_re = _lazy_re_compile(r"^https?://\[?\w", re.IGNORECASE)
+     simple_url_2_re = _lazy_re_compile(
+-        r"^www\.|^(?!http)\w[^@]+\.(com|edu|gov|int|mil|net|org)($|/.*)$", re.IGNORECASE
++        rf"^www\.|^(?!http)(?:{DomainNameValidator.hostname_re})"
++        r"\.(com|edu|gov|int|mil|net|org)($|/.*)$",
++        re.IGNORECASE,
+     )
+     word_split_re = _lazy_re_compile(r"""([\s<>"']+)""")
+ 
+diff --git a/tests/template_tests/filter_tests/test_urlize.py b/tests/template_tests/filter_tests/test_urlize.py
+index ca9f8fb7e1..692c3fc830 100644
+--- a/tests/template_tests/filter_tests/test_urlize.py
++++ b/tests/template_tests/filter_tests/test_urlize.py
+@@ -359,9 +359,8 @@ class FunctionTests(SimpleTestCase):
+             "www.example.com</a>]",
+         )
+         self.assertEqual(
+-            urlize("see test[at[example.com"),
+-            'see <a href="https://test[at[example.com" rel="nofollow">'
+-            "test[at[example.com</a>",
++            urlize("see test[at[example.com"),  # Invalid hostname.
++            "see test[at[example.com",
+         )
+         self.assertEqual(
+             urlize("[http://168.192.0.1](http://168.192.0.1)"),
+diff --git a/tests/utils_tests/test_html.py b/tests/utils_tests/test_html.py
+index f1a29977a7..7167383aef 100644
+--- a/tests/utils_tests/test_html.py
++++ b/tests/utils_tests/test_html.py
+@@ -489,6 +489,7 @@ class TestUtilsHtml(SimpleTestCase):
+             "foo@localhost.",
+             "test@example?;+!.com",
+             "email me@example.com,then I'll respond",
++            "[a link](https://www.djangoproject.com/)",
+             # trim_punctuation catastrophic tests
+             "(" * 100_000 + ":" + ")" * 100_000,
+             "(" * 100_000 + "&:" + ")" * 100_000,

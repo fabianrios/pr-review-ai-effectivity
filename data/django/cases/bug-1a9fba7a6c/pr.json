@@ -1,0 +1,48 @@
+{
+  "repo": "django/django",
+  "number": 22039,
+  "url": "https://github.com/django/django/pull/22039",
+  "commit_url": "https://github.com/django/django/commit/1a9fba7a6c2a0acead19bbb45c25ceb0fdcca7c8",
+  "title": "Fixed #23424 -- Corrected tokenization of verbatim blocks.",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number. -->\r\n<!-- Or delete the line and write \"N/A - typo\" for typo fixes. -->\r\n\r\nticket-23424\r\n\r\n#### Branch description\r\n<!-- Provide a concise overview of the issue or rationale behind the proposed changes. Minimum five words. -->\r\n\r\nThis is cherry-picked from https://github.com/django/django/pull/21982 ",
+  "commit_message": "Fixed #23424 -- Corrected tokenization of verbatim blocks.",
+  "labels": [
+    "benchmark",
+    "coverage"
+  ],
+  "author": "Sarah Boyce",
+  "merged_at": "2026-10-13T11:51:15+02:00",
+  "tickets": [
+    23424
+  ],
+  "base_commit": "de6559094e81a55583fd6428b502fa925db8f593",
+  "head_commit": "1a9fba7a6c2a0acead19bbb45c25ceb0fdcca7c8",
+  "changed_lines": 206,
+  "files": [
+    {
+      "path": "django/template/base.py",
+      "added": 85,
+      "deleted": 40,
+      "binary": false
+    },
+    {
+      "path": "tests/template_tests/syntax_tests/test_verbatim.py",
+      "added": 51,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/template_tests/test_parser.py",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/template_tests/test_partials.py",
+      "added": 28,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

@@ -1,0 +1,32 @@
+{
+  "repo": "angular/angular",
+  "number": 60719,
+  "url": "https://github.com/angular/angular/pull/60719",
+  "title": "refactor(router): replace `APP_INITIALIZER`",
+  "description": "The `APP_INITIALIZER` is deprecated. Replaced with `provideAppInitializer`.",
+  "labels": [
+    "action: merge",
+    "area: router",
+    "target: patch"
+  ],
+  "author": "arturovt",
+  "merged_at": "2025-04-08T23:06:08Z",
+  "base_commit": "1c1ad12ad3e400c36e7bdf41fe25a95d20681cbd",
+  "head_commit": "f9e41c7a8d6bdd9e7ddf0081fc2255f03de3ba92",
+  "changed_lines": 81,
+  "files": [
+    {
+      "path": "goldens/public-api/router/index.api.md",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/router/src/provide_router.ts",
+      "added": 33,
+      "deleted": 46,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

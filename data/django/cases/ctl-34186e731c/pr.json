@@ -1,0 +1,69 @@
+{
+  "repo": "django/django",
+  "number": 20340,
+  "url": "https://github.com/django/django/pull/20340",
+  "commit_url": "https://github.com/django/django/commit/34186e731ca20a2344b1f88fd543a854d6b13a00",
+  "title": "Fixed #36712 -- Evaluated type annotations lazily in template tag registration.",
+  "description": "#### Trac ticket number\r\nticket-36712\r\n\r\n#### Branch description\r\nPython 3.14 introduces [deferred evaluation of type annotations](https://docs.python.org/3/whatsnew/3.14.html#whatsnew314-deferred-annotations), which can make headaches around circular definitions go away.\r\n\r\n`inspect.getfullargspec` wasn't updated to take the new `annotation_format` arg that was provided to let inspecting libraries (us) avoid eagerly evaluating user annotations, see https://github.com/python/cpython/issues/141560.\r\n\r\nOne solution would have been to copy and paste the entire function--along with importing the seven or eight other symbols it needed--and do the tweak, long-term forking the implementation.\r\n\r\nInstead, patching the module helper anticipating the change we want Python to make felt more future-proof and sufficiently self-documenting. However, I'm happy to swap this out for a copy-and-paste approach if that's preferable, but we'd want to redistribute the python license in that case, I suppose?\r\n\r\nIdeally, this will be reverted when an upstream solution is available for https://github.com/python/cpython/issues/141560.\r\n\r\nThanks Patrick Rauscher for the report and Augusto Pontes for the first iteration and test.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [x] I have added or updated relevant docs, including release notes if applicable.\r\n- [x] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #36712 -- Evaluated type annotations lazily in template tag registration.\n\nIdeally, this will be reverted when an upstream solution is available for\nhttps://github.com/python/cpython/issues/141560.\n\nThanks Patrick Rauscher for the report and Augusto Pontes for the\nfirst iteration and test.",
+  "labels": [],
+  "author": "Jacob Walls",
+  "merged_at": "2025-11-29T18:45:39-05:00",
+  "tickets": [
+    36712
+  ],
+  "base_commit": "ce36c35e76f82f76cdfa5777456e794d481e5afc",
+  "head_commit": "34186e731ca20a2344b1f88fd543a854d6b13a00",
+  "changed_lines": 170,
+  "files": [
+    {
+      "path": "django/contrib/admin/templatetags/base.py",
+      "added": 5,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "django/template/base.py",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "django/template/library.py",
+      "added": 31,
+      "deleted": 28,
+      "binary": false
+    },
+    {
+      "path": "django/utils/inspect.py",
+      "added": 32,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.2.9.txt",
+      "added": 4,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_views/test_templatetags.py",
+      "added": 20,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/template_tests/test_library.py",
+      "added": 26,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/template_tests/test_parser.py",
+      "added": 17,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

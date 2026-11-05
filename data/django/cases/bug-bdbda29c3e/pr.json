@@ -1,0 +1,33 @@
+{
+  "repo": "django/django",
+  "number": 21254,
+  "url": "https://github.com/django/django/pull/21254",
+  "commit_url": "https://github.com/django/django/commit/bdbda29c3e126754c3ae04ceb5c5d35d49aae01c",
+  "title": "Fixed #29303 -- Avoided mutating original view in non_atomic_requests().",
+  "description": "When `non_atomic_requests()` was applied multiple times to the same view\r\nfunction, it mutated the `_non_atomic_requests` attribute of the original\r\nfunction instead of returning a new wrapper. This has been fixed by\r\nreturning a `functools.wraps`-based wrapper so the original view is left\r\nuntouched.\r\n\r\n#### Trac ticket number\r\nticket-29303\r\n\r\n#### Branch description\r\nFixes a bug where `non_atomic_requests()` mutated the `_non_atomic_requests`\r\nattribute of the original view function instead of returning a new wrapper.\r\nThis patch returns a `functools.wraps`-based wrapper so the original view\r\nis left untouched, adds a regression test, and includes a release note.\r\n\r\n#### AI Assistance Disclosure (REQUIRED)\r\n- [x] **No AI tools were used** in preparing this PR.\r\n- [ ] **If AI tools were used**, I have disclosed which ones, and fully reviewed and verified their output.\r\n\r\n#### Checklist\r\n- [x] This PR follows the [contribution guidelines](https://docs.djangoproject.com/en/stable/internals/contributing/writing-code/submitting-patches/).\r\n- [x] This PR **does not** disclose a security vulnerability (see [vulnerability reporting](https://docs.djangoproject.com/en/stable/internals/security/)).\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period (see [guidelines](https://docs.djangoproject.com/en/dev/internals/contributing/committing-code/#committing-guidelines)).\r\n- [x] I have not requested, and will not request, an automated AI review for this PR. <!-- You are welcome to do so in your own fork. -->\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [x] I have added or updated relevant docs, including release notes if applicable.\r\n- [x] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #29303 -- Avoided mutating original view in non_atomic_requests().\n\nPreviously non_atomic_requests() mutated the _non_atomic_requests\nattribute of the original view function instead of returning a new wrapper.",
+  "labels": [],
+  "author": "Sina Chaichi Maleki",
+  "merged_at": "2026-05-08T23:20:07+02:00",
+  "tickets": [
+    29303
+  ],
+  "base_commit": "7112007fcaf7a7db8a4a6bb1d45b51d8fa41d0b7",
+  "head_commit": "bdbda29c3e126754c3ae04ceb5c5d35d49aae01c",
+  "changed_lines": 27,
+  "files": [
+    {
+      "path": "django/db/transaction.py",
+      "added": 10,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "tests/handlers/tests.py",
+      "added": 13,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

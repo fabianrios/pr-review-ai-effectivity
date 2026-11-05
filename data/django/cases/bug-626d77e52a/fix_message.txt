@@ -1,0 +1,7 @@
+Fixed #36432 -- Fixed a prefetch_related crash on related target subclass queryset.
+
+Regression in 626d77e52a3f247358514bcf51c761283968099c.
+
+Refs #36116.
+
+Thanks Cornelis Poppema for the excellent report.

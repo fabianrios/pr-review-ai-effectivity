@@ -1,0 +1,39 @@
+{
+  "repo": "django/django",
+  "number": 19395,
+  "url": "https://github.com/django/django/pull/19395",
+  "commit_url": "https://github.com/django/django/commit/8638d8bf74c1a58302c97d4436ad2eb08438145b",
+  "title": "Fixed #36273 -- Moved Index system checks from Model to Index.check().",
+  "description": "ticket-36273\r\n\r\nReviewers: see corresponding change for constraints: 0fb104dda287431f5ab74532e45e8471e22b58c8.",
+  "commit_message": "Fixed #36273 -- Moved Index system checks from Model to Index.check().",
+  "labels": [],
+  "author": "Tim Graham",
+  "merged_at": "2025-04-19T20:32:58-04:00",
+  "tickets": [
+    36273
+  ],
+  "base_commit": "8620a3b0c79e4e8098b88f1176ed26fad0bf6c5c",
+  "head_commit": "8638d8bf74c1a58302c97d4436ad2eb08438145b",
+  "changed_lines": 208,
+  "files": [
+    {
+      "path": "django/db/models/base.py",
+      "added": 2,
+      "deleted": 82,
+      "binary": false
+    },
+    {
+      "path": "django/db/models/indexes.py",
+      "added": 87,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/invalid_models_tests/test_models.py",
+      "added": 22,
+      "deleted": 15,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

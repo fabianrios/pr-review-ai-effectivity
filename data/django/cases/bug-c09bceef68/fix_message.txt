@@ -1,0 +1,9 @@
+Fixed #36234 -- Restored single_object argument to LogEntry.objects.log_actions().
+
+Thank you Adam Johnson for the report and fix. Thank you Sarah Boyce for
+your spot on analysis.
+
+Regression in c09bceef68e5abb79accedd12dade16aa6577a09, which is
+partially reverted in this branch.
+
+Co-authored-by: Sarah Boyce <42296566+sarahboyce@users.noreply.github.com>

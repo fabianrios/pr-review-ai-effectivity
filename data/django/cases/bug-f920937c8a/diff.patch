@@ -1,0 +1,58 @@
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 3d3bbfd38a..13043835dd 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -322,17 +322,25 @@ class RoutePattern(CheckURLMixin):
+         self.name = name
+ 
+     def match(self, path):
+-        match = self.regex.search(path)
+-        if match:
+-            # RoutePattern doesn't allow non-named groups so args are ignored.
+-            kwargs = match.groupdict()
+-            for key, value in kwargs.items():
+-                converter = self.converters[key]
+-                try:
+-                    kwargs[key] = converter.to_python(value)
+-                except ValueError:
+-                    return None
+-            return path[match.end() :], (), kwargs
++        # Only use regex overhead if there are converters.
++        if self.converters:
++            if match := self.regex.search(path):
++                # RoutePattern doesn't allow non-named groups so args are ignored.
++                kwargs = match.groupdict()
++                for key, value in kwargs.items():
++                    converter = self.converters[key]
++                    try:
++                        kwargs[key] = converter.to_python(value)
++                    except ValueError:
++                        return None
++                return path[match.end() :], (), kwargs
++        # If this is an endpoint, the path should be exactly the same as the route.
++        elif self._is_endpoint:
++            if self._route == path:
++                return "", (), {}
++        # If this isn't an endpoint, the path should start with the route.
++        elif path.startswith(self._route):
++            return path.removeprefix(self._route), (), {}
+         return None
+ 
+     def check(self):
+diff --git a/tests/urlpatterns/test_resolvers.py b/tests/urlpatterns/test_resolvers.py
+index cb831bbe1c..99b2f9154c 100644
+--- a/tests/urlpatterns/test_resolvers.py
++++ b/tests/urlpatterns/test_resolvers.py
+@@ -13,6 +13,12 @@ class RoutePatternTests(SimpleTestCase):
+     def test_str(self):
+         self.assertEqual(str(RoutePattern(_("translated/"))), "translated/")
+ 
++    def test_has_converters(self):
++        self.assertEqual(len(RoutePattern("translated/").converters), 0)
++        self.assertEqual(len(RoutePattern(_("translated/")).converters), 0)
++        self.assertEqual(len(RoutePattern("translated/<int:foo>").converters), 1)
++        self.assertEqual(len(RoutePattern(_("translated/<int:foo>")).converters), 1)
++
+ 
+ class ResolverCacheTests(SimpleTestCase):
+     @override_settings(ROOT_URLCONF="urlpatterns.path_urls")

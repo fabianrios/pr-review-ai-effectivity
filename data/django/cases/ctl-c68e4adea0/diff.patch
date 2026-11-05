@@ -1,0 +1,66 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 9068d87a89..dd957ec765 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -1629,9 +1629,12 @@ class SQLCompiler:
+             cursor = self.connection.cursor()
+         try:
+             cursor.execute(sql, params)
+-        except Exception:
++        except Exception as e:
+             # Might fail for server-side cursors (e.g. connection closed)
+-            cursor.close()
++            try:
++                cursor.close()
++            except DatabaseError:
++                raise e from None
+             raise
+ 
+         if result_type == ROW_COUNT:
+diff --git a/tests/queries/test_sqlcompiler.py b/tests/queries/test_sqlcompiler.py
+index 72a66ad07c..0f6f2fc10b 100644
+--- a/tests/queries/test_sqlcompiler.py
++++ b/tests/queries/test_sqlcompiler.py
+@@ -1,11 +1,14 @@
+-from django.db import DEFAULT_DB_ALIAS, connection
++from unittest import mock
++
++from django.db import DEFAULT_DB_ALIAS, DatabaseError, connection
+ from django.db.models.sql import Query
+-from django.test import SimpleTestCase
++from django.db.models.sql.compiler import SQLCompiler
++from django.test import TestCase
+ 
+ from .models import Item
+ 
+ 
+-class SQLCompilerTest(SimpleTestCase):
++class SQLCompilerTest(TestCase):
+     def test_repr(self):
+         query = Query(Item)
+         compiler = query.get_compiler(DEFAULT_DB_ALIAS, connection)
+@@ -15,3 +18,24 @@ class SQLCompilerTest(SimpleTestCase):
+             f"<DatabaseWrapper vendor={connection.vendor!r} alias='default'> "
+             f"using='default'>",
+         )
++
++    def test_execute_sql_suppresses_cursor_closing_failure_on_exception(self):
++        query = Query(Item)
++        compiler = SQLCompiler(query, connection, None)
++        cursor = mock.MagicMock()
++
++        # When execution fails, the cursor may have been closed.
++        # Django's attempt to close it again will fail, and needs catching.
++        execute_err = DatabaseError("execute failed")
++        cursor.execute.side_effect = execute_err
++        cursor.close.side_effect = DatabaseError("close failed")
++
++        with mock.patch.object(connection, "cursor", return_value=cursor):
++            with self.assertRaises(DatabaseError) as ctx:
++                compiler.execute_sql("SELECT 1", [])
++
++        # There is no irrelevant context from trying to close a closed cursor.
++        exc = ctx.exception
++        self.assertIs(exc, execute_err)
++        self.assertIsNone(exc.__cause__)
++        self.assertTrue(exc.__suppress_context__)

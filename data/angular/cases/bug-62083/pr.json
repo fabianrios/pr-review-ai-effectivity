@@ -1,0 +1,74 @@
+{
+  "repo": "angular/angular",
+  "number": 62083,
+  "url": "https://github.com/angular/angular/pull/62083",
+  "title": "build: move dependencies on npm package of dev-infra to workspace dependency",
+  "description": "Move from relying on the @npm// dependencies to aspect node modules where possible\r\n",
+  "labels": [
+    "action: merge",
+    "area: build & ci",
+    "target: patch"
+  ],
+  "author": "josephperrott",
+  "merged_at": "2025-06-24T10:46:16Z",
+  "base_commit": "1cff7cf5e384354ba08c2f895dfe41322e368795",
+  "head_commit": "60708a460826610819abd9ed5199d3de42c0f8d9",
+  "changed_lines": 18,
+  "files": [
+    {
+      "path": "devtools/projects/demo-no-zone/src/BUILD.bazel",
+      "added": 0,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/demo-no-zone/src/index.html",
+      "added": 0,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/demo-standalone/src/BUILD.bazel",
+      "added": 1,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/demo-standalone/src/index.html",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/protocol/BUILD.bazel",
+      "added": 0,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/shell-browser/src/BUILD.bazel",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/shell-browser/src/app/BUILD.bazel",
+      "added": 0,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/shell-browser/src/environments/BUILD.bazel",
+      "added": 0,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "devtools/src/BUILD.bazel",
+      "added": 1,
+      "deleted": 2,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

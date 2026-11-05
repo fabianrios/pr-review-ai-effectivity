@@ -1,0 +1,11 @@
+fix(compiler-cli): use correct symbol name for default imported symbols in defer blocks (#54495)
+
+This commit addresses a problem with PR #53695 that introduced support for default imports,
+where the actual dynamic import used in the defer loading function continued to use the
+symbol name, instead of `.default` for the dynamic import. This issue went unnoticed in the
+testcase because a proper instance was being generated for the `ɵsetClassMetadataAsync` function,
+but not the generated dependency loader function.
+
+Fixes #54491
+
+PR Close #54495

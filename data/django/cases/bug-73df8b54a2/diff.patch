@@ -1,0 +1,136 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 243093da44..3d40bc4286 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -740,12 +740,16 @@ class Model(AltersData, metaclass=ModelBase):
+ 
+         # Clear cached relations.
+         for field in self._meta.related_objects:
+-            if field.is_cached(self):
++            if (fields is None or field.name in fields) and field.is_cached(self):
+                 field.delete_cached_value(self)
+ 
+         # Clear cached private relations.
+         for field in self._meta.private_fields:
+-            if field.is_relation and field.is_cached(self):
++            if (
++                (fields is None or field.name in fields)
++                and field.is_relation
++                and field.is_cached(self)
++            ):
+                 field.delete_cached_value(self)
+ 
+         self._state.db = db_instance._state.db
+diff --git a/tests/contenttypes_tests/test_fields.py b/tests/contenttypes_tests/test_fields.py
+index 5510f34cd0..15f1dafd63 100644
+--- a/tests/contenttypes_tests/test_fields.py
++++ b/tests/contenttypes_tests/test_fields.py
+@@ -45,6 +45,18 @@ class GenericForeignKeyTests(TestCase):
+         new_entity = answer.question
+         self.assertIsNot(old_entity, new_entity)
+ 
++    def test_clear_cached_generic_relation_explicit_fields(self):
++        question = Question.objects.create(text="question")
++        answer = Answer.objects.create(text="answer", question=question)
++        old_question_obj = answer.question
++        # The reverse relation is not refreshed if not passed explicitly in
++        # `fields`.
++        answer.refresh_from_db(fields=["text"])
++        self.assertIs(answer.question, old_question_obj)
++        answer.refresh_from_db(fields=["question"])
++        self.assertIsNot(answer.question, old_question_obj)
++        self.assertEqual(answer.question, old_question_obj)
++
+ 
+ class GenericRelationTests(TestCase):
+     def test_value_to_string(self):
+@@ -55,6 +67,29 @@ class GenericRelationTests(TestCase):
+         self.assertCountEqual(result, [answer1.pk, answer2.pk])
+ 
+ 
++class DeferredGenericRelationTests(TestCase):
++    @classmethod
++    def setUpTestData(cls):
++        cls.question = Question.objects.create(text="question")
++        cls.answer = Answer.objects.create(text="answer", question=cls.question)
++
++    def test_defer_not_clear_cached_private_relations(self):
++        obj = Answer.objects.defer("text").get(pk=self.answer.pk)
++        with self.assertNumQueries(1):
++            obj.question
++        obj.text  # Accessing a deferred field.
++        with self.assertNumQueries(0):
++            obj.question
++
++    def test_only_not_clear_cached_private_relations(self):
++        obj = Answer.objects.only("content_type", "object_id").get(pk=self.answer.pk)
++        with self.assertNumQueries(1):
++            obj.question
++        obj.text  # Accessing a deferred field.
++        with self.assertNumQueries(0):
++            obj.question
++
++
+ class GetPrefetchQuerySetDeprecation(TestCase):
+     def test_generic_relation_warning(self):
+         Question.objects.create(text="test")
+diff --git a/tests/defer/models.py b/tests/defer/models.py
+index 6de2e2af97..560e54c8c0 100644
+--- a/tests/defer/models.py
++++ b/tests/defer/models.py
+@@ -19,6 +19,14 @@ class Primary(models.Model):
+         return self.name
+ 
+ 
++class PrimaryOneToOne(models.Model):
++    name = models.CharField(max_length=50)
++    value = models.CharField(max_length=50)
++    related = models.OneToOneField(
++        Secondary, models.CASCADE, related_name="primary_o2o"
++    )
++
++
+ class Child(Primary):
+     pass
+ 
+diff --git a/tests/defer/tests.py b/tests/defer/tests.py
+index c7eb03dc8a..3945b667ba 100644
+--- a/tests/defer/tests.py
++++ b/tests/defer/tests.py
+@@ -6,6 +6,7 @@ from .models import (
+     Child,
+     ChildProxy,
+     Primary,
++    PrimaryOneToOne,
+     RefreshPrimaryProxy,
+     Secondary,
+     ShadowChild,
+@@ -326,3 +327,28 @@ class InvalidDeferTests(SimpleTestCase):
+         )
+         with self.assertRaisesMessage(FieldError, msg):
+             Primary.objects.only("name").select_related("related")[0]
++
++
++class DeferredRelationTests(TestCase):
++    @classmethod
++    def setUpTestData(cls):
++        cls.secondary = Secondary.objects.create(first="a", second="b")
++        cls.primary = PrimaryOneToOne.objects.create(
++            name="Bella", value="Baxter", related=cls.secondary
++        )
++
++    def test_defer_not_clear_cached_relations(self):
++        obj = Secondary.objects.defer("first").get(pk=self.secondary.pk)
++        with self.assertNumQueries(1):
++            obj.primary_o2o
++        obj.first  # Accessing a deferred field.
++        with self.assertNumQueries(0):
++            obj.primary_o2o
++
++    def test_only_not_clear_cached_relations(self):
++        obj = Secondary.objects.only("first").get(pk=self.secondary.pk)
++        with self.assertNumQueries(1):
++            obj.primary_o2o
++        obj.second  # Accessing a deferred field.
++        with self.assertNumQueries(0):
++            obj.primary_o2o

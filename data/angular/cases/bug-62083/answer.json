@@ -1,0 +1,15 @@
+{
+  "case_id": "bug-62083",
+  "pr_url": "https://github.com/angular/angular/pull/62083",
+  "kind": "bug",
+  "ground_truth": "The change switches the zone.js dependency in `devtools/src/BUILD.bazel` (the `devapp` pkg_web) and `devtools/projects/shell-browser/src/BUILD.bazel` (the static files filegroup). It goes from `@npm//:node_modules/zone.js/bundles/zone.umd.min.js` to the workspace target `//:node_modules/zone.js`. That moves the packaged file from `./npm/node_modules/zone.js/...` to `./node_modules/zone.js/...`. The change updated the `<script>` tag only in `demo-standalone/src/index.html`. `devtools/src/index.html` and `devtools/projects/shell-browser/src/index.html` still reference `./npm/node_modules/zone.js/bundles/zone.umd.min.js`. In both the DevTools dev app and the production browser-extension build, that script 404s and zone.js is never loaded, so the zone-based Angular app fails to bootstrap or run correctly. The fix updated both index.html files to load `./node_modules/zone.js/bundles/zone.umd.min.js`.",
+  "bug_files": [
+    "devtools/src/BUILD.bazel",
+    "devtools/projects/shell-browser/src/BUILD.bazel"
+  ],
+  "fix_pr": null,
+  "fix_commit": "29223931da94f92366cdab4f923fc2e7dfb87956",
+  "issue": null,
+  "fix_tickets": [],
+  "evidence_url": null
+}

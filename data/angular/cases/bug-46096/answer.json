@@ -1,0 +1,15 @@
+{
+  "case_id": "bug-46096",
+  "pr_url": "https://github.com/angular/angular/pull/46096",
+  "kind": "bug",
+  "ground_truth": "`requiresInlineTypeCheckBlock` now requires an inline type-check block whenever any pipe in its `usedPipes` argument cannot be referenced from the TCB environment (`env.canReferenceType`, stricter than the previous \"is exported\" check). But the caller in context.ts passes `pipes`, the map of all pipes in the component's scope, not just those used in the template. Components that merely have an unreferenceable pipe in scope are now forced to inline, which errors where inlining is unsupported (e.g. the language service reports spurious errors). Fixed by passing only the pipes the template actually uses.",
+  "bug_files": [
+    "packages/compiler-cli/src/ngtsc/typecheck/src/tcb_util.ts",
+    "packages/compiler-cli/src/ngtsc/typecheck/src/context.ts"
+  ],
+  "fix_pr": 46807,
+  "fix_commit": "93d17ee888fc14c740daad5c74f17f0863cddddd",
+  "issue": 46747,
+  "fix_tickets": [],
+  "evidence_url": null
+}

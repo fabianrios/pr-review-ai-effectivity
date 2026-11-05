@@ -1,0 +1,10 @@
+{
+  "since": "2021-01-01",
+  "evidence_snippets": 384,
+  "culprit_numbers": 260,
+  "merged_pr_fetched": 250,
+  "too_large_or_empty": 85,
+  "not_a_pr": 7,
+  "size_ok": 165,
+  "not_merged": 3
+}

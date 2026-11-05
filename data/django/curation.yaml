@@ -1,0 +1,547 @@
+# Hand-verified Django bug cases. `culprit` is the commit named in a later "Regression in <sha>." fix.
+#
+# Inclusion rule (same as angular): the later fix explicitly attributes the bug to this commit, the faulty code is
+# visibly present in this commit's diff, and the bug is a behavioral defect (not visual CSS, docs, or test infra).
+# Selection preference: culprits merged 2024-01-01 or later; diverse areas.
+# Ground truths were drafted by Claude Code from the cited fix commits and diffs; pending author confirmation.
+# Trac ticket texts were not read (code.djangoproject.com is blocked in the mining environment).
+
+bugs:
+  - culprit: 31a43c571f4d036827d4fd7a5f615591637dc1be
+    status: include
+    fix_commit: a32c7075cf634aee1f4f3deecd27f194097ec0c2
+    fix_tickets: [37017]
+    bug_files: [django/contrib/auth/__init__.py]
+    ground_truth: >
+      To keep `request.auser()` in sync, the commit changes `alogin()` and `alogout()` to replace `request.auser`
+      instead of setting `request.user`. It drops the old `if hasattr(request, "user"): request.user = user` and
+      `request.user = AnonymousUser()` branches. After `await alogin(...)` or `await alogout(...)`,
+      `request.user` still holds the previous user (e.g. still authenticated after logout), so sync code paths
+      and templates see stale authentication state. Fixed by updating both `request.user` and `request.auser` when
+      present.
+
+  - culprit: 2ce5cb0f7a4618dfdc5f5c10e53e2e9b9543d298
+    status: include
+    fix_commit: a284a49153f005f2a7af087025e5112ba06cbd5f
+    fix_tickets: [37047]
+    bug_files: [django/db/models/sql/query.py]
+    ground_truth: >
+      The new `Query.orderby_issubset_groupby` property resolves every string in `order_by` with
+      `F(order_by)`. Order-by strings may carry a "-" prefix for descending order or be "?" for random order, which
+      are not field names. So e.g. `.values("is_staff").annotate(latest=Max(...)).order_by("-latest").count()`
+      crashes with `FieldError: Cannot resolve keyword '-latest' into field`. Fixed by stripping the "-" prefix and
+      returning False for "?".
+
+  - culprit: 9b8e4c6d7d47f7b2e96817ba334e9fd53c10a0df
+    status: include
+    fix_commit: fabce94374e166e80e2643db8b85d1e3442427bf
+    fix_tickets: [37377, 37403]
+    bug_files: [django/db/models/fields/json.py]
+    ground_truth: >
+      For databases without a native JSON field, `JSONIn` now treats any `Value(...)` right-hand-side parameter as
+      already JSON-serialized and uses `param.value` directly. That only holds for `Value(..., JSONField())`. A
+      bare `Value("x")`, `Value(True)` or `Value(None)` has a non-JSON output field, so its raw primitive is passed
+      where JSON text is expected. `__in` lookups with such values then crash (e.g. `Value(None)` on SQLite) or
+      silently return wrong results. Fixed by JSON-encoding the Value's raw value when its output field is not a
+      JSONField.
+
+  - culprit: bdbda29c3e126754c3ae04ceb5c5d35d49aae01c
+    status: include
+    fix_commit: 93d7e82b6a67aa56a2d9dababfefb8bda543786e
+    fix_tickets: [37382]
+    bug_files: [django/db/transaction.py]
+    ground_truth: >
+      To avoid mutating the original view, `non_atomic_requests()` now wraps the view in a new synchronous
+      `def wrapper(*args, **kwargs): return view(*args, **kwargs)`. For an async view this wrapper is a sync
+      function returning a coroutine, so Django no longer recognizes the decorated view as async
+      (`iscoroutinefunction` is False), and async views decorated with `@transaction.non_atomic_requests` break.
+      Fixed by creating an `async def` wrapper when the view is a coroutine function.
+
+  - culprit: 1a9fba7a6c2a0acead19bbb45c25ceb0fdcca7c8
+    status: include
+    fix_commit: 45fe4636d8d147b87040170a6cee4ab036ed2324
+    fix_tickets: [37450]
+    bug_files: [django/template/base.py]
+    ground_truth: >
+      The new lexer regexes for raw blocks require at least one whitespace character after `{%`:
+      `_raw_start_re` uses `\s+` before comment/verbatim, and the end regexes use `[^\S\n]+` before
+      endcomment/endverbatim. Django accepts tags written without spaces, e.g. `{%comment%}`, `{%verbatim%}` and
+      `{%endverbatim%}`. Those are no longer recognized as raw-block delimiters, so their contents are tokenized and
+      parsed as template code (wrong output or TemplateSyntaxError). Fixed by changing `+` to `*`.
+
+  - culprit: f920937c8a63df6bea220e4386f59cdb45b2e355
+    status: include
+    fix_commit: 7bf3ac3ee255bcfe329e3203c7a2555b1275d506
+    fix_tickets: [36796]
+    bug_files: [django/urls/resolvers.py]
+    ground_truth: >
+      To skip the regex for converter-less routes, `RoutePattern.match()` now compares the path with
+      `self._route` using string operations (`==`, `startswith`, `removeprefix`). `_route` can be a lazy
+      translation object (`gettext_lazy()` routes, e.g. with i18n URL patterns). Lazy proxies don't behave like
+      `str` for `str.startswith()` / `str.removeprefix()`, so such routes fail to match or raise. Fixed by coercing
+      the route with `str(self._route)` at match time.
+
+  - culprit: 0eec2a163a4b2ea4e82c53ae1d7b71bf43ac911d
+    status: include
+    fix_commit: 817df1c4d6d38f416460d7d9354d7deab9d35139
+    fix_tickets: [37463]
+    bug_files: [django/forms/boundfield.py]
+    ground_truth: >
+      Previously `label_tag()` built a fresh dict (`{**(attrs or {}), "for": ...}`) before adding the required CSS
+      class. To omit "for" on <legend> tags, the commit uses `attrs = attrs or {}` and only copies when
+      `tag != "legend"`. For legends (`legend_tag()`) the caller's own dict is kept, and the following
+      `attrs["class"] += " " + required_css_class` mutates it in place. The caller's attrs dict is modified and the
+      class accumulates on repeated rendering. Fixed by always copying attrs first.
+
+  - culprit: 7142667340f78403cbbcaa8f33703c494282b7b7
+    status: include
+    fix_commit: a269574f1bcf4716502b9ba8c3492abf15dc93eb
+    fix_tickets: [37405]
+    bug_files: [django/core/serializers/pyyaml.py]
+    ground_truth: >
+      The commit replaces a custom dict representer with
+      `yaml.dump(..., Dumper=DjangoSafeDumper, sort_keys=False, **self.options)`. If the caller passes `sort_keys`
+      as a serializer option (e.g. `serializers.serialize("yaml", qs, sort_keys=True)`), the keyword is given
+      twice and `yaml.dump()` raises `TypeError: got multiple values for keyword argument 'sort_keys'`. Fixed with
+      `self.options.setdefault("sort_keys", False)`.
+
+  - culprit: a9fe98d5bd4212d069afe8316101984aadecfbb2
+    status: include
+    fix_commit: 125b63ca745bace1e098ed3c7362d59136f68a8b
+    fix_tickets: [36710]
+    bug_files: [django/utils/html.py]
+    ground_truth: >
+      In `urlize`, the simple-URL regex for bare domains is changed to use `DomainNameValidator.hostname_re` before
+      the TLD. `hostname_re` matches a single DNS label (no dots), so bare multi-label domains without `www.` or a
+      scheme, e.g. `docs.djangoproject.com`, no longer match and are not turned into links (`djangoproject.com`
+      still works). Fixed by appending `DomainNameValidator.domain_re`, which matches the additional dotted labels.
+
+  - culprit: 78fac1b0473ed8960ecd2a30aca4fa8420d150b8
+    status: include
+    fix_commit: 356e5b0f5ddb473eec3ed96d8ad9a37f3f8585eb
+    fix_tickets: [37184]
+    bug_files: [django/contrib/auth/hashers.py]
+    ground_truth: >
+      To accept both str and bytes, the commit adds `password = force_str(password)` (and the same for salt) in
+      `PBKDF2PasswordHasher.encode()` and `MD5PasswordHasher.encode()`. `force_str` decodes bytes as UTF-8, so a
+      bytes password that is not valid UTF-8 (a perfectly valid password value) now raises `UnicodeDecodeError`
+      instead of being hashed. Fixed by passing the password through unchanged in PBKDF2 (`pbkdf2()` accepts
+      bytes) and hashing `force_bytes(salt) + force_bytes(password)` in MD5.
+
+  # ---------------------------------------------------------------- backups
+  - culprit: c075508b4de8edf9db553b409f8a8ed2f26ecead
+    status: backup
+    fix_commit: cf5f36bf903a2854f5e395149cee707115b83744
+    fix_tickets: [36446, 36447]
+    notes: >
+      Removed "q" from the internal MediaType.params (broke third parties such as Zulip). Moved to backup: it breaks an
+      undocumented attribute (hard to call a defect from the diff alone), and no clean control exists in
+      django/http (the natural one, e161bd4657, had its own unlabelled bug fixed by this very commit).
+  - culprit: 7b54ddd5e64c96c641b70bb5f0e958a9e2035fb2
+    status: backup
+    fix_commit: 0751d5fed159fd9ff7edba522ece13c8c9d2a0d0
+    fix_tickets: [37311]
+    notes: get_prep_lookup() consumed rhs iterators in annotation lookups.
+
+  # ---------------------------------------------------------------- scaleup-2026-11
+  # Drafted by claude-opus-5-5 (`bench-eval draft`, data/DRAFTS.md) and checked by `bench-eval gtcheck`.
+  # Author sign-off 2026-11-05: reviewed the judgment-call shortlist; dropped angular/bug-62083 (build
+  # tooling), kept the rest. Labels themselves were model-checked (gtcheck), not expert-checked.
+  - culprit: 73df8b54a2fab53bec4c7573cda5ad8c869c2fd8
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 2f6b096b83c55317c7ceef2d8d5dc3bee33293dc
+    fix_tickets: [35950]
+    bug_files: [django/db/models/base.py]
+    ground_truth: >
+      In `Model.refresh_from_db()`, the change makes clearing of cached reverse relations
+      (`_meta.related_objects`) and cached private relations (`_meta.private_fields`, e.g. GenericForeignKey)
+      conditional on `fields is None or field.name in fields`. However, when `refresh_from_db()` is called without
+      `fields` on an instance that has deferred fields, the method's existing code reassigns the local `fields` to
+      the set of non-deferred concrete field attnames. That set never contains reverse-relation or private-field
+      names, so the new condition is always false and these caches are never cleared. For example, loading
+      `Secondary.objects.defer("first").get(...)`, accessing the reverse one-to-one `obj.primary_o2o` (now
+      cached), then calling `obj.refresh_from_db()` leaves the stale related object in place instead of reloading
+      it. A plain full refresh is supposed to clear all relation caches. The fix stops overwriting `fields` and
+      passes the computed attname set directly to `.only()`, so `fields` stays None and all cached relations are
+      cleared again.
+  - culprit: c991602ce5798385261381025c06698d7fd30dc5
+    status: exclude
+    batch: scaleup-2026-11
+    fix_commit: 26aae5614487f58ddb1df5726224393887373ecd
+    fix_tickets: []
+    bug_files: [django/db/models/fields/json.py]
+    notes: "Oracle-only fix (policy: Oracle-only fixes are excluded)"
+    ground_truth: >
+      The change adds `JSONExact.as_oracle`, which compiles a JSONField `__exact` lookup on Oracle to a bare
+      `JSON_EQUAL(lhs, rhs)`. On Oracle 21c+ (`supports_primitives_in_json_field`), JSON values can be scalar
+      primitives such as strings, numbers or booleans. Without the `JSON()` constructor, `JSON_EQUAL` does not
+      handle such scalar operands. Its default FALSE ON ERROR behaviour then makes the comparison silently
+      evaluate to false instead of raising. As a result, queries like `JSONModel.objects.filter(value="foo")`,
+      `filter(value=True)`, or key transforms that compare against a primitive return no rows even when matching
+      data exists. The fix wraps both operands in `JSON(...)` when the backend supports primitives and adds `ERROR
+      ON ERROR` to the `JSON_EQUAL` call.
+  - culprit: faeb92ea13f0c1b2cc83f45b512f2c41cfb4f02d
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 7646b9023da7e1f6f3a871959db027b3ea36eebb
+    fix_tickets: [35301]
+    bug_files: [django/db/models/options.py]
+    ground_truth: >
+      The rewritten `Options._property_names` iterates over `self.model.__mro__` and adds every name whose value
+      in some `klass.__dict__` is a `property`. It does not check whether a class earlier in the MRO already
+      shadows that name with a non-property attribute. Example: an abstract parent model defines `foo` as a
+      `@property` and a child model overrides `foo` with a plain attribute or a field. `foo` is still reported in
+      the child's `_property_names`. Code that relies on this set then treats the name as a property and
+      mishandles it, for example `Model.__init__`/`_prepare_related_fields` kwargs handling and `QuerySet`
+      create/update_or_create validation. The old `inspect.getattr_static` version resolved the attribute as
+      normal lookup would. The fix tracks names already seen in earlier MRO classes and only counts a property if
+      its name was not defined in a more-derived class.
+  - culprit: aba0e541caaa086f183197eaaca0ac20a730bbe4
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 0596263c3136bc26cffa670e5322bd0aa56c4d34
+    fix_tickets: [36309]
+    bug_files: [django/core/mail/message.py]
+    ground_truth: >
+      The change adds the module-level `EmailAttachment = namedtuple("Attachment", ["filename", "content",
+      "mimetype"])` in `django/core/mail/message.py`. `EmailMessage.attach()` now stores each attachment as an
+      instance of it. Pickle serializes namedtuple instances by looking up the class by its `__qualname__`
+      ("Attachment") in its module. No `Attachment` attribute exists in `django.core.mail.message`; the class is
+      bound to the name `EmailAttachment`. As a result, pickling an `EmailMessage` with any attachment fails with
+      a `PicklingError` (attribute lookup Attachment on django.core.mail.message failed), e.g.
+      `msg.attach("a.txt", "x", "text/plain"); pickle.dumps(msg)`, which breaks queuing emails through task queues
+      or caches. The fix renames the namedtuple type names to match their variable names
+      (`namedtuple("EmailAttachment", ...)`, and likewise `EmailAlternative`).
+  - culprit: 9e9792228a6bb5d6402a5d645bc3be4cf364aefb
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 0e94f292cda632153f2b3d9a9037eb0141ae9c2e
+    fix_tickets: [35627]
+    bug_files: [django/utils/translation/trans_real.py]
+    ground_truth: >
+      The security patch added a length check to `get_supported_language_variant()`. When `lang_code` exceeds
+      `LANGUAGE_CODE_MAX_LENGTH` (500) and no generic variant can be cut off (or `strict=True`), it raises
+      `ValueError("'lang_code' exceeds the maximum accepted length")`. This breaks the function's documented
+      contract of raising `LookupError` when nothing is found. Callers like `LocaleMiddleware` and
+      `get_language_from_path()`/`get_language_from_request()` only catch `LookupError`, and with the default
+      strict=False a long code without a usable "-" still reaches the `ValueError` branch. So a request whose URL language prefix or language cookie is
+      longer than 500 characters crashes with an unhandled ValueError (HTTP 500) instead of falling back to
+      another language. Fixed by raising `LookupError(lang_code)` instead of ValueError.
+  - culprit: cd0479ff764272add5e0aba2afcf5649a241ca00
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 08a0b923298fd2489871cd88254d11f8246b8c93
+    fix_tickets: [36468]
+    bug_files: [django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js]
+    ground_truth: >
+      The change added a block to `updateRelatedSelectsOptions` in RelatedObjectLookups.js that, after appending a
+      new option to another related select, calls `SelectBox.add_to_cache(select.id, option)` and
+      `SelectBox.redisplay(select.id)`. The guard is only `window.SelectBox !== undefined &&
+      !SelectBox.cache[currentSelect.id]`; it never checks that `select` itself is managed by SelectBox. Consider
+      a form with several relations to the same model where only some use `filter_horizontal`, so SelectBox.js is
+      loaded. Adding an object via the '+' popup then reaches other plain `<select>` widgets that have no
+      `SelectBox.cache` entry. `add_to_cache` then pushes onto an undefined cache entry and throws a TypeError.
+      That aborts `dismissAddRelatedObjectPopup`, so the popup window never closes. The fix adds the condition
+      `SelectBox.cache[select.id]`, so the cache is updated only for fields SelectBox actually manages.
+  - culprit: ec7d69035a408b357f1803ca05a7c991cc358cfa
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: d469db978ea6a705549b9519313d9adc198e4232
+    fix_tickets: [36314]
+    bug_files: [django/contrib/auth/password_validation.py]
+    ground_truth: >
+      The new `MinimumLengthValidator.get_error_message()` applies `% self.min_length` to each string literal
+      before passing it to `ngettext`. The msgids that `ngettext` receives are therefore already formatted
+      strings, such as "This password is too short. It must contain at least 8 characters.". These never match the
+      translation catalog entries, which contain the `%d` placeholder. As a result, with a non-English active
+      language (e.g. French), the too-short password error is always shown untranslated in English. The fix calls
+      `ngettext` with the unformatted singular/plural msgids and applies `% self.min_length` to the translated
+      result. It also restores `params={"min_length": ...}` on the raised `ValidationError`.
+  - culprit: 857b1048d53ebf5fc5581c110e85c212b81ca83a
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 90429625a85f1f77dfea200c91bd2dabab57974f
+    fix_tickets: [36423]
+    bug_files: [django/contrib/admin/static/admin/js/SelectFilter2.js]
+    ground_truth: >
+      In `SelectFilter.init` in SelectFilter2.js, the change replaced the "Choose all", "Choose selected", "Remove
+      selected" and "Remove all" `<a>` links with `<button>` elements built via `quickElement('button', ...)`.
+      None of them is given a `type` attribute. Inside a form, a button with no type defaults to `type="submit"`.
+      When a user presses Enter in a text input of an admin change form containing a
+      filter_horizontal/filter_vertical widget, the browser's implicit submission activates the first submit
+      button in tree order. If one of these selector buttons comes first, its click handler fires (moving options,
+      with the event default prevented) instead of the form being saved. The fix adds `'type', 'button'` to all
+      four buttons so they no longer act as submit buttons.
+  - culprit: a16eedcf9c69d8a11d94cac1811018c5b996d491
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: d6ae2ed868e43671afc4d433c3d8f4d27f7eb555
+    fix_tickets: [33647]
+    bug_files: [django/db/backends/postgresql/compiler.py]
+    ground_truth: >
+      The new `SQLInsertCompiler.assemble_as_sql` in the PostgreSQL compiler builds each UNNEST placeholder as
+      `(%s)::<db_type>[]`, where `db_type` comes from `field.db_type(self.connection)`. That type string includes
+      the column's parameters, e.g. `varchar(50)` or `numeric(5, 2)`. In PostgreSQL an explicit cast to a length-
+      limited type silently truncates or rounds values instead of raising an error. So `bulk_create()` of two or
+      more objects whose CharField value exceeds `max_length` silently inserts a truncated string, where the
+      regular VALUES insert would fail with a "value too long" error. The same applies to rounding of decimals.
+      The fix strips the parameters from the type (`db_type.split("(")[0]`), so the cast is to e.g. `varchar[]`
+      and the column's own constraints apply on insert.
+  - culprit: ca2be7724e1244a4cb723de40a070f873c6e94bf
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: b3c5830769d8a5dbf2f974da7116fe503c9454d9
+    fix_tickets: [36098]
+    bug_files: [django/utils/ipv6.py]
+    ground_truth: >
+      The change makes `is_valid_ipv6_address()` call the new helper `_ipv6_address_from_str()` instead of
+      `ipaddress.IPv6Address(ip_str)`. The helper begins with `if len(ip_str) > max_length`, and
+      `is_valid_ipv6_address()` still only catches `ValueError`. Before, non-string values that
+      `ipaddress.IPv6Address` accepts, such as an `ipaddress.IPv6Address` instance or an int, were handled. Now
+      they raise an uncaught `TypeError` (e.g. "object of type 'IPv6Address' has no len()"). As a result,
+      `validate_ipv6_address(ipaddress.IPv6Address('::1'))` and `validate_ipv46_address(...)` crash instead of
+      validating or raising `ValidationError`. The fix returns True early for `ipaddress.IPv6Address` instances
+      and catches `TypeError` as well as `ValueError`, returning False.
+  - culprit: bf7b17d16d3978b2e1cee4a0f7ce8840bd1a8dc4
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: f07360e8087d3b403d1d12ff696da3138116055a
+    fix_tickets: []
+    bug_files: [django/db/models/options.py]
+    ground_truth: >
+      The change rewrote `Options._non_pk_concrete_field_names` in options.py to filter with `if field not in
+      self.pk_fields` instead of `if not field.primary_key`. Under multi-table inheritance, a child model's
+      `pk_fields` contains only its own primary key (the parent link). The parent's primary key (e.g. the parent's
+      `id` AutoField) also appears in the child's `concrete_fields` with `primary_key=True`, but it is not in the
+      child's `pk_fields`. As a result, the parent's pk is now reported as an updatable non-pk concrete field. For
+      example, `child.save(update_fields=["id"])` no longer raises the expected ValueError, and code relying on
+      this set, such as the `update_or_create` update_fields subset check, treats the parent pk as a regular
+      field. The fix collects the `pk_fields` of the model and of all its parents (`all_parents`) and excludes all
+      of them. It also updates the save() error message to mention primary keys.
+  - culprit: 626d77e52a3f247358514bcf51c761283968099c
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 08187c94ed02c45ad40a32244dedeaa7ac71ca87
+    fix_tickets: [36432]
+    bug_files: [django/db/models/fields/related_descriptors.py]
+    ground_truth: >
+      `ForwardManyToOneDescriptor.get_prefetch_querysets()` now filters with
+      `TupleIn(ColPairs(queryset.model._meta.db_table, related_fields, related_fields, self.field), ...)`, where
+      `related_fields = self.field.foreign_related_fields`. Those are fields of the FK's target model, but the
+      table alias comes from the prefetch queryset's model. With a custom prefetch queryset on a multi-table-
+      inheritance subclass of the target, the two do not match. Example: a FK to `Place` prefetched with
+      `Prefetch("place", queryset=Restaurant.objects.all())`. The generated SQL references the parent's column
+      (e.g. `id`) on the child's table, which has no such column, so `prefetch_related` crashes with a database
+      error. The old `field__in` kwarg filter resolved the field names through the ORM and did not have this
+      problem. The fix resolves each field by name against the prefetch queryset
+      (`queryset.query.resolve_ref(field.name).target`), so the columns match the queryset's model.
+  - culprit: 91bebf1adb43561b54bac18e76224759dc70acb3
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: a245604277eb9edeba234dacf199890766462709
+    fix_tickets: [36284]
+    bug_files: [django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js]
+    ground_truth: >
+      In `RelatedObjectLookups.js`, the change rewrote `dismissRelatedLookupPopup` to use
+      `window.relatedWindows.indexOf(win)` and `window.relatedWindows.splice(index, 1)` instead of the IIFE-local
+      `relatedWindows` array. The module never assigns `relatedWindows` to `window`, so in a real admin page
+      `window.relatedWindows` is undefined. Calling `.indexOf` on it throws a TypeError before `win.close()` runs.
+      As a result, picking an object in a raw-id/related lookup popup sets the value but leaves the popup open.
+      The new test hid the bug because it created `window.relatedWindows` itself. The fix went back to the module-
+      local `relatedWindows`, exported it as `window.relatedWindows = relatedWindows`, and removed the test's own
+      initialization.
+  - culprit: 55d89e25f4115c5674cdd9b9bcba2bb2bb6d820b
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 1e9db35836d42a3c72f3d1015c2f302eb6fee046
+    fix_tickets: [36341]
+    bug_files: [django/utils/text.py]
+    ground_truth: >
+      The rewritten `django.utils.text.wrap()` loops over `text.splitlines(True)`, passes each line to
+      `textwrap.TextWrapper.wrap()`, and joins the pieces with "\n". `TextWrapper.wrap()` returns an empty list
+      for an empty or whitespace-only line, so those lines vanish from the output. With the default
+      `replace_whitespace=True`, the trailing newline kept by `splitlines(True)` becomes a space and is dropped,
+      so a trailing newline in the input is lost too. For example, `wordwrap("first\n\nsecond\n", 80)` returns
+      "first\nsecond" instead of "first\n\nsecond\n", which merges paragraphs in templates. The fix sets
+      `replace_whitespace=False` and splits with `splitlines()` (no kept ends). It appends the original line
+      whenever the wrapper returns nothing, and appends a final empty element when the text ends with "\n".
+  - culprit: c09bceef68e5abb79accedd12dade16aa6577a09
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 27b68bcadf1ab2e9f7fd223aed42db352ccdc62d
+    fix_tickets: [36234]
+    bug_files: [django/contrib/admin/models.py]
+    ground_truth: >
+      The change removed the keyword-only `single_object` parameter from `LogEntryManager.log_actions()` and
+      replaced the `if single_object and log_entry_list` check with `if len(log_entry_list) == 1`, which returns
+      the bare saved instance. This breaks the public API released in Django 5.1 in two ways. First, third-party
+      code calling `LogEntry.objects.log_actions(..., single_object=True)` now fails with `TypeError: unexpected
+      keyword argument 'single_object'` after a point-release upgrade. Second, callers passing a multi-object
+      queryset that happens to contain exactly one object now get a single `LogEntry` instance instead of a list,
+      so code that iterates or indexes the result breaks. The fix restores the `single_object=False` keyword
+      argument and passes it from `log_addition`/`log_change`. It keeps saving one-element lists via `save()` so
+      signals still fire, but returns `[instance]` unless `single_object` is true.
+  - culprit: 94680437a45a71c70ca8bd2e68b72aa1e2eff337
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 4fcc2883faa8e33152d9e45744354cff35636975
+    fix_tickets: []
+    bug_files: [django/db/models/base.py]
+    ground_truth: >
+      In the insert branch of `Model._save_table`, the change builds `returning_fields =
+      list(meta.db_returning_fields)` and then, for each insert field, calls `returning_fields.remove(field)` (the
+      `elif field.db_returning:` branch) whenever the field's pre_save value is not an expression. Before this
+      change, every `db_returning` field was always fetched back via RETURNING and assigned to the instance. Now a
+      `db_returning` field with an explicitly set value keeps the in-memory Python value instead of the value the
+      database actually stored. This happens even on backends that support RETURNING (PostgreSQL, SQLite, Oracle).
+      For example, an explicitly set primary key or a custom `db_returning=True` field whose stored or converted
+      value (via `from_db_value`, normalization or triggers) differs from the assigned value is left stale on the
+      instance after `save()`/`create()`. The fix only removes such fields from `returning_fields` when the
+      backend cannot return columns from insert, and never removes the auto field when the pk was set.
+  - culprit: 8638d8bf74c1a58302c97d4436ad2eb08438145b
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: edde2891c355103ba455f3fea95cff962e40962c
+    fix_tickets: [36660]
+    bug_files: [django/db/models/indexes.py]
+    ground_truth: >
+      The new `Index.check()` method passes `{*self.fields, *self.include, *references}` to
+      `model._check_local_fields()`. `self.fields` holds the raw field strings, including the "-" prefix used for
+      descending order. The old Model-level check used the field names from `index.fields_orders`, which has that
+      prefix stripped. As a result, a valid index such as `models.Index(fields=["-name"], name="idx")` now fails
+      the system check with "'indexes' refers to the nonexistent field '-name'" (models.E012). The fix passes
+      `field for field, _ in self.fields_orders` instead of `self.fields`.
+  - culprit: f02b49d2f3bf84f5225de920ca510149f1f9f1da
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 6e89271a8507fe272d11814975500a1b40303a04
+    fix_tickets: []
+    bug_files: [django/contrib/auth/management/__init__.py]
+    ground_truth: >
+      In the new `RenamePermission._rename`, the code reads `db = schema_editor.connection.alias` but never
+      applies it to the lookups. `ContentType.objects.filter(...)` and
+      `Permission.objects.filter(content_type_id__in=...)` therefore run against the default (router-chosen)
+      database rather than the one being migrated. Running `migrate --database=other` on an app with a
+      `RenameModel` reads and renames permissions in the default database, or finds nothing there. Meanwhile the
+      permissions in the database actually being migrated keep their old codenames and names. The fix adds
+      `.using(db)` to both the ContentType and Permission querysets so the operation works on the migration's
+      database connection.
+  - culprit: fd569dd45bf0746378faf7f65172497f21ed27f0
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 181e3bd71c0f578a1214523be1f7969393d98892
+    fix_tickets: []
+    bug_files: [django/db/models/expressions.py]
+    ground_truth: >
+      The new `Subquery.resolve_expression()` is meant to drop the Subquery shim and return the bare resolved
+      `Query`. It is supposed to wrap the query in an `ExpressionWrapper` only when the user passed an
+      `output_field` that differs from the query's own. It tests this with `self.output_field !=
+      resolved.query.output_field`, but `Field.__eq__` compares fields by `creation_counter` and model, not by
+      kind. So a separately instantiated field such as `IntegerField()` never equals the query's model field. As a
+      result, any `Subquery(..., output_field=X())` is always wrapped in an `ExpressionWrapper`, even when `X` is
+      the same field type as the selected column. Lookups that introspect the right-hand side as a `Query` then no
+      longer recognize it, defeating the purpose of the change. One example is the tuple lookups'
+      `isinstance(self.rhs, Query)` check, which is supposed to raise `NotSupportedError` for composite-pk
+      comparisons against subqueries. The fix compares field types (`type(self.output_field) is not
+      type(resolved.query.output_field)`) instead of using field equality.
+  - culprit: bc03f1064e10fa247a46d4e8a98ba9b26aa4790d
+    status: exclude
+    batch: scaleup-2026-11
+    fix_commit: 479ba6d2812bb0613d1646d445be43f7c6ab7bc7
+    fix_tickets: [37378]
+    bug_files: [django/contrib/admindocs/templates/admin_doc/model_index.html]
+    notes: "markup-only breadcrumb glitch (policy: visual regressions are excluded)"
+    ground_truth: >
+      In `admin_doc/model_index.html`, the new breadcrumb markup closes the 'Documentation' item with `<li>`
+      instead of `</li>`: `<li><a href="...docroot">Documentation</a><li>`. The HTML parser treats this as the
+      start of a new list item. So the admindocs Models index page renders a spurious empty `<li>` between
+      'Documentation' and 'Models'. The empty item gets the CSS separator from `li:not([aria-
+      current="page"])::after`, so the page shows a doubled '›' and assistive technology announces an extra empty
+      breadcrumb item. The fix replaces the stray `<li>` with the closing `</li>` tag.
+  - culprit: 65ab92f6a83644bbb555d0eff3a02d8d9301aba4
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 9cec8d9f55d90fbc162fde23d6ea7a34e322fcae
+    fix_tickets: [36535]
+    bug_files: [django/contrib/admindocs/utils.py]
+    ground_truth: >
+      In `django/contrib/admindocs/utils.py`, `parse_rst()` was changed to call `docutils.core.publish_parts(...,
+      writer="html", ...)` instead of `writer_name="html"`, to silence a deprecation warning in docutils 0.22+.
+      Passing a string writer name through the `writer` parameter only works in docutils 0.22+. In docutils
+      0.19–0.21, `writer` must be a writer instance. With an older docutils installed, every admindocs
+      reStructuredText rendering (docstrings for views, models, template tags, filters) therefore fails, typically
+      with an AttributeError when docutils treats the string "html" as a writer object. The fix creates an
+      instance with `docutils.writers.get_writer_class("html")()` and passes that as `writer`, which works across
+      docutils 0.19 through 0.22.
+  - culprit: 1a8fd5cf75bf855852f6bc2f75c3da9f7b145669
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 08e4c0d8e7db6343567e7b02e25da8ea2226a7e0
+    fix_tickets: [37322]
+    bug_files: [django/contrib/gis/db/backends/base/operations.py, django/contrib/gis/db/backends/postgis/operations.py]
+    ground_truth: >
+      The rewritten `get_geom_placeholder_sql` in `BaseSpatialOperations` and `PostGISOperations` now passes the
+      field's SRID as a query parameter (`params = (*params, f.srid)` / `(value, f.srid)`) instead of
+      interpolating it into the SQL. Before, a spatial field with `srid=None` produced SQL like `ST_Transform(%s,
+      None)`, which failed loudly. Now `None` is bound as SQL NULL, and the transform check (`value.srid !=
+      field.srid`) is true for any geometry with a real SRID. So the database runs `ST_Transform(geom, NULL)`,
+      which returns NULL on PostGIS/SpatiaLite. For example, saving `Point(1, 2, srid=4326)` to a geometry field
+      declared with `srid=None` (e.g. on an unmanaged model) silently stores NULL instead of the geometry, which
+      is data loss; lookups against such fields are similarly broken. The fix makes the must-transform check raise
+      `ValueError("Cannot transform a spatial value to an undefined SRID.")` when the field SRID is None, and
+      makes the PostGIS backend use that shared check.
+  - culprit: 4cecf3039586ea738afafb9a28c946bff42c37c1
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: fe81969e83d03b61e587a28ddebb92b9fca2b441
+    fix_tickets: [37263]
+    bug_files: [django/contrib/admin/options.py]
+    ground_truth: >
+      The change rewrote `ModelAdmin.get_search_results` so that, for non-text `__exact` search fields, each
+      search term is validated with `validate_field.formfield().to_python(bit)`. Lookups whose term raises
+      `ValidationError` are skipped; all others are passed to the ORM with the converted value. This validation
+      does not reject invalid terms for two kinds of fields. First, fields with `choices` produce a
+      `TypedChoiceField`, whose `to_python()` returns the raw string unchanged. So searching "john" against an
+      `IntegerField(choices=...)` with `field__exact` sends "john" to the ORM, which raises `ValueError` and makes
+      the changelist return HTTP 500. Second, `forms.BooleanField.to_python()` maps almost any non-false string to
+      True, so an arbitrary term like "xyz" against `bool__exact` matches every row where the field is True
+      instead of matching nothing. The fix uses `formfield.clean()` for Typed(Multiple)ChoiceField so values are
+      coerced and validated, and uses strict boolean and null-boolean parsers that raise `ValidationError` for
+      unrecognized strings.
+  - culprit: 4b2b4bf0ac2707dc9c4d51cabfa72168eaea95fe
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 92470ad3742524902b29769d2c822dbe791630db
+    fix_tickets: [37230]
+    bug_files: [django/contrib/admin/utils.py]
+    ground_truth: >
+      The change makes `lookup_field()` in `django/contrib/admin/utils.py` call `get_fields_from_path(opts.model,
+      name)[-1]` unconditionally whenever a `list_display` name contains `__`, so it can render boolean icons for
+      related BooleanFields. Before this, such names were resolved only by walking attributes with `getattr`,
+      which also works for paths whose last part is not a concrete model field, such as a method, a property or
+      `__str__` on a related model. `get_fields_from_path` raises `FieldDoesNotExist` for those paths, and the
+      exception is not caught. Because `lookup_field` is shared by the changelist and readonly-field rendering,
+      entries traversing relations, including second-degree ones (e.g. `book__author__get_full_name` or
+      `parent__parent__some_property`), now crash with an exception where they previously displayed fine. The fix
+      removes this lookup from `lookup_field`. It instead resolves the final field only in `items_for_result` when
+      `f` is None, wrapped in `try/except FieldDoesNotExist`.
+  - culprit: 5d911f2d2fecc703be91b2b9b28acc59d34b35f3
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: b5388a3a80cafcce2e34196d8e81cf5b48eb33bb
+    fix_tickets: [37257]
+    bug_files: [django/template/base.py]
+    ground_truth: >
+      The new deprecation check in `Parser.parse()` for variable nodes tests `".." in str(filter_expression.var)`.
+      For constant expressions, `filter_expression.var` is the resolved literal value (a string or translated
+      string), not a `Variable` lookup. So a template containing a literal with two consecutive dots, such as `{{
+      "a..b" }}` or `{{ 'a..b'|upper }}`, wrongly emits a `RemovedInDjango70Warning` about double-dot lookups.
+      That warning becomes an exception when warnings are treated as errors. The check would also reject valid
+      templates once it is elevated to an error as planned. The fix applies the check only when the expression is
+      a variable lookup: `filter_expression.is_var and ".." in filter_expression.var.var`.
+
+# Policy notes
+# - Visual admin CSS regressions (colors, alignment) are excluded: not detectable from a diff.
+# - Oracle-only and test-suite-only fixes are excluded.
+# - Culprits merged before 2024 are kept in candidates.jsonl for the scale-up and the date-split analysis.

@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-bdbda29c3e",
+  "pr_url": "https://github.com/django/django/pull/21254",
+  "kind": "bug",
+  "ground_truth": "To avoid mutating the original view, `non_atomic_requests()` now wraps the view in a new synchronous `def wrapper(*args, **kwargs): return view(*args, **kwargs)`. For an async view this wrapper is a sync function returning a coroutine, so Django no longer recognizes the decorated view as async (`iscoroutinefunction` is False), and async views decorated with `@transaction.non_atomic_requests` break. Fixed by creating an `async def` wrapper when the view is a coroutine function.",
+  "bug_files": [
+    "django/db/transaction.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "93d7e82b6a67aa56a2d9dababfefb8bda543786e",
+  "issue": null,
+  "fix_tickets": [
+    37382
+  ],
+  "evidence_url": null
+}

@@ -1,0 +1,5 @@
+fix(devtools): zone.js not being loaded for dev and prod builds (#62239)
+
+Fixes a regression from #62083 by updating the remaining script imports.
+
+PR Close #62239

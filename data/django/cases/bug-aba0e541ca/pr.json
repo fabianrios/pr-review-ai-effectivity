@@ -1,0 +1,57 @@
+{
+  "repo": "django/django",
+  "number": 18261,
+  "url": "https://github.com/django/django/pull/18261",
+  "commit_url": "https://github.com/django/django/commit/aba0e541caaa086f183197eaaca0ac20a730bbe4",
+  "title": "Fixed #35537 -- Use a namedtuple for email attachments and alternatives",
+  "description": "This makes it more descriptive to pull out the named fields\r\n\r\n# Trac ticket number\r\n\r\nticket-35537\r\n\r\n# Branch description\r\n\r\nThis change replaces the opaque tuples used for email attachments and alternatives with named tuples. This makes unpacking the specific indexes more descriptive, whilst avoiding breaking any existing uses (since the field order hasn't changed).\r\n\r\n```python\r\nemail.alternatives[0][0]  # before\r\nemail.alternatives[0].content  #after\r\n```\r\n\r\nUnpacking the alternatives doesn't seem to be documented, so there are no docs to update. Similarly, adding attachments / alternatives is done using documented methods, whose public API is unaffected by this change. Manual insertion into the `.alternatives` and `.attachments` may now fail, however users should be using the documented API methods.\r\n\r\n# Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [ ] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #35537 -- Changed EmailMessage.attachments and EmailMultiAlternatives.alternatives to use namedtuples.\n\nThis makes it more descriptive to pull out the named fields.",
+  "labels": [],
+  "author": "Jake Howard",
+  "merged_at": "2024-06-09T09:09:07+01:00",
+  "tickets": [
+    35537
+  ],
+  "base_commit": "9691a00d5839e6137a2716526277013af9ee97ff",
+  "head_commit": "aba0e541caaa086f183197eaaca0ac20a730bbe4",
+  "changed_lines": 102,
+  "files": [
+    {
+      "path": "django/core/mail/message.py",
+      "added": 15,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.2.txt",
+      "added": 9,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "docs/topics/email.txt",
+      "added": 29,
+      "deleted": 6,
+      "binary": false
+    },
+    {
+      "path": "tests/logging_tests/tests.py",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/mail/tests.py",
+      "added": 30,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "tests/view_tests/tests/test_debug.py",
+      "added": 2,
+      "deleted": 2,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

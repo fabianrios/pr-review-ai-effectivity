@@ -1,0 +1,113 @@
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index 26640ed7d3..ab3f6876df 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -1197,7 +1197,9 @@ class FilePathField(ChoiceField):
+         self.path, self.match, self.recursive = path, match, recursive
+         self.allow_files, self.allow_folders = allow_files, allow_folders
+         super().__init__(choices=(), **kwargs)
++        self.set_choices()
+ 
++    def set_choices(self):
+         if self.required:
+             self.choices = []
+         else:
+@@ -1206,20 +1208,20 @@ class FilePathField(ChoiceField):
+         if self.match is not None:
+             self.match_re = re.compile(self.match)
+ 
+-        if recursive:
++        if self.recursive:
+             for root, dirs, files in sorted(os.walk(self.path)):
+                 if self.allow_files:
+                     for f in sorted(files):
+                         if self.match is None or self.match_re.search(f):
+                             f = os.path.join(root, f)
+-                            self.choices.append((f, f.replace(path, "", 1)))
++                            self.choices.append((f, f.replace(self.path, "", 1)))
+                 if self.allow_folders:
+                     for f in sorted(dirs):
+                         if f == "__pycache__":
+                             continue
+                         if self.match is None or self.match_re.search(f):
+                             f = os.path.join(root, f)
+-                            self.choices.append((f, f.replace(path, "", 1)))
++                            self.choices.append((f, f.replace(self.path, "", 1)))
+         else:
+             choices = []
+             with os.scandir(self.path) as entries:
+diff --git a/docs/ref/forms/fields.txt b/docs/ref/forms/fields.txt
+index 085b36a0e5..8ddc5b9d79 100644
+--- a/docs/ref/forms/fields.txt
++++ b/docs/ref/forms/fields.txt
+@@ -724,6 +724,26 @@ For each field, we describe the default widget used if you don't specify
+         whether folders in the specified location should be included. Either
+         this or :attr:`allow_files` must be ``True``.
+ 
++    ``FilePathField`` has the following method:
++
++    .. method:: set_choices()
++
++        .. versionadded:: 6.1
++
++        Scans the directory at :attr:`path` and refreshes the field's
++        choices. This is called automatically during ``__init__()``, but it can
++        also be called explicitly to pick up files added to the directory
++        after the field was first instantiated (usually at server startup). For
++        example, call it in a form's ``__init__()`` to get fresh choices per
++        request::
++
++            class MyForm(forms.Form):
++                my_file = forms.FilePathField(path="/path/to/dir")
++
++                def __init__(self, *args, **kwargs):
++                    super().__init__(*args, **kwargs)
++                    self.fields["my_file"].set_choices()
++
+ ``FloatField``
+ --------------
+ 
+diff --git a/docs/releases/6.1.txt b/docs/releases/6.1.txt
+index b4b4e60082..3da0c6546f 100644
+--- a/docs/releases/6.1.txt
++++ b/docs/releases/6.1.txt
+@@ -258,6 +258,12 @@ Forms
+   :setting:`USE_BLANK_CHOICE_DASH` allows you to revert back to the old
+   default label.
+ 
++* :class:`~django.forms.FilePathField` now provides a
++  :meth:`~django.forms.FilePathField.set_choices` method to scan the
++  directory at :attr:`~django.forms.FilePathField.path` and refresh the
++  field's choices. This allows per-request refreshing when called in a form's
++  ``__init__()``.
++
+ Generic Views
+ ~~~~~~~~~~~~~
+ 
+diff --git a/tests/forms_tests/field_tests/test_filepathfield.py b/tests/forms_tests/field_tests/test_filepathfield.py
+index 092001b453..116600484a 100644
+--- a/tests/forms_tests/field_tests/test_filepathfield.py
++++ b/tests/forms_tests/field_tests/test_filepathfield.py
+@@ -1,4 +1,5 @@
+ import os.path
++import tempfile
+ 
+ from django.core.exceptions import ValidationError
+ from django.forms import FilePathField
+@@ -98,6 +99,16 @@ class FilePathFieldTest(SimpleTestCase):
+         )
+         self.assertChoices(f, [])
+ 
++    def test_set_choices_picks_up_new_files(self):
++        with tempfile.TemporaryDirectory() as tmp_dir:
++            f = FilePathField(path=tmp_dir)
++            self.assertEqual(f.choices, [])
++            tmp_file = os.path.join(tmp_dir, "new_file.txt")
++            open(tmp_file, "w").close()
++            f.set_choices()
++            self.assertIn((tmp_file, "new_file.txt"), f.choices)
++            self.assertIn((tmp_file, "new_file.txt"), f.widget.choices)
++
+     def test_recursive_folders_without_files(self):
+         f = FilePathField(
+             path=self.path, recursive=True, allow_folders=True, allow_files=False

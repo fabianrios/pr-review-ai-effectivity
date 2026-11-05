@@ -1,0 +1,131 @@
+diff --git a/devtools/projects/demo-no-zone/src/BUILD.bazel b/devtools/projects/demo-no-zone/src/BUILD.bazel
+index a1c6f49a406..f284b84c13e 100644
+--- a/devtools/projects/demo-no-zone/src/BUILD.bazel
++++ b/devtools/projects/demo-no-zone/src/BUILD.bazel
+@@ -38,7 +38,6 @@ filegroup(
+     srcs = [
+         ":index.html",
+         ":styles.css",
+-        "@npm//:node_modules/zone.js/bundles/zone.umd.min.js",
+     ],
+ )
+ 
+diff --git a/devtools/projects/demo-no-zone/src/index.html b/devtools/projects/demo-no-zone/src/index.html
+index b2e62c30f84..c4eaf74f6a4 100644
+--- a/devtools/projects/demo-no-zone/src/index.html
++++ b/devtools/projects/demo-no-zone/src/index.html
+@@ -10,7 +10,6 @@
+   <body>
+     <app-root></app-root>
+ 
+-    <script src="./npm/node_modules/zone.js/bundles/zone.umd.min.js"></script>
+     <script type="module" src="./bundle/main.js"></script>
+   </body>
+ </html>
+diff --git a/devtools/projects/demo-standalone/src/BUILD.bazel b/devtools/projects/demo-standalone/src/BUILD.bazel
+index d752973cd10..469fa1069f7 100644
+--- a/devtools/projects/demo-standalone/src/BUILD.bazel
++++ b/devtools/projects/demo-standalone/src/BUILD.bazel
+@@ -75,8 +75,8 @@ filegroup(
+         ":browser_specific_styles",
+         ":demo_styles",
+         ":index.html",
++        "//:node_modules/zone.js",
+         "//devtools/projects/demo-standalone/src/assets",
+-        "@npm//:node_modules/zone.js/bundles/zone.umd.min.js",
+     ],
+ )
+ 
+@@ -84,7 +84,6 @@ pkg_web(
+     name = "devapp",
+     srcs = [":dev_app_static_files"] + [
+         ":bundle",
+-        "@npm//:node_modules/tslib/tslib.js",
+     ],
+ )
+ 
+diff --git a/devtools/projects/demo-standalone/src/index.html b/devtools/projects/demo-standalone/src/index.html
+index 5e91f96eb5f..54d425d2c1b 100644
+--- a/devtools/projects/demo-standalone/src/index.html
++++ b/devtools/projects/demo-standalone/src/index.html
+@@ -18,7 +18,7 @@
+       <app-root></app-root>
+     </div>
+ 
+-    <script src="./npm/node_modules/zone.js/bundles/zone.umd.min.js"></script>
++    <script src="./node_modules/zone.js/bundles/zone.umd.min.js"></script>
+     <script type="module" src="./bundle/main.js"></script>
+   </body>
+ </html>
+diff --git a/devtools/projects/protocol/BUILD.bazel b/devtools/projects/protocol/BUILD.bazel
+index 6712dbe3536..365cef3665a 100644
+--- a/devtools/projects/protocol/BUILD.bazel
++++ b/devtools/projects/protocol/BUILD.bazel
+@@ -20,9 +20,6 @@ ts_project(
+     interop_deps = [
+         "//packages/core",
+     ],
+-    deps = [
+-        "@npm//@types",
+-    ],
+ )
+ 
+ ts_test_library(
+@@ -35,7 +32,6 @@ ts_test_library(
+     ],
+     deps = [
+         ":protocol_rjs",
+-        "@npm//@types",
+     ],
+ )
+ 
+diff --git a/devtools/projects/shell-browser/src/BUILD.bazel b/devtools/projects/shell-browser/src/BUILD.bazel
+index 91741d8f40e..2df1be9b55b 100644
+--- a/devtools/projects/shell-browser/src/BUILD.bazel
++++ b/devtools/projects/shell-browser/src/BUILD.bazel
+@@ -109,7 +109,7 @@ filegroup(
+         ":browser_specific_styles",
+         ":index.html",
+         ":shell_common_styles",
+-        "@npm//:node_modules/zone.js/bundles/zone.umd.min.js",
++        "//:node_modules/zone.js",
+     ],
+ )
+ 
+diff --git a/devtools/projects/shell-browser/src/app/BUILD.bazel b/devtools/projects/shell-browser/src/app/BUILD.bazel
+index 60f3f9f9a03..22ec55f2c30 100644
+--- a/devtools/projects/shell-browser/src/app/BUILD.bazel
++++ b/devtools/projects/shell-browser/src/app/BUILD.bazel
+@@ -69,7 +69,6 @@ ts_project(
+         "//devtools/projects/ng-devtools-backend/src/lib/ng-debug-api",
+         "//devtools/projects/protocol",
+         "//devtools/projects/protocol:protocol_rjs",
+-        "@npm//@types",
+     ],
+ )
+ 
+diff --git a/devtools/projects/shell-browser/src/environments/BUILD.bazel b/devtools/projects/shell-browser/src/environments/BUILD.bazel
+index 7a473bb4a41..034f7142f30 100644
+--- a/devtools/projects/shell-browser/src/environments/BUILD.bazel
++++ b/devtools/projects/shell-browser/src/environments/BUILD.bazel
+@@ -9,6 +9,5 @@ ts_project(
+     ],
+     deps = [
+         "//devtools/projects/ng-devtools",
+-        "@npm//@types",
+     ],
+ )
+diff --git a/devtools/src/BUILD.bazel b/devtools/src/BUILD.bazel
+index 74897a27843..45ffc00215e 100644
+--- a/devtools/src/BUILD.bazel
++++ b/devtools/src/BUILD.bazel
+@@ -86,8 +86,7 @@ pkg_web(
+     name = "devapp",
+     srcs = [":dev_app_static_files"] + [
+         ":bundle",
+-        "@npm//:node_modules/tslib/tslib.js",
+-        "@npm//:node_modules/zone.js/bundles/zone.umd.min.js",
++        "//:node_modules/zone.js",
+     ],
+ )
+ 

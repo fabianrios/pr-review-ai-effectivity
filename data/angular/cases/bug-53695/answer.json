@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-53695",
+  "pr_url": "https://github.com/angular/angular/pull/53695",
+  "kind": "bug",
+  "ground_truth": "The PR adds support for default imports in `@defer` dependencies and records `isDefaultImport` in the `deferrableTypes` map, but never sets `deferBlockDep.isDefaultImport` on the per-block dependency objects (they keep the initial `isDefaultImport: false`). The generated dependency loader function for the defer block reads that flag, so for a default-imported component it emits `m.ComponentName` instead of `m.default`, and loading the deferred block yields undefined. Fixed by setting `deferBlockDep.isDefaultImport = isDefaultImport(importDecl)` in `collectDeferredSymbols`.",
+  "bug_files": [
+    "packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts"
+  ],
+  "fix_pr": 54495,
+  "fix_commit": "0c8744c73e3d8d68463f726c41b134223dc324b1",
+  "issue": 54491,
+  "fix_tickets": [],
+  "evidence_url": null
+}

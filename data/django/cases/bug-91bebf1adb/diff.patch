@@ -1,0 +1,75 @@
+diff --git a/django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js b/django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js
+index 74d17bfc3e..be37fda973 100644
+--- a/django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js
++++ b/django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js
+@@ -55,11 +55,11 @@
+         if (elem.classList.contains('vManyToManyRawIdAdminField') && elem.value) {
+             elem.value += ',' + chosenId;
+         } else {
+-            document.getElementById(name).value = chosenId;
++            elem.value = chosenId;
+         }
+-        const index = relatedWindows.indexOf(win);
++        const index = window.relatedWindows.indexOf(win);
+         if (index > -1) {
+-            relatedWindows.splice(index, 1);
++            window.relatedWindows.splice(index, 1);
+         }
+         win.close();
+     }
+diff --git a/js_tests/admin/RelatedObjectLookups.test.js b/js_tests/admin/RelatedObjectLookups.test.js
+new file mode 100644
+index 0000000000..64433cb623
+--- /dev/null
++++ b/js_tests/admin/RelatedObjectLookups.test.js
+@@ -0,0 +1,38 @@
++/* global QUnit, RelatedObjectLookups */
++'use strict';
++
++QUnit.module('admin.RelatedObjectLookups', {
++    beforeEach: function() {
++        const $ = django.jQuery;
++        $('#qunit-fixture').append(`
++            <input type="text" id="test_id" name="test" />
++            <input type="text" id="many_test_id" name="many_test" class="vManyToManyRawIdAdminField" />
++        `);
++        window.relatedWindows = window.relatedWindows || [];
++    }
++});
++
++QUnit.test('dismissRelatedLookupPopup closes popup window', function(assert) {
++    const testId = 'test_id';
++    let windowClosed = false;
++    const mockWin = {
++        name: testId,
++        close: function() {
++            windowClosed = true;
++        }
++    };
++    window.dismissRelatedLookupPopup(mockWin, '123');
++    assert.true(windowClosed, 'Popup window should be closed');
++});
++
++QUnit.test('dismissRelatedLookupPopup removes window from relatedWindows array', function(assert) {
++    const testId = 'test_id';
++    const mockWin = {
++        name: testId,
++        close: function() {}
++    };
++    window.relatedWindows.push(mockWin);
++    assert.equal(window.relatedWindows.indexOf(mockWin), 0, 'Window should be in relatedWindows array');
++    window.dismissRelatedLookupPopup(mockWin, '123');
++    assert.equal(window.relatedWindows.indexOf(mockWin), -1, 'Window should be removed from relatedWindows array');
++});
+diff --git a/js_tests/tests.html b/js_tests/tests.html
+index 011998e5a7..87e347cc0c 100644
+--- a/js_tests/tests.html
++++ b/js_tests/tests.html
+@@ -125,6 +125,7 @@
+     <script src='./admin/navigation.test.js'></script>
+ 
+     <script src='../django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js' data-cover></script>
++    <script src='./admin/RelatedObjectLookups.test.js'></script>
+ 
+     <script src='./admin/DateTimeShortcuts.test.js'></script>
+     <script src='../django/contrib/admin/static/admin/js/calendar.js' data-cover></script>

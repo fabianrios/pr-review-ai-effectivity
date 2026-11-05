@@ -1,0 +1,406 @@
+diff --git a/packages/zone.js/lib/common/timers.ts b/packages/zone.js/lib/common/timers.ts
+index de99f5024f..2af0e6d3d9 100644
+--- a/packages/zone.js/lib/common/timers.ts
++++ b/packages/zone.js/lib/common/timers.ts
+@@ -10,9 +10,15 @@
+  * @suppress {missingRequire}
+  */
+ 
+-import {patchMethod, scheduleMacroTaskWithCurrentZone, zoneSymbol} from './utils';
++import {
++  isFunction,
++  isNumber,
++  patchMethod,
++  scheduleMacroTaskWithCurrentZone,
++  zoneSymbol,
++} from './utils';
+ 
+-const taskSymbol = zoneSymbol('zoneTask');
++export const taskSymbol = zoneSymbol('zoneTask');
+ 
+ interface TimerOptions extends TaskData {
+   handleId?: number;
+@@ -32,12 +38,27 @@ export function patchTimer(window: any, setName: string, cancelName: string, nam
+     data.args[0] = function () {
+       return task.invoke.apply(this, arguments);
+     };
+-    data.handleId = setNative!.apply(window, data.args);
++
++    const handleOrId = setNative!.apply(window, data.args);
++
++    // Whlist on Node.js when get can the ID by using `[Symbol.toPrimitive]()` we do
++    // to this so that we do not cause potentally leaks when using `setTimeout`
++    // since this can be periodic when using `.refresh`.
++    if (isNumber(handleOrId)) {
++      data.handleId = handleOrId;
++    } else {
++      data.handle = handleOrId;
++      // On Node.js a timeout and interval can be restarted over and over again by using the `.refresh` method.
++      data.isRefreshable = isFunction(handleOrId.refresh);
++    }
++
+     return task;
+   }
+ 
+   function clearTask(task: Task) {
+-    return clearNative!.call(window, (<TimerOptions>task.data).handleId);
++    const {handle, handleId} = task.data!;
++
++    return clearNative!.call(window, handle ?? handleId);
+   }
+ 
+   setNative = patchMethod(
+@@ -45,12 +66,14 @@ export function patchTimer(window: any, setName: string, cancelName: string, nam
+     setName,
+     (delegate: Function) =>
+       function (self: any, args: any[]) {
+-        if (typeof args[0] === 'function') {
++        if (isFunction(args[0])) {
+           const options: TimerOptions = {
++            isRefreshable: false,
+             isPeriodic: nameSuffix === 'Interval',
+             delay: nameSuffix === 'Timeout' || nameSuffix === 'Interval' ? args[1] || 0 : undefined,
+             args: args,
+           };
++
+           const callback = args[0];
+           args[0] = function timer(this: unknown) {
+             try {
+@@ -64,15 +87,17 @@ export function patchTimer(window: any, setName: string, cancelName: string, nam
+               // Cleanup tasksByHandleId should be handled before scheduleTask
+               // Since some zoneSpec may intercept and doesn't trigger
+               // scheduleFn(scheduleTask) provided here.
+-              if (!options.isPeriodic) {
+-                if (typeof options.handleId === 'number') {
++              const {handle, handleId, isPeriodic, isRefreshable} = options;
++
++              if (!isPeriodic && !isRefreshable) {
++                if (handleId) {
+                   // in non-nodejs env, we remove timerId
+                   // from local cache
+-                  delete tasksByHandleId[options.handleId];
+-                } else if (options.handleId) {
++                  delete tasksByHandleId[handleId];
++                } else if (handle) {
+                   // Node returns complex objects as handleIds
+                   // we remove task reference from timer object
+-                  (options.handleId as any)[taskSymbol] = null;
++                  handle[taskSymbol] = null;
+                 }
+               }
+             }
+@@ -84,37 +109,39 @@ export function patchTimer(window: any, setName: string, cancelName: string, nam
+             scheduleTask,
+             clearTask,
+           );
++
+           if (!task) {
+             return task;
+           }
++
+           // Node.js must additionally support the ref and unref functions.
+-          const handle: any = (<TimerOptions>task.data).handleId;
+-          if (typeof handle === 'number') {
++          const {handleId, handle, isRefreshable, isPeriodic} = <TimerOptions>task.data;
++          if (handleId) {
+             // for non nodejs env, we save handleId: task
+             // mapping in local cache for clearTimeout
+-            tasksByHandleId[handle] = task;
++            tasksByHandleId[handleId] = task;
+           } else if (handle) {
+             // for nodejs env, we save task
+             // reference in timerId Object for clearTimeout
+             handle[taskSymbol] = task;
+-          }
+ 
+-          // check whether handle is null, because some polyfill or browser
+-          // may return undefined from setTimeout/setInterval/setImmediate/requestAnimationFrame
+-          if (
+-            handle &&
+-            handle.ref &&
+-            handle.unref &&
+-            typeof handle.ref === 'function' &&
+-            typeof handle.unref === 'function'
+-          ) {
+-            (<any>task).ref = (<any>handle).ref.bind(handle);
+-            (<any>task).unref = (<any>handle).unref.bind(handle);
+-          }
+-          if (typeof handle === 'number' || handle) {
+-            return handle;
++            if (isRefreshable && !isPeriodic) {
++              const originalRefresh = handle.refresh;
++              handle.refresh = function () {
++                const {zone, state} = task as any;
++                if (state === 'notScheduled') {
++                  (task as any)._state = 'scheduled';
++                  zone._updateTaskCount(task, 1);
++                } else if (state === 'running') {
++                  (task as any)._state = 'scheduling';
++                }
++
++                return originalRefresh.call(this);
++              };
++            }
+           }
+-          return task;
++
++          return handle ?? handleId ?? task;
+         } else {
+           // cause an error by calling it directly.
+           return delegate.apply(window, args);
+@@ -129,27 +156,23 @@ export function patchTimer(window: any, setName: string, cancelName: string, nam
+       function (self: any, args: any[]) {
+         const id = args[0];
+         let task: Task;
+-        if (typeof id === 'number') {
++
++        if (isNumber(id)) {
+           // non nodejs env.
+           task = tasksByHandleId[id];
++          delete tasksByHandleId[id];
+         } else {
+-          // nodejs env.
+-          task = id && id[taskSymbol];
+-          // other environments.
+-          if (!task) {
++          // nodejs env ?? other environments.
++          task = id?.[taskSymbol];
++          if (task) {
++            id[taskSymbol] = null;
++          } else {
+             task = id;
+           }
+         }
+-        if (task && typeof task.type === 'string') {
+-          if (
+-            task.state !== 'notScheduled' &&
+-            ((task.cancelFn && task.data!.isPeriodic) || task.runCount === 0)
+-          ) {
+-            if (typeof id === 'number') {
+-              delete tasksByHandleId[id];
+-            } else if (id) {
+-              id[taskSymbol] = null;
+-            }
++
++        if (task?.type) {
++          if (task.cancelFn) {
+             // Do not cancel already canceled functions
+             task.zone.cancelTask(task);
+           }
+diff --git a/packages/zone.js/lib/common/utils.ts b/packages/zone.js/lib/common/utils.ts
+index cea605a16c..e75a48264e 100644
+--- a/packages/zone.js/lib/common/utils.ts
++++ b/packages/zone.js/lib/common/utils.ts
+@@ -567,3 +567,11 @@ export function isIEOrEdge() {
+   } catch (error) {}
+   return ieOrEdge;
+ }
++
++export function isFunction(value: unknown): value is Function {
++  return typeof value === 'function';
++}
++
++export function isNumber(value: unknown): value is number {
++  return typeof value === 'number';
++}
+diff --git a/packages/zone.js/lib/zone-impl.ts b/packages/zone.js/lib/zone-impl.ts
+index 133ba7a917..8c28d25d16 100644
+--- a/packages/zone.js/lib/zone-impl.ts
++++ b/packages/zone.js/lib/zone-impl.ts
+@@ -644,6 +644,11 @@ export declare interface TaskData {
+    */
+   isPeriodic?: boolean;
+ 
++  /**
++   * A [MacroTask] that can be manually rescheduled.
++   */
++  isRefreshable?: boolean;
++
+   /**
+    * Delay in milliseconds when the Task will run.
+    */
+@@ -653,6 +658,9 @@ export declare interface TaskData {
+    * identifier returned by the native setTimeout.
+    */
+   handleId?: number;
++
++  /** The target handler. */
++  handle?: any;
+ }
+ 
+ /**
+@@ -925,26 +933,29 @@ export function initZone(): ZoneType {
+             ')',
+         );
+       }
++
++      const zoneTask = task as ZoneTask<any>;
+       // https://github.com/angular/zone.js/issues/778, sometimes eventTask
+       // will run in notScheduled(canceled) state, we should not try to
+       // run such kind of task but just return
++      const {type, data: {isPeriodic = false, isRefreshable = false} = {}} = task;
+ 
+-      if (task.state === notScheduled && (task.type === eventTask || task.type === macroTask)) {
++      if (task.state === notScheduled && (type === eventTask || type === macroTask)) {
+         return;
+       }
+ 
+       const reEntryGuard = task.state != running;
+-      reEntryGuard && (task as ZoneTask<any>)._transitionTo(running, scheduled);
+-      task.runCount++;
++      reEntryGuard && zoneTask._transitionTo(running, scheduled);
+       const previousTask = _currentTask;
+-      _currentTask = task;
++      _currentTask = zoneTask;
+       _currentZoneFrame = {parent: _currentZoneFrame, zone: this};
++
+       try {
+-        if (task.type == macroTask && task.data && !task.data.isPeriodic) {
++        if (type == macroTask && task.data && !isPeriodic && !isRefreshable) {
+           task.cancelFn = undefined;
+         }
+         try {
+-          return this._zoneDelegate.invokeTask(this, task, applyThis, applyArgs);
++          return this._zoneDelegate.invokeTask(this, zoneTask, applyThis, applyArgs);
+         } catch (error) {
+           if (this._zoneDelegate.handleError(this, error)) {
+             throw error;
+@@ -953,14 +964,18 @@ export function initZone(): ZoneType {
+       } finally {
+         // if the task's state is notScheduled or unknown, then it has already been cancelled
+         // we should not reset the state to scheduled
+-        if (task.state !== notScheduled && task.state !== unknown) {
+-          if (task.type == eventTask || (task.data && task.data.isPeriodic)) {
+-            reEntryGuard && (task as ZoneTask<any>)._transitionTo(scheduled, running);
++        const state = task.state;
++        if (state !== notScheduled && state !== unknown) {
++          if (type == eventTask || isPeriodic || (isRefreshable && state === scheduling)) {
++            reEntryGuard && zoneTask._transitionTo(scheduled, running, scheduling);
+           } else {
+-            task.runCount = 0;
+-            this._updateTaskCount(task as ZoneTask<any>, -1);
+-            reEntryGuard &&
+-              (task as ZoneTask<any>)._transitionTo(notScheduled, running, notScheduled);
++            const zoneDelegates = zoneTask._zoneDelegates;
++            this._updateTaskCount(zoneTask, -1);
++            reEntryGuard && zoneTask._transitionTo(notScheduled, running, notScheduled);
++
++            if (isRefreshable) {
++              zoneTask._zoneDelegates = zoneDelegates;
++            }
+           }
+         }
+         _currentZoneFrame = _currentZoneFrame.parent!;
+@@ -1066,7 +1081,7 @@ export function initZone(): ZoneType {
+       }
+       this._updateTaskCount(task as ZoneTask<any>, -1);
+       (task as ZoneTask<any>)._transitionTo(notScheduled, canceling);
+-      task.runCount = 0;
++      task.runCount = -1;
+       return task;
+     }
+ 
+diff --git a/packages/zone.js/test/node/timer.spec.ts b/packages/zone.js/test/node/timer.spec.ts
+index fd46ec3704..cdbbcf2e5e 100644
+--- a/packages/zone.js/test/node/timer.spec.ts
++++ b/packages/zone.js/test/node/timer.spec.ts
+@@ -5,7 +5,9 @@
+  * Use of this source code is governed by an MIT-style license that can be
+  * found in the LICENSE file at https://angular.io/license
+  */
+-import {promisify} from 'util';
++import {setTimeout as sleep} from 'node:timers/promises';
++import {promisify} from 'node:util';
++import {taskSymbol} from '../../lib/common/timers';
+ 
+ describe('node timer', () => {
+   it('util.promisify should work with setTimeout', (done: DoneFn) => {
+@@ -33,4 +35,60 @@ describe('node timer', () => {
+       },
+     );
+   });
++
++  it(`'Timeout.refresh' should restart the 'setTimeout' when it is not scheduled`, async () => {
++    const spy = jasmine.createSpy();
++    const timeout = setTimeout(spy, 100) as unknown as NodeJS.Timeout;
++
++    let iterations = 5;
++    for (let i = 1; i <= iterations; i++) {
++      timeout.refresh();
++      await sleep(150);
++    }
++
++    expect((timeout as any)[taskSymbol].runCount).toBe(iterations);
++
++    clearTimeout(timeout);
++
++    expect((timeout as any)[taskSymbol]).toBeNull();
++    expect(spy).toHaveBeenCalledTimes(iterations);
++  });
++
++  it(`'Timeout.refresh' restarts the 'setTimeout' when it is running`, async () => {
++    let timeout: NodeJS.Timeout;
++    const spy = jasmine.createSpy().and.callFake(() => timeout.refresh());
++    timeout = setTimeout(spy, 100) as unknown as NodeJS.Timeout;
++
++    await sleep(250);
++
++    expect((timeout as any)[taskSymbol].runCount).toBe(2);
++
++    clearTimeout(timeout);
++
++    expect((timeout as any)[taskSymbol]).toBeNull();
++    expect(spy).toHaveBeenCalledTimes(2);
++  });
++
++  it(`'Timeout.refresh' should restart the 'setInterval'`, async () => {
++    const spy = jasmine.createSpy();
++    const interval = setInterval(spy, 200) as unknown as NodeJS.Timeout;
++
++    // Restart the interval multiple times before the elapsed time.
++    for (let i = 1; i <= 4; i++) {
++      interval.refresh();
++      await sleep(100);
++    }
++
++    // Time did not elapse
++    expect((interval as any)[taskSymbol].runCount).toBe(0);
++    expect(spy).toHaveBeenCalledTimes(0);
++
++    await sleep(350);
++    expect((interval as any)[taskSymbol].runCount).toBe(2);
++
++    clearInterval(interval);
++
++    expect((interval as any)[taskSymbol]).toBeNull();
++    expect(spy).toHaveBeenCalledTimes(2);
++  });
+ });
+diff --git a/packages/zone.js/test/zone-spec/async-test.spec.ts b/packages/zone.js/test/zone-spec/async-test.spec.ts
+index ee35e82a8a..3a10964211 100644
+--- a/packages/zone.js/test/zone-spec/async-test.spec.ts
++++ b/packages/zone.js/test/zone-spec/async-test.spec.ts
+@@ -13,10 +13,6 @@ describe('AsyncTestZoneSpec', function () {
+   let log: string[];
+   const AsyncTestZoneSpec = (Zone as any)['AsyncTestZoneSpec'];
+ 
+-  function finishCallback() {
+-    log.push('finish');
+-  }
+-
+   function failCallback() {
+     log.push('fail');
+   }
+diff --git a/packages/zone.js/test/zone-spec/fake-async-test.spec.ts b/packages/zone.js/test/zone-spec/fake-async-test.spec.ts
+index b60b87ca9e..bd738cc3d0 100644
+--- a/packages/zone.js/test/zone-spec/fake-async-test.spec.ts
++++ b/packages/zone.js/test/zone-spec/fake-async-test.spec.ts
+@@ -324,7 +324,7 @@ describe('FakeAsyncTestZoneSpec', () => {
+           // will call `task.state` one more time to check whether to clear the
+           // task or not, so here we use this count to check the issue is fixed or not
+           // For details, please refer to https://github.com/angular/angular/issues/40387
+-          expect(taskSpy.calls.count()).toEqual(5);
++          expect(taskSpy.calls.count()).toBe(4);
+         });
+     });
+     it(

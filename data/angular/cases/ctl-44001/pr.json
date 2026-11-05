@@ -1,0 +1,51 @@
+{
+  "repo": "angular/angular",
+  "number": 44001,
+  "url": "https://github.com/angular/angular/pull/44001",
+  "title": "refactor(compiler): show meaningful diagnostic when reporting a template error fails",
+  "description": "When the Angular compiler emits a diagnostic in a template file, it\r\nforces TypeScript to parse that template. Templates are not TypeScript,\r\nso this parse finds a bunch of parsing errors, which Angular then\r\nignores and we show the diagnostic anyways because we have more context.\r\nThis can lead to strange behavior in TypeScript because templates are so\r\nweird that it can break the parser and crash the whole compiler.\r\n\r\nFor example, certain Angular templates can encounter failures fixed by\r\nmicrosoft/TypeScript#45987, which are not easily debuggable and require\r\na TS upgrade to fix.\r\n\r\nThis commit introduces logic to handle the error gracefully, by falling\r\nback to report the template error on the component class itself. The\r\ndiagnostic is extended to still reference the template location and\r\nincludes the failure's stack trace, to allow the parsing failure to be\r\nreported to TypeScript (as parsing should in theory not cause a crash).\r\n\r\nCloses #43970\r\n\r\n---\r\n\r\n@dgp1130 PTAL, curious to hear if you think this is sufficient or if you have suggestions to improve it.",
+  "labels": [
+    "action: merge",
+    "cla: yes",
+    "target: major",
+    "area: compiler"
+  ],
+  "author": "JoostK",
+  "merged_at": "2022-09-06T18:52:43Z",
+  "base_commit": "7d3df4724d2baf087453d317ab6ab893d4a7b85f",
+  "head_commit": "66e163ab3eac5cd2b2990a026898930a2689139f",
+  "changed_lines": 141,
+  "files": [
+    {
+      "path": "packages/compiler-cli/src/ngtsc/diagnostics/index.ts",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler-cli/src/ngtsc/diagnostics/src/error.ts",
+      "added": 16,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler-cli/src/ngtsc/typecheck/diagnostics/BUILD.bazel",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler-cli/src/ngtsc/typecheck/diagnostics/src/diagnostic.ts",
+      "added": 49,
+      "deleted": 5,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler-cli/src/ngtsc/typecheck/test/diagnostics_spec.ts",
+      "added": 64,
+      "deleted": 4,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

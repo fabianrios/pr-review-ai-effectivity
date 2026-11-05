@@ -1,0 +1,13 @@
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/property-tab/property-view/property-view-body.component.html b/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/property-tab/property-view/property-view-body.component.html
+index 2fa9a29cb5c5..bc3b54b1653a 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/property-tab/property-view/property-view-body.component.html
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/property-tab/property-view/property-view-body.component.html
+@@ -1,6 +1,7 @@
+ @if (controlsLoaded()) {
+   <mat-accordion cdkDropList (cdkDropListDropped)="drop($event)" [multi]="true">
+-    @if (controller().directiveMetadata?.dependencies.length > 0) {
++    @let dependencies = controller().directiveMetadata?.dependencies;
++    @if (dependencies && dependencies.length > 0) {
+       <div class="mat-accordion-content">
+         <mat-expansion-panel [expanded]="true">
+           <mat-expansion-panel-header collapsedHeight="25px" expandedHeight="25px">

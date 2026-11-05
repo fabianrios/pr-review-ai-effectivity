@@ -1,0 +1,282 @@
+diff --git a/django/contrib/auth/password_validation.py b/django/contrib/auth/password_validation.py
+index 06f8fcc4e8..d24e69e0ce 100644
+--- a/django/contrib/auth/password_validation.py
++++ b/django/contrib/auth/password_validation.py
+@@ -106,17 +106,16 @@ class MinimumLengthValidator:
+ 
+     def validate(self, password, user=None):
+         if len(password) < self.min_length:
+-            raise ValidationError(
+-                ngettext(
+-                    "This password is too short. It must contain at least "
+-                    "%(min_length)d character.",
+-                    "This password is too short. It must contain at least "
+-                    "%(min_length)d characters.",
+-                    self.min_length,
+-                ),
+-                code="password_too_short",
+-                params={"min_length": self.min_length},
+-            )
++            raise ValidationError(self.get_error_message(), code="password_too_short")
++
++    def get_error_message(self):
++        return ngettext(
++            "This password is too short. It must contain at least %d character."
++            % self.min_length,
++            "This password is too short. It must contain at least %d characters."
++            % self.min_length,
++            self.min_length,
++        )
+ 
+     def get_help_text(self):
+         return ngettext(
+@@ -203,11 +202,14 @@ class UserAttributeSimilarityValidator:
+                     except FieldDoesNotExist:
+                         verbose_name = attribute_name
+                     raise ValidationError(
+-                        _("The password is too similar to the %(verbose_name)s."),
++                        self.get_error_message(),
+                         code="password_too_similar",
+                         params={"verbose_name": verbose_name},
+                     )
+ 
++    def get_error_message(self):
++        return _("The password is too similar to the %(verbose_name)s.")
++
+     def get_help_text(self):
+         return _(
+             "Your password can’t be too similar to your other personal information."
+@@ -242,10 +244,13 @@ class CommonPasswordValidator:
+     def validate(self, password, user=None):
+         if password.lower().strip() in self.passwords:
+             raise ValidationError(
+-                _("This password is too common."),
++                self.get_error_message(),
+                 code="password_too_common",
+             )
+ 
++    def get_error_message(self):
++        return _("This password is too common.")
++
+     def get_help_text(self):
+         return _("Your password can’t be a commonly used password.")
+ 
+@@ -258,9 +263,12 @@ class NumericPasswordValidator:
+     def validate(self, password, user=None):
+         if password.isdigit():
+             raise ValidationError(
+-                _("This password is entirely numeric."),
++                self.get_error_message(),
+                 code="password_entirely_numeric",
+             )
+ 
++    def get_error_message(self):
++        return _("This password is entirely numeric.")
++
+     def get_help_text(self):
+         return _("Your password can’t be entirely numeric.")
+diff --git a/docs/releases/5.2.txt b/docs/releases/5.2.txt
+index 78c96688cf..806abfa26d 100644
+--- a/docs/releases/5.2.txt
++++ b/docs/releases/5.2.txt
+@@ -82,6 +82,10 @@ Minor features
+   improves performance. See :ref:`adding an async interface
+   <writing-authentication-backends-async-interface>` for more details.
+ 
++* The :ref:`password validator classes <included-password-validators>`
++  now have a new method ``get_error_message()``, which can be overridden in
++  subclasses to customize the error messages.
++
+ :mod:`django.contrib.contenttypes`
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+diff --git a/docs/topics/auth/passwords.txt b/docs/topics/auth/passwords.txt
+index e8a662e239..8efd2bdebf 100644
+--- a/docs/topics/auth/passwords.txt
++++ b/docs/topics/auth/passwords.txt
+@@ -590,6 +590,8 @@ has no settings.
+ The help texts and any errors from password validators are always returned in
+ the order they are listed in :setting:`AUTH_PASSWORD_VALIDATORS`.
+ 
++.. _included-password-validators:
++
+ Included validators
+ -------------------
+ 
+@@ -600,10 +602,18 @@ Django includes four validators:
+     Validates that the password is of a minimum length.
+     The minimum length can be customized with the ``min_length`` parameter.
+ 
++    .. method:: get_error_message()
++
++        .. versionadded:: 5.2
++
++        A hook for customizing the ``ValidationError`` error message. Defaults
++        to ``"This password is too short. It must contain at least <min_length>
++        characters."``.
++
+     .. method:: get_help_text()
+ 
+         A hook for customizing the validator's help text. Defaults to ``"Your
+-        password must contain at least <min_length> characters."``
++        password must contain at least <min_length> characters."``.
+ 
+ .. class:: UserAttributeSimilarityValidator(user_attributes=DEFAULT_USER_ATTRIBUTES, max_similarity=0.7)
+ 
+@@ -622,10 +632,17 @@ Django includes four validators:
+     ``user_attributes``, whereas a value of 1.0 rejects only passwords that are
+     identical to an attribute's value.
+ 
++    .. method:: get_error_message()
++
++        .. versionadded:: 5.2
++
++        A hook for customizing the ``ValidationError`` error message. Defaults
++        to ``"The password is too similar to the <user_attribute>."``.
++
+     .. method:: get_help_text()
+ 
+         A hook for customizing the validator's help text. Defaults to ``"Your
+-        password can’t be too similar to your other personal information."``
++        password can’t be too similar to your other personal information."``.
+ 
+ .. class:: CommonPasswordValidator(password_list_path=DEFAULT_PASSWORD_LIST_PATH)
+ 
+@@ -638,19 +655,33 @@ Django includes four validators:
+     common passwords. This file should contain one lowercase password per line
+     and may be plain text or gzipped.
+ 
++    .. method:: get_error_message()
++
++        .. versionadded:: 5.2
++
++        A hook for customizing the ``ValidationError`` error message. Defaults
++        to ``"This password is too common."``.
++
+     .. method:: get_help_text()
+ 
+         A hook for customizing the validator's help text. Defaults to ``"Your
+-        password can’t be a commonly used password."``
++        password can’t be a commonly used password."``.
+ 
+ .. class:: NumericPasswordValidator()
+ 
+     Validate that the password is not entirely numeric.
+ 
++    .. method:: get_error_message()
++
++        .. versionadded:: 5.2
++
++        A hook for customizing the ``ValidationError`` error message. Defaults
++        to ``"This password is entirely numeric."``.
++
+     .. method:: get_help_text()
+ 
+         A hook for customizing the validator's help text. Defaults to ``"Your
+-        password can’t be entirely numeric."``
++        password can’t be entirely numeric."``.
+ 
+ Integrating validation
+ ----------------------
+diff --git a/tests/auth_tests/test_validators.py b/tests/auth_tests/test_validators.py
+index 506c85c0ae..d7e4968951 100644
+--- a/tests/auth_tests/test_validators.py
++++ b/tests/auth_tests/test_validators.py
+@@ -144,6 +144,20 @@ class MinimumLengthValidatorTest(SimpleTestCase):
+             "Your password must contain at least 8 characters.",
+         )
+ 
++    def test_custom_error(self):
++        class CustomMinimumLengthValidator(MinimumLengthValidator):
++            def get_error_message(self):
++                return "Your password must be %d characters long" % self.min_length
++
++        expected_error = "Your password must be %d characters long"
++
++        with self.assertRaisesMessage(ValidationError, expected_error % 8) as cm:
++            CustomMinimumLengthValidator().validate("1234567")
++        self.assertEqual(cm.exception.error_list[0].code, "password_too_short")
++
++        with self.assertRaisesMessage(ValidationError, expected_error % 3) as cm:
++            CustomMinimumLengthValidator(min_length=3).validate("12")
++
+ 
+ class UserAttributeSimilarityValidatorTest(TestCase):
+     def test_validate(self):
+@@ -213,6 +227,42 @@ class UserAttributeSimilarityValidatorTest(TestCase):
+             "Your password can’t be too similar to your other personal information.",
+         )
+ 
++    def test_custom_error(self):
++        class CustomUserAttributeSimilarityValidator(UserAttributeSimilarityValidator):
++            def get_error_message(self):
++                return "The password is too close to the %(verbose_name)s."
++
++        user = User.objects.create_user(
++            username="testclient",
++            password="password",
++            email="testclient@example.com",
++            first_name="Test",
++            last_name="Client",
++        )
++
++        expected_error = "The password is too close to the %s."
++
++        with self.assertRaisesMessage(ValidationError, expected_error % "username"):
++            CustomUserAttributeSimilarityValidator().validate("testclient", user=user)
++
++    def test_custom_error_verbose_name_not_used(self):
++        class CustomUserAttributeSimilarityValidator(UserAttributeSimilarityValidator):
++            def get_error_message(self):
++                return "The password is too close to a user attribute."
++
++        user = User.objects.create_user(
++            username="testclient",
++            password="password",
++            email="testclient@example.com",
++            first_name="Test",
++            last_name="Client",
++        )
++
++        expected_error = "The password is too close to a user attribute."
++
++        with self.assertRaisesMessage(ValidationError, expected_error):
++            CustomUserAttributeSimilarityValidator().validate("testclient", user=user)
++
+ 
+ class CommonPasswordValidatorTest(SimpleTestCase):
+     def test_validate(self):
+@@ -247,6 +297,16 @@ class CommonPasswordValidatorTest(SimpleTestCase):
+             "Your password can’t be a commonly used password.",
+         )
+ 
++    def test_custom_error(self):
++        class CustomCommonPasswordValidator(CommonPasswordValidator):
++            def get_error_message(self):
++                return "This password has been used too much."
++
++        expected_error = "This password has been used too much."
++
++        with self.assertRaisesMessage(ValidationError, expected_error):
++            CustomCommonPasswordValidator().validate("godzilla")
++
+ 
+ class NumericPasswordValidatorTest(SimpleTestCase):
+     def test_validate(self):
+@@ -264,6 +324,16 @@ class NumericPasswordValidatorTest(SimpleTestCase):
+             "Your password can’t be entirely numeric.",
+         )
+ 
++    def test_custom_error(self):
++        class CustomNumericPasswordValidator(NumericPasswordValidator):
++            def get_error_message(self):
++                return "This password is all digits."
++
++        expected_error = "This password is all digits."
++
++        with self.assertRaisesMessage(ValidationError, expected_error):
++            CustomNumericPasswordValidator().validate("42424242")
++
+ 
+ class UsernameValidatorsTests(SimpleTestCase):
+     def test_unicode_validator(self):

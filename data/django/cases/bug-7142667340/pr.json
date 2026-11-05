@@ -1,0 +1,27 @@
+{
+  "repo": "django/django",
+  "number": 21055,
+  "url": "https://github.com/django/django/pull/21055",
+  "commit_url": "https://github.com/django/django/commit/7142667340f78403cbbcaa8f33703c494282b7b7",
+  "title": "Replaced yaml serializer workaround to preserve dict order with PyYAML's sort_keys=False.",
+  "description": "The sort_keys parameter was [added in PyYAML 5.1](https://github.com/yaml/pyyaml/commit/07c88c6c1bee51439a00bc07827980fbb161a1ad) (released March 2019). [According to the Django 6.0 release notes, PyYAML 6.0.2 is the first to confirm compatibility with Python 3.12.]\r\n\r\nThe workaround in Django was added in 24b82cd201e21060fbc02117dc16d1702877a1f3 (refs ticket-30159).\r\n\r\nThere's already a regression test that fails if `sort_keys=False` is removed:\r\n```\r\n======================================================================\r\nFAIL: test_deterministic_mapping_ordering (serializers.test_yaml.YamlSerializerTestCase.test_deterministic_mapping_ordering)\r\nMapping such as fields should be deterministically ordered. (#24558)\r\n----------------------------------------------------------------------\r\nTraceback (most recent call last):\r\n  File \"/usr/lib/python3.12/unittest/case.py\", line 58, in testPartExecutor\r\n    yield\r\n  File \"/usr/lib/python3.12/unittest/case.py\", line 634, in run\r\n    self._callTestMethod(testMethod)\r\n    ^^^^^^^^^^^^^^^^^\r\n  File \"/usr/lib/python3.12/unittest/case.py\", line 589, in _callTestMethod\r\n    if method() is not None:\r\n    ^^^^^^^^^^^^^^^^^\r\n  File \"/home/tim/code/django/tests/serializers/tests.py\", line 399, in test_deterministic_mapping_ordering\r\n    self.assertEqual(\r\n  File \"/usr/lib/python3.12/unittest/case.py\", line 885, in assertEqual\r\n    assertion_func(first, second, msg=msg)\r\n    ^^^^^^^^^^^^^^^^^\r\n  File \"/usr/lib/python3.12/unittest/case.py\", line 1251, in assertMultiLineEqual\r\n    self.fail(self._formatMessage(msg, standardMsg))\r\n    ^^^^^^^^^^^^^^^^^\r\n  File \"/usr/lib/python3.12/unittest/case.py\", line 715, in fail\r\n    raise self.failureException(msg)\r\n    ^^^^^^^^^^^^^^^^^\r\nAssertionError: '- fields:\\n    author: 2\\n    categories:\\n[165 chars] 1\\n' != '- model: serializers.article\\n  pk: 1\\n  fi[165 chars][]\\n'\r\n+ - model: serializers.article\r\n+   pk: 1\r\n- - fields:\r\n? ^\r\n+   fields:\r\n? ^\r\n      author: 2\r\n+     headline: Poker has no place on ESPN\r\n+     pub_date: 2006-06-16 11:00:00\r\n      categories:\r\n      - 3\r\n      - 1\r\n-     headline: Poker has no place on ESPN\r\n      meta_data: []\r\n-     pub_date: 2006-06-16 11:00:00\r\n      topics: []\r\n-   model: serializers.article\r\n-   pk: 1\r\n```",
+  "commit_message": "Replaced yaml serializer workaround to preserve dict order with PyYAML's sort_keys=False.\n\nThe sort_keys parameter was added in PyYAML 5.1 (released March 2019).\nThe workaround was added in 24b82cd201e21060fbc02117dc16d1702877a1f3\n(refs #30159).",
+  "labels": [
+    "no ticket"
+  ],
+  "author": "Tim Graham",
+  "merged_at": "2026-04-04T15:52:18-04:00",
+  "tickets": [],
+  "base_commit": "1b0d46f715849de53563aaf6912b4ded7d61641d",
+  "head_commit": "7142667340f78403cbbcaa8f33703c494282b7b7",
+  "changed_lines": 11,
+  "files": [
+    {
+      "path": "django/core/serializers/pyyaml.py",
+      "added": 7,
+      "deleted": 4,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

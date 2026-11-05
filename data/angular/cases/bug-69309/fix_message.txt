@@ -1,0 +1,5 @@
+fix(devtools): fix regression for node serialization.
+
+This fixes a regression introduced by #69309 where the format of `serializedId` from a coma separated string, to a JSON representation of an array.
+
+fixes #70104

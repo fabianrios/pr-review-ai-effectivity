@@ -1,0 +1,20 @@
+Fixed #37377 -- Fixed JSONField __in crash/wrong result for Value() primitives.
+
+Refs #36689. 9b8e4c6d7d wrapped every Value() rhs param of a JSONIn lookup
+in JSON_EXTRACT()/JSON_VALUE() assuming it was already JSON-serialized.
+That only holds for Value(..., JSONField()); a bare Value("primitive") gets
+an inferred non-JSON output_field (e.g. CharField), so its compiled param
+was a raw primitive, not JSON text.
+
+JSONIn.resolve_expression_parameter() now JSON-encodes the Value's raw
+.value itself whenever its output_field isn't JSONField.
+
+As a side effect, this also fixes Value(True)/Value(False) in __in, which
+were previously compared as raw Python bools against the JSON-extracted
+lhs and never matched.
+
+Thanks Jacob Walls for the report.
+
+Regression in 9b8e4c6d7d47f7b2e96817ba334e9fd53c10a0df.
+
+Co-authored-by: Jacob Walls <jacobtylerwalls@gmail.com>

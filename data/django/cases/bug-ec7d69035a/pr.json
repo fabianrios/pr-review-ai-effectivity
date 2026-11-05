@@ -1,0 +1,45 @@
+{
+  "repo": "django/django",
+  "number": 18620,
+  "url": "https://github.com/django/django/pull/18620",
+  "commit_url": "https://github.com/django/django/commit/ec7d69035a408b357f1803ca05a7c991cc358cfa",
+  "title": "Fixed #35782 -- Allowed overriding password validation error messages.",
+  "description": "#### Trac ticket number\r\nticket-35782\r\n\r\n#### Branch description\r\nThis branch is to enable overriding password validation error messages, without having to override the actual validation method.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [x] I have added or updated relevant docs, including release notes if applicable.\r\n- [x] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #35782 -- Allowed overriding password validation error messages.",
+  "labels": [],
+  "author": "Ben Cail",
+  "merged_at": "2024-09-26T10:11:41-04:00",
+  "tickets": [
+    35782
+  ],
+  "base_commit": "06bf06a911695c5c84f746742f764c040e237ece",
+  "head_commit": "ec7d69035a408b357f1803ca05a7c991cc358cfa",
+  "changed_lines": 149,
+  "files": [
+    {
+      "path": "django/contrib/auth/password_validation.py",
+      "added": 22,
+      "deleted": 14,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.2.txt",
+      "added": 4,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/topics/auth/passwords.txt",
+      "added": 35,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/test_validators.py",
+      "added": 70,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

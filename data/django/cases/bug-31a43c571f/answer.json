@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-31a43c571f",
+  "pr_url": "https://github.com/django/django/pull/19709",
+  "kind": "bug",
+  "ground_truth": "To keep `request.auser()` in sync, the commit changes `alogin()` and `alogout()` to replace `request.auser` instead of setting `request.user`. It drops the old `if hasattr(request, \"user\"): request.user = user` and `request.user = AnonymousUser()` branches. After `await alogin(...)` or `await alogout(...)`, `request.user` still holds the previous user (e.g. still authenticated after logout), so sync code paths and templates see stale authentication state. Fixed by updating both `request.user` and `request.auser` when present.",
+  "bug_files": [
+    "django/contrib/auth/__init__.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "a32c7075cf634aee1f4f3deecd27f194097ec0c2",
+  "issue": null,
+  "fix_tickets": [
+    37017
+  ],
+  "evidence_url": null
+}

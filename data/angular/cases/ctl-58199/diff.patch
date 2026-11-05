@@ -1,0 +1,134 @@
+diff --git a/packages/router/src/index.ts b/packages/router/src/index.ts
+index 9a87e9db7f..0ef2b0af38 100644
+--- a/packages/router/src/index.ts
++++ b/packages/router/src/index.ts
+@@ -145,3 +145,4 @@ export {
+ export {VERSION} from './version';
+ 
+ export * from './private_export';
++import './router_devtools';
+diff --git a/packages/router/src/router_devtools.ts b/packages/router/src/router_devtools.ts
+new file mode 100644
+index 0000000000..2bba93c5be
+--- /dev/null
++++ b/packages/router/src/router_devtools.ts
+@@ -0,0 +1,16 @@
++/**
++ * @license
++ * Copyright Google LLC All Rights Reserved.
++ *
++ * Use of this source code is governed by an MIT-style license that can be
++ * found in the LICENSE file at https://angular.io/license
++ */
++
++import {ɵpublishExternalGlobalUtil} from '@angular/core';
++import {Route} from './models';
++
++export function getLoadedRoutes(route: Route): Route[] | undefined {
++  return route._loadedRoutes;
++}
++
++ɵpublishExternalGlobalUtil('ɵgetLoadedRoutes', getLoadedRoutes);
+diff --git a/packages/router/test/router_devtools.spec.ts b/packages/router/test/router_devtools.spec.ts
+new file mode 100644
+index 0000000000..4e3a2e07be
+--- /dev/null
++++ b/packages/router/test/router_devtools.spec.ts
+@@ -0,0 +1,80 @@
++/**
++ * @license
++ * Copyright Google LLC All Rights Reserved.
++ *
++ * Use of this source code is governed by an MIT-style license that can be
++ * found in the LICENSE file at https://angular.dev/license
++ */
++
++import {Component} from '@angular/core';
++import {ComponentFixture, fakeAsync, TestBed, tick} from '@angular/core/testing';
++import {Router, RouterModule} from '@angular/router';
++import {getLoadedRoutes} from '../src/router_devtools';
++
++@Component({template: '<div>simple standalone</div>', standalone: true})
++export class SimpleStandaloneComponent {}
++
++@Component({
++  template: '<router-outlet></router-outlet>',
++  standalone: true,
++  imports: [RouterModule],
++})
++export class RootCmp {}
++
++describe('router_devtools', () => {
++  describe('getLoadedRoutes', () => {
++    it('should return loaded routes when called with load children', fakeAsync(() => {
++      TestBed.configureTestingModule({
++        imports: [
++          RouterModule.forRoot([
++            {
++              path: 'lazy',
++              component: RootCmp,
++              loadChildren: () => [{path: 'simple', component: SimpleStandaloneComponent}],
++            },
++          ]),
++        ],
++      });
++
++      const root = TestBed.createComponent(RootCmp);
++
++      const router = TestBed.inject(Router);
++      router.navigateByUrl('/lazy/simple');
++      advance(root);
++      expect(root.nativeElement.innerHTML).toContain('simple standalone');
++
++      const loadedRoutes = getLoadedRoutes(router.config[0]);
++      const loadedPath = loadedRoutes && loadedRoutes[0].path;
++      expect(loadedPath).toEqual('simple');
++    }));
++  });
++
++  it('should return undefined when called without load children', fakeAsync(() => {
++    TestBed.configureTestingModule({
++      imports: [
++        RouterModule.forRoot([
++          {
++            path: 'lazy',
++            component: RootCmp,
++          },
++        ]),
++      ],
++    });
++
++    const root = TestBed.createComponent(RootCmp);
++
++    const router = TestBed.inject(Router);
++    router.navigateByUrl('/lazy');
++    advance(root);
++    expect(root.nativeElement.innerHTML).toContain('');
++
++    const loadedRoutes = getLoadedRoutes(router.config[0]);
++    const loadedPath = loadedRoutes && loadedRoutes[0].path;
++    expect(loadedPath).toEqual(undefined);
++  }));
++});
++
++function advance(fixture: ComponentFixture<unknown>) {
++  tick();
++  fixture.detectChanges();
++}
+diff --git a/yarn.lock b/yarn.lock
+index ce6a2d12c3..2bd4baba25 100644
+--- a/yarn.lock
++++ b/yarn.lock
+@@ -408,9 +408,9 @@
+     tslib "^2.3.0"
+ 
+ "@angular/core@^19.0.0-next":
+-  version "19.0.0-next.5"
+-  resolved "https://registry.yarnpkg.com/@angular/core/-/core-19.0.0-next.5.tgz#f15698a1070c34f8050030d9c37ebe7a6f78070b"
+-  integrity sha512-QF7sSS7PsTXUEVZEhVO8f49rp43bpS52HQopylv075Sbj43UihDQ1C3vwfg3d97mpcgw6kNXB0s0iovBs0Z6ew==
++  version "19.0.0-next.10"
++  resolved "https://registry.yarnpkg.com/@angular/core/-/core-19.0.0-next.10.tgz#e61e28d12741bd81fb75ccd1efd1b3840f38b341"
++  integrity sha512-//emUO2j82yEXszfn4ml6w8zaDQkd5vHbejmyPAiL5maTDkRNlsUP4Q5DEloxLBzMksnhJkBLz1Q1f4pxXWnIA==
+   dependencies:
+     tslib "^2.3.0"
+ 

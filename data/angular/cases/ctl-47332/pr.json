@@ -1,0 +1,38 @@
+{
+  "repo": "angular/angular",
+  "number": 47332,
+  "url": "https://github.com/angular/angular/pull/47332",
+  "title": "fix(router): fix = not parsed in router segment name",
+  "description": "fix router segment name parsing to allow segements to container an unscaped = character. Currently if you have a url like /some-site/folder=/some-file then then middle segment \"folder=\" will stop parsing at the = sign and register that part of the path as just \"folder\"\r\n\r\nFixes #21381\r\n\r\n## PR Checklist\r\nPlease check if your PR fulfills the following requirements:\r\n\r\n- [X] The commit message follows our guidelines: https://github.com/angular/angular/blob/main/CONTRIBUTING.md#commit\r\n- [X] Tests for the changes have been added (for bug fixes / features)\r\n- [ ] Docs have been added / updated (for bug fixes / features)\r\n\r\n\r\n## PR Type\r\nWhat kind of change does this PR introduce?\r\n\r\n<!-- Please check the one that applies to this PR using \"x\". -->\r\n\r\n- [X] Bugfix\r\n- [ ] Feature\r\n- [ ] Code style update (formatting, local variables)\r\n- [ ] Refactoring (no functional changes, no api changes)\r\n- [ ] Build related changes\r\n- [ ] CI related changes\r\n- [ ] Documentation content changes\r\n- [ ] angular.io application / infrastructure changes\r\n- [ ] Other... Please describe:\r\n\r\n\r\n## What is the current behavior?\r\nAs outlined in this issue (https://github.com/angular/angular/issues/21381) when you have a url where a path segment contains an = character angular will parse that segment as only the characters before the =. For example **password/de/MDAtMNTk=** the last segment will be parsed in angular as only **MDAtMNTk** without the = character\r\n\r\nIssue Number: 21381\r\n\r\n\r\n## What is the new behavior?\r\nAfter this change you may include any number of = characters in a segment name and correspondingly define those as route paths in your route configuration. \r\n\r\n## Does this PR introduce a breaking change?\r\n\r\n- [X] Yes\r\n- [ ] No\r\n\r\nI think this PR could potentially be a breaking change since someone might have specifically handled cases where = was ignored by angular. Suppose they had path segments that were base 64 encoded strings for example **IMz3bg==**, those could possibly end with one or two = characters. It is therefore conceivable that someone might have implemented a workaround where if they received the id as **IMz3bg** they could infer based on the missing bit count that two == characters should be added. In that case if angular now accepted = their resource names could suddenly become **IMz3bg====** \r\n\r\nA counter argument would be that if you had logic to determine the number of missing bits if angular now parsed the = there wouldn't be any missing bits and your logic would not trigger\r\n\r\n## Other information\r\n\r\nBased off of comments in the issue here (https://github.com/angular/angular/issues/21381#issuecomment-783761338) and (https://github.com/angular/angular/issues/21381#issuecomment-953948114) I looked into [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) and [RFC 1630]() and it would seem that there isn't any specific limitation on using = in a segment name. Consider this excerpt from RFC 3986: \r\n\r\n> For example, the semicolon (\";\") and equals (\"=\") reserved characters are often used to delimit parameters and parameter values applicable to that segment. The comma (\",\") reserved character is often used for similar purposes.  For example, one URI producer might use a segment such as \"name;v=1.1\" to indicate a reference to version 1.1 of \"name\", whereas another might use a segment such as \"name,1.1\" to indicate the same.  Parameter types may be defined by scheme-specific semantics, but in most cases the syntax of a parameter is specific to the implementation of the URI's dereferencing algorithm.\r\n\r\nThis seems to clearly indicate that you can use = and that is further substantiated by angulars special handling of matric parameters which uses the **name;v=1.1** syntax from this excerpt",
+  "labels": [
+    "action: merge",
+    "area: router",
+    "target: rc"
+  ],
+  "author": "DW8Reaper",
+  "merged_at": "2023-04-11T16:16:38Z",
+  "base_commit": "fe34de47bf375edace6d858431d0afa40061f644",
+  "head_commit": "d9b8e694f0c8c08f2503358f426577cc1117d4a2",
+  "changed_lines": 43,
+  "files": [
+    {
+      "path": "packages/core/test/bundling/router/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/router/src/url_tree.ts",
+      "added": 8,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "packages/router/test/url_serializer.spec.ts",
+      "added": 30,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

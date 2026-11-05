@@ -1,0 +1,45 @@
+{
+  "repo": "angular/angular",
+  "number": 58199,
+  "url": "https://github.com/angular/angular/pull/58199",
+  "title": "refactor(router): publishing getLoadedRoutes using the global utils function",
+  "description": "Angular DevTools uses globally available functions to provide debugging information to the framework. This commit exports `getLoadedRoutes` function using the `ɵpublishExternalGlobalUtil` function added in PR: https://github.com/angular/angular/commit/f5cd8f7ab498f35dc2ec3c6662d4443135989720.\r\n\r\nFollow-up PRs that will:\r\n- Add a new router example in the Angular DevTools demo application.\r\n- Implement the router graph in the Angular DevTools to view the routes that are loaded in the application\r\n\r\n",
+  "labels": [
+    "action: merge",
+    "area: router",
+    "area: migrations",
+    "target: minor"
+  ],
+  "author": "sumitarora",
+  "merged_at": "2024-10-22T16:40:47Z",
+  "base_commit": "01e6fc1bab6d08c2a70b3ce60ca80a24ae6baa42",
+  "head_commit": "2d76a8e4897f914788f791d06e82f76808a28bb7",
+  "changed_lines": 103,
+  "files": [
+    {
+      "path": "packages/router/src/index.ts",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/router/src/router_devtools.ts",
+      "added": 16,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/router/test/router_devtools.spec.ts",
+      "added": 80,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "yarn.lock",
+      "added": 3,
+      "deleted": 3,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

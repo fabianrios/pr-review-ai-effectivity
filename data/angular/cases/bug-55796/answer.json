@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-55796",
+  "pr_url": "https://github.com/angular/angular/pull/55796",
+  "kind": "bug",
+  "ground_truth": "To avoid mutating readonly/frozen listener options, the PR copies them with `{...options}` in `copyEventListenerOptions` before passing them to the native `addEventListener` (special-casing only `signal`). Object spread copies only own enumerable data properties, while the native call reads each option via [[Get]]. Options supplied as getters, on the prototype, or as non-enumerable properties are silently dropped: `capture: true` becomes bubbling, `once: true` fires repeatedly, and the MDN `passive` feature-detection getter is never invoked. Fixed by also reading `capture`, `once`, `passive` and `signal` from the source object when the spread did not copy them.",
+  "bug_files": [
+    "packages/zone.js/lib/common/events.ts"
+  ],
+  "fix_pr": 70432,
+  "fix_commit": "4c4a705ce38d08e087b599fc243a9d7dc40966a5",
+  "issue": 70431,
+  "fix_tickets": [],
+  "evidence_url": null
+}

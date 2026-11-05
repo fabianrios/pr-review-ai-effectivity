@@ -1,0 +1,238 @@
+diff --git a/django/core/mail/message.py b/django/core/mail/message.py
+index 205c680561..7eee5da8b8 100644
+--- a/django/core/mail/message.py
++++ b/django/core/mail/message.py
+@@ -1,4 +1,5 @@
+ import mimetypes
++from collections import namedtuple
+ from email import charset as Charset
+ from email import encoders as Encoders
+ from email import generator, message_from_string
+@@ -190,6 +191,10 @@ class SafeMIMEMultipart(MIMEMixin, MIMEMultipart):
+         MIMEMultipart.__setitem__(self, name, val)
+ 
+ 
++Alternative = namedtuple("Alternative", ["content", "mimetype"])
++EmailAttachment = namedtuple("Attachment", ["filename", "content", "mimetype"])
++
++
+ class EmailMessage:
+     """A container for email information."""
+ 
+@@ -338,7 +343,7 @@ class EmailMessage:
+                         # actually binary, read() raises a UnicodeDecodeError.
+                         mimetype = DEFAULT_ATTACHMENT_MIME_TYPE
+ 
+-            self.attachments.append((filename, content, mimetype))
++            self.attachments.append(EmailAttachment(filename, content, mimetype))
+ 
+     def attach_file(self, path, mimetype=None):
+         """
+@@ -471,13 +476,15 @@ class EmailMultiAlternatives(EmailMessage):
+             cc,
+             reply_to,
+         )
+-        self.alternatives = alternatives or []
++        self.alternatives = [
++            Alternative(*alternative) for alternative in (alternatives or [])
++        ]
+ 
+     def attach_alternative(self, content, mimetype):
+         """Attach an alternative content representation."""
+         if content is None or mimetype is None:
+             raise ValueError("Both content and mimetype must be provided.")
+-        self.alternatives.append((content, mimetype))
++        self.alternatives.append(Alternative(content, mimetype))
+ 
+     def _create_message(self, msg):
+         return self._create_attachments(self._create_alternatives(msg))
+@@ -492,5 +499,9 @@ class EmailMultiAlternatives(EmailMessage):
+             if self.body:
+                 msg.attach(body_msg)
+             for alternative in self.alternatives:
+-                msg.attach(self._create_mime_attachment(*alternative))
++                msg.attach(
++                    self._create_mime_attachment(
++                        alternative.content, alternative.mimetype
++                    )
++                )
+         return msg
+diff --git a/docs/releases/5.2.txt b/docs/releases/5.2.txt
+index e0f190076a..61101ce1fd 100644
+--- a/docs/releases/5.2.txt
++++ b/docs/releases/5.2.txt
+@@ -133,7 +133,15 @@ Decorators
+ Email
+ ~~~~~
+ 
+-* ...
++* Tuple items of :class:`EmailMessage.attachments
++  <django.core.mail.EmailMessage>` and
++  :class:`EmailMultiAlternatives.attachments
++  <django.core.mail.EmailMultiAlternatives>` are now named tuples, as opposed
++  to regular tuples.
++
++* :attr:`EmailMultiAlternatives.alternatives
++  <django.core.mail.EmailMultiAlternatives.alternatives>` is now a list of
++  named tuples, as opposed to regular tuples.
+ 
+ Error Reporting
+ ~~~~~~~~~~~~~~~
+diff --git a/docs/topics/email.txt b/docs/topics/email.txt
+index 9b7b404ec1..1a283bdbb4 100644
+--- a/docs/topics/email.txt
++++ b/docs/topics/email.txt
+@@ -282,8 +282,13 @@ All parameters are optional and can be set at any time prior to calling the
+   new connection is created when ``send()`` is called.
+ 
+ * ``attachments``: A list of attachments to put on the message. These can
+-  be either :class:`~email.mime.base.MIMEBase` instances, or ``(filename,
+-  content, mimetype)`` triples.
++  be either :class:`~email.mime.base.MIMEBase` instances, or a named tuple
++  with attributes ``(filename, content, mimetype)``.
++
++  .. versionchanged:: 5.2
++
++    In older versions, tuple items of ``attachments`` were regular tuples,
++    as opposed to named tuples.
+ 
+ * ``headers``: A dictionary of extra headers to put on the message. The
+   keys are the header name, values are the header values. It's up to the
+@@ -392,10 +397,10 @@ Django's email library, you can do this using the
+ 
+ .. class:: EmailMultiAlternatives
+ 
+-    A subclass of :class:`~django.core.mail.EmailMessage` that has an
+-    additional ``attach_alternative()`` method for including extra versions of
+-    the message body in the email. All the other methods (including the class
+-    initialization) are inherited directly from
++    A subclass of :class:`~django.core.mail.EmailMessage` that allows
++    additional versions of the message body in the email via the
++    ``attach_alternative()`` method. This directly inherits all methods
++    (including the class initialization) from
+     :class:`~django.core.mail.EmailMessage`.
+ 
+     .. method:: attach_alternative(content, mimetype)
+@@ -415,6 +420,24 @@ Django's email library, you can do this using the
+             msg.attach_alternative(html_content, "text/html")
+             msg.send()
+ 
++    .. attribute:: alternatives
++
++        A list of named tuples with attributes ``(content, mimetype)``. This is
++        particularly useful in tests::
++
++            self.assertEqual(len(msg.alternatives), 1)
++            self.assertEqual(msg.alternatives[0].content, html_content)
++            self.assertEqual(msg.alternatives[0].mimetype, "text/html")
++
++        Alternatives should only be added using the
++        :meth:`~django.core.mail.EmailMultiAlternatives.attach_alternative`
++        method.
++
++        .. versionchanged:: 5.2
++
++            In older versions, ``alternatives`` was a list of regular tuples, as opposed
++            to named tuples.
++
+ Updating the default content type
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+diff --git a/tests/logging_tests/tests.py b/tests/logging_tests/tests.py
+index 610bdc1124..e58109fb78 100644
+--- a/tests/logging_tests/tests.py
++++ b/tests/logging_tests/tests.py
+@@ -467,7 +467,7 @@ class AdminEmailHandlerTest(SimpleTestCase):
+         msg = mail.outbox[0]
+         self.assertEqual(msg.subject, "[Django] ERROR: message")
+         self.assertEqual(len(msg.alternatives), 1)
+-        body_html = str(msg.alternatives[0][0])
++        body_html = str(msg.alternatives[0].content)
+         self.assertIn('<div id="traceback">', body_html)
+         self.assertNotIn("<form", body_html)
+ 
+diff --git a/tests/mail/tests.py b/tests/mail/tests.py
+index 4db752df59..3746ede338 100644
+--- a/tests/mail/tests.py
++++ b/tests/mail/tests.py
+@@ -550,6 +550,18 @@ class MailTests(HeadersCheckMixin, SimpleTestCase):
+         msg.attach("example.txt", "Text file content", "text/plain")
+         self.assertIn(html_content, msg.message().as_string())
+ 
++    def test_alternatives(self):
++        msg = EmailMultiAlternatives()
++        html_content = "<p>This is <strong>html</strong></p>"
++        mime_type = "text/html"
++        msg.attach_alternative(html_content, mime_type)
++
++        self.assertEqual(msg.alternatives[0][0], html_content)
++        self.assertEqual(msg.alternatives[0].content, html_content)
++
++        self.assertEqual(msg.alternatives[0][1], mime_type)
++        self.assertEqual(msg.alternatives[0].mimetype, mime_type)
++
+     def test_none_body(self):
+         msg = EmailMessage("subject", None, "from@example.com", ["to@example.com"])
+         self.assertEqual(msg.body, "")
+@@ -626,6 +638,22 @@ class MailTests(HeadersCheckMixin, SimpleTestCase):
+         )
+ 
+     def test_attachments(self):
++        msg = EmailMessage()
++        file_name = "example.txt"
++        file_content = "Text file content"
++        mime_type = "text/plain"
++        msg.attach(file_name, file_content, mime_type)
++
++        self.assertEqual(msg.attachments[0][0], file_name)
++        self.assertEqual(msg.attachments[0].filename, file_name)
++
++        self.assertEqual(msg.attachments[0][1], file_content)
++        self.assertEqual(msg.attachments[0].content, file_content)
++
++        self.assertEqual(msg.attachments[0][2], mime_type)
++        self.assertEqual(msg.attachments[0].mimetype, mime_type)
++
++    def test_decoded_attachments(self):
+         """Regression test for #9367"""
+         headers = {"Date": "Fri, 09 Nov 2001 01:08:47 -0000", "Message-ID": "foo"}
+         subject, from_email, to = "hello", "from@example.com", "to@example.com"
+@@ -645,14 +673,14 @@ class MailTests(HeadersCheckMixin, SimpleTestCase):
+         self.assertEqual(payload[0].get_content_type(), "multipart/alternative")
+         self.assertEqual(payload[1].get_content_type(), "application/pdf")
+ 
+-    def test_attachments_two_tuple(self):
++    def test_decoded_attachments_two_tuple(self):
+         msg = EmailMessage(attachments=[("filename1", "content1")])
+         filename, content, mimetype = self.get_decoded_attachments(msg)[0]
+         self.assertEqual(filename, "filename1")
+         self.assertEqual(content, b"content1")
+         self.assertEqual(mimetype, "application/octet-stream")
+ 
+-    def test_attachments_MIMEText(self):
++    def test_decoded_attachments_MIMEText(self):
+         txt = MIMEText("content1")
+         msg = EmailMessage(attachments=[txt])
+         payload = msg.message().get_payload()
+diff --git a/tests/view_tests/tests/test_debug.py b/tests/view_tests/tests/test_debug.py
+index 45a0dc70ee..9383c0d873 100644
+--- a/tests/view_tests/tests/test_debug.py
++++ b/tests/view_tests/tests/test_debug.py
+@@ -1463,7 +1463,7 @@ class ExceptionReportTestMixin:
+             self.assertNotIn("worcestershire", body_plain)
+ 
+             # Frames vars are shown in html email reports.
+-            body_html = str(email.alternatives[0][0])
++            body_html = str(email.alternatives[0].content)
+             self.assertIn("cooked_eggs", body_html)
+             self.assertIn("scrambled", body_html)
+             self.assertIn("sauce", body_html)
+@@ -1499,7 +1499,7 @@ class ExceptionReportTestMixin:
+             self.assertNotIn("worcestershire", body_plain)
+ 
+             # Frames vars are shown in html email reports.
+-            body_html = str(email.alternatives[0][0])
++            body_html = str(email.alternatives[0].content)
+             self.assertIn("cooked_eggs", body_html)
+             self.assertIn("scrambled", body_html)
+             self.assertIn("sauce", body_html)

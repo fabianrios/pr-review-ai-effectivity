@@ -1,0 +1,98 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 72ba0471a4..d4559e0693 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -859,6 +859,7 @@ class Model(AltersData, metaclass=ModelBase):
+             not force_insert
+             and deferred_non_generated_fields
+             and using == self._state.db
++            and self._is_pk_set()
+         ):
+             field_names = set()
+             pk_fields = self._meta.pk_fields
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index f0ae810f47..3e644a3c26 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -220,9 +220,10 @@ class DeferredAttribute:
+             # might be able to reuse the already loaded value. Refs #18343.
+             val = self._check_parent_chain(instance)
+             if val is None:
+-                if not instance._is_pk_set() and self.field.generated:
++                if not instance._is_pk_set():
+                     raise AttributeError(
+-                        "Cannot read a generated field from an unsaved model."
++                        f"Cannot retrieve deferred field {field_name!r} "
++                        "from an unsaved model."
+                     )
+                 instance.refresh_from_db(fields=[field_name])
+             else:
+diff --git a/docs/topics/db/queries.txt b/docs/topics/db/queries.txt
+index eb5b323abb..bd092f524b 100644
+--- a/docs/topics/db/queries.txt
++++ b/docs/topics/db/queries.txt
+@@ -1590,6 +1590,21 @@ For example, assuming ``entry`` is already duplicated as above::
+     detail.entry = entry
+     detail.save()
+ 
++Note that it is not possible to copy instances of models with deferred fields
++using this pattern unless values are assigned to them:
++
++.. code-block:: pycon
++
++    >>> blog = Blog.objects.defer("name")[0]
++    >>> blog.pk = None
++    >>> blog._state.adding = True
++    >>> blog.save()
++    Traceback (most recent call last):
++        ...
++    AttributeError: Cannot retrieve deferred field 'name' from an unsaved model.
++    >>> blog.name = "Another Blog"
++    >>> blog.save()
++
+ .. _topics-db-queries-update:
+ 
+ Updating multiple objects at once
+diff --git a/tests/defer_regress/tests.py b/tests/defer_regress/tests.py
+index 1209325f21..c45a503630 100644
+--- a/tests/defer_regress/tests.py
++++ b/tests/defer_regress/tests.py
+@@ -366,3 +366,25 @@ class DeferDeletionSignalsTests(TestCase):
+         Proxy.objects.only("value").get(pk=self.item_pk).delete()
+         self.assertEqual(self.pre_delete_senders, [Proxy])
+         self.assertEqual(self.post_delete_senders, [Proxy])
++
++
++class DeferCopyInstanceTests(TestCase):
++    @classmethod
++    def setUpTestData(cls):
++        SimpleItem.objects.create(name="test", value=42)
++        cls.deferred_item = SimpleItem.objects.defer("value").first()
++        cls.deferred_item.pk = None
++        cls.deferred_item._state.adding = True
++        cls.expected_msg = (
++            "Cannot retrieve deferred field 'value' from an unsaved model."
++        )
++
++    def test_save(self):
++        with self.assertRaisesMessage(AttributeError, self.expected_msg):
++            self.deferred_item.save(force_insert=True)
++        with self.assertRaisesMessage(AttributeError, self.expected_msg):
++            self.deferred_item.save()
++
++    def test_bulk_create(self):
++        with self.assertRaisesMessage(AttributeError, self.expected_msg):
++            SimpleItem.objects.bulk_create([self.deferred_item])
+diff --git a/tests/model_fields/test_generatedfield.py b/tests/model_fields/test_generatedfield.py
+index 9bc96a86bb..b6a933451d 100644
+--- a/tests/model_fields/test_generatedfield.py
++++ b/tests/model_fields/test_generatedfield.py
+@@ -180,7 +180,7 @@ class GeneratedFieldTestMixin:
+ 
+     def test_unsaved_error(self):
+         m = self.base_model(a=1, b=2)
+-        msg = "Cannot read a generated field from an unsaved model."
++        msg = "Cannot retrieve deferred field 'field' from an unsaved model."
+         with self.assertRaisesMessage(AttributeError, msg):
+             m.field
+ 

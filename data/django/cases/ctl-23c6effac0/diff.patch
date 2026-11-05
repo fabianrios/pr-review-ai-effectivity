@@ -1,0 +1,112 @@
+diff --git a/django/contrib/auth/forms.py b/django/contrib/auth/forms.py
+index 093f525245..cd177fa5b6 100644
+--- a/django/contrib/auth/forms.py
++++ b/django/contrib/auth/forms.py
+@@ -478,11 +478,12 @@ class PasswordResetForm(forms.Form):
+         email_field_name = UserModel.get_email_field_name()
+         for user in self.get_users(email):
+             user_email = getattr(user, email_field_name)
++            user_pk_bytes = force_bytes(UserModel._meta.pk.value_to_string(user))
+             context = {
+                 "email": user_email,
+                 "domain": domain,
+                 "site_name": site_name,
+-                "uid": urlsafe_base64_encode(force_bytes(user.pk)),
++                "uid": urlsafe_base64_encode(user_pk_bytes),
+                 "user": user,
+                 "token": token_generator.make_token(user),
+                 "protocol": "https" if use_https else "http",
+diff --git a/django/contrib/auth/views.py b/django/contrib/auth/views.py
+index a18cfdb347..cd810a1edc 100644
+--- a/django/contrib/auth/views.py
++++ b/django/contrib/auth/views.py
+@@ -301,7 +301,8 @@ class PasswordResetConfirmView(PasswordContextMixin, FormView):
+         try:
+             # urlsafe_base64_decode() decodes to bytestring
+             uid = urlsafe_base64_decode(uidb64).decode()
+-            user = UserModel._default_manager.get(pk=uid)
++            pk = UserModel._meta.pk.to_python(uid)
++            user = UserModel._default_manager.get(pk=pk)
+         except (
+             TypeError,
+             ValueError,
+diff --git a/tests/auth_tests/models/__init__.py b/tests/auth_tests/models/__init__.py
+index ed0647b90d..185b34d857 100644
+--- a/tests/auth_tests/models/__init__.py
++++ b/tests/auth_tests/models/__init__.py
+@@ -1,5 +1,10 @@
+ from .custom_permissions import CustomPermissionsUser
+-from .custom_user import CustomUser, CustomUserWithoutIsActiveField, ExtensionUser
++from .custom_user import (
++    CustomUser,
++    CustomUserCompositePrimaryKey,
++    CustomUserWithoutIsActiveField,
++    ExtensionUser,
++)
+ from .invalid_models import CustomUserNonUniqueUsername
+ from .is_active import IsActiveTestUser1
+ from .minimal import MinimalUser
+@@ -17,6 +22,7 @@ __all__ = (
+     "CustomEmailField",
+     "CustomPermissionsUser",
+     "CustomUser",
++    "CustomUserCompositePrimaryKey",
+     "CustomUserNonUniqueUsername",
+     "CustomUserWithFK",
+     "CustomUserWithM2M",
+diff --git a/tests/auth_tests/models/custom_user.py b/tests/auth_tests/models/custom_user.py
+index 4586e452cd..dac61f8e68 100644
+--- a/tests/auth_tests/models/custom_user.py
++++ b/tests/auth_tests/models/custom_user.py
+@@ -119,6 +119,19 @@ class CustomUserWithoutIsActiveField(AbstractBaseUser):
+     USERNAME_FIELD = "username"
+ 
+ 
++class CustomUserCompositePrimaryKey(AbstractBaseUser):
++    pk = models.CompositePrimaryKey("email", "date_of_birth")
++    email = models.EmailField(verbose_name="email address", max_length=255, unique=True)
++    is_active = models.BooleanField(default=True)
++    is_admin = models.BooleanField(default=False)
++    date_of_birth = models.DateField()
++
++    custom_objects = CustomUserManager()
++
++    USERNAME_FIELD = "email"
++    REQUIRED_FIELDS = ["date_of_birth"]
++
++
+ # The extension user is a simple extension of the built-in user class,
+ # adding a required date_of_birth field. This allows us to check for
+ # any hard references to the name "User" in forms/handlers etc.
+diff --git a/tests/auth_tests/test_views.py b/tests/auth_tests/test_views.py
+index 98fdfe79b7..1583f8ffd7 100644
+--- a/tests/auth_tests/test_views.py
++++ b/tests/auth_tests/test_views.py
+@@ -38,7 +38,7 @@ from django.urls import NoReverseMatch, reverse, reverse_lazy
+ from django.utils.http import urlsafe_base64_encode
+ 
+ from .client import PasswordResetConfirmClient
+-from .models import CustomUser, UUIDUser
++from .models import CustomUser, CustomUserCompositePrimaryKey, UUIDUser
+ from .settings import AUTH_TEMPLATES
+ 
+ 
+@@ -540,6 +540,18 @@ class CustomUserPasswordResetTest(AuthViewsTestCase):
+         self.assertRedirects(response, "/reset/done/")
+ 
+ 
++@override_settings(AUTH_USER_MODEL="auth_tests.CustomUserCompositePrimaryKey")
++class CustomUserCompositePrimaryKeyPasswordResetTest(CustomUserPasswordResetTest):
++    @classmethod
++    def setUpTestData(cls):
++        cls.u1 = CustomUserCompositePrimaryKey.custom_objects.create(
++            email="staffmember@example.com",
++            date_of_birth=datetime.date(1976, 11, 8),
++        )
++        cls.u1.set_password("password")
++        cls.u1.save()
++
++
+ @override_settings(AUTH_USER_MODEL="auth_tests.UUIDUser")
+ class UUIDUserPasswordResetTest(CustomUserPasswordResetTest):
+     def _test_confirm_start(self):

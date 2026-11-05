@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-69309",
+  "pr_url": "https://github.com/angular/angular/pull/69309",
+  "kind": "bug",
+  "ground_truth": "To escape code injected into the inspected page, the PR changes `findConstructorByPosition('${position}')` and `findDomElementByPosition('${position}')` to pass `stringifyAndEscape(position)`. `position` is an array, so it used to be serialized implicitly as a comma-separated string (\"0,1,2\"); now it is passed as a JSON array string (\"[0,1,2]\"). The backend that parses this serialized id still expects the comma-separated format, so \"view source\" and \"select DOM element\" from the component tree break. The fix updates the backend (component-tree.ts) to the new format; the PR changed the wire format without updating its consumer.",
+  "bug_files": [
+    "devtools/projects/shell-browser/src/app/chrome-application-operations.ts"
+  ],
+  "fix_pr": 70105,
+  "fix_commit": "03f1758e2ae7e033c14360a72583d51825993217",
+  "issue": 70104,
+  "fix_tickets": [],
+  "evidence_url": null
+}

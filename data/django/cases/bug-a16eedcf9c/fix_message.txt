@@ -1,0 +1,7 @@
+Refs #33647 -- Fixed silent data truncation in bulk_create on Postgres.
+
+Regression in a16eedcf9c69d8a11d94cac1811018c5b996d491.
+
+The UNNEST strategy is affected by the same problem bulk_update has wrt/
+to silent data truncation due to its usage of db_type which always returns
+a parametrized subtype.

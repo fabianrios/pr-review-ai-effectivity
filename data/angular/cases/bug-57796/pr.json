@@ -1,0 +1,38 @@
+{
+  "repo": "angular/angular",
+  "number": 57796,
+  "url": "https://github.com/angular/angular/pull/57796",
+  "title": "fix(compiler): transform pseudo selectors correctly for the encapsulated view",
+  "description": "fix scoping and transforming logic of the `shimCssText` for the components with encapsulated view:\r\n- add support for pseudo selector functions\r\n- apply content scoping for inner selectors of `:is()` and `:where()`\r\n- allow multiple comma separated selectors inside pseudo selectors\r\n\r\nFixes #45686\r\n\r\n## PR Checklist\r\nPlease check if your PR fulfills the following requirements:\r\n\r\n- [x] The commit message follows our guidelines: https://github.com/angular/angular/blob/main/CONTRIBUTING.md#commit\r\n- [x] Tests for the changes have been added (for bug fixes / features)\r\n- [x] Docs have been added / updated (for bug fixes / features)\r\n\r\n\r\n## PR Type\r\nWhat kind of change does this PR introduce?\r\n\r\n<!-- Please check the one that applies to this PR using \"x\". -->\r\n\r\n- [x] Bugfix\r\n- [ ] Feature\r\n- [ ] Code style update (formatting, local variables)\r\n- [ ] Refactoring (no functional changes, no api changes)\r\n- [ ] Build related changes\r\n- [ ] CI related changes\r\n- [ ] Documentation content changes\r\n- [ ] angular.io application / infrastructure changes\r\n- [ ] Other... Please describe:\r\n\r\n\r\n## What is the current behavior?\r\n<!-- Please describe the current behavior that you are modifying, or link to a relevant issue. -->\r\nPseudo selector functions aren't parsed/transformed correctly at the moment\r\nThe provided examples inside the issue are added as unit tests as well as other test cases.\r\nIssue Number: #45686 \r\n\r\n\r\n## What is the new behavior?\r\nSpecified in unit tests.\r\n- selectors are parsed by comma if comma is not inside the parenthesis, for example `:where(.one, .two)` stays as a single selector for scoping, previously it was split into two parts `:where(.one` and `.two)`.\r\n- selector parts aren't broken into pieces by combinators if they are within parenthesis, for example `:where(.one > .two)` isn't split\r\n- selectors within `:is()` and `:where()` are being scoped internally, that is especially important for `:where()` since this selectors doesn't increase specificity, allowing overloading theme specific values not risking order related issues.\r\n\r\n## Does this PR introduce a breaking change?\r\n\r\n- [ ] Yes\r\n- [x] No\r\n\r\n\r\n<!-- If this PR contains a breaking change, please describe the impact and migration path for existing applications below. -->\r\n\r\n\r\n## Other information\r\n",
+  "labels": [
+    "action: merge",
+    "target: patch",
+    "area: compiler"
+  ],
+  "author": "GeorgySerga",
+  "merged_at": "2024-10-10T08:13:25Z",
+  "base_commit": "95bee1536208b994c7ac4399ac79af1c9ac9e61c",
+  "head_commit": "8ba364d8d2604b1c6e753999d1f246f50b8a7b00",
+  "changed_lines": 383,
+  "files": [
+    {
+      "path": "packages/compiler/src/shadow_css.ts",
+      "added": 140,
+      "deleted": 30,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/test/shadow_css/host_and_host_context_spec.ts",
+      "added": 36,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/test/shadow_css/shadow_css_spec.ts",
+      "added": 177,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

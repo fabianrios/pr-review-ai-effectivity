@@ -1,0 +1,57 @@
+{
+  "repo": "django/django",
+  "number": 19405,
+  "url": "https://github.com/django/django/pull/19405",
+  "commit_url": "https://github.com/django/django/commit/f02b49d2f3bf84f5225de920ca510149f1f9f1da",
+  "title": "Fixed #27489 -- Renamed permissions upon model renaming.",
+  "description": "ticket-27489\r\n\r\nRefs#24067\r\nBy looking at a code that was used to fix Refs#24067 I added an update permissions function that gets called pre migrate using signals. It looks for rename model operations inside the migrate plan and adds new custom operation to the plan that will change the permission codename and name.\r\n\r\nAdded regression test that creates permission for fake model, creates fake migration for the model rename and calls the update permission function using signals and manually does 'state_forward' to apply.\r\n\r\nThen check for the changes\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #27489 -- Renamed permissions upon model renaming in migrations.",
+  "labels": [],
+  "author": "Artyom Kotovskiy",
+  "merged_at": "2025-04-20T18:17:47-04:00",
+  "tickets": [
+    27489
+  ],
+  "base_commit": "4187da258fe212d494cb578a0bc2b52c4979ab95",
+  "head_commit": "f02b49d2f3bf84f5225de920ca510149f1f9f1da",
+  "changed_lines": 297,
+  "files": [
+    {
+      "path": "django/contrib/auth/apps.py",
+      "added": 7,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/auth/management/__init__.py",
+      "added": 81,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/operations_migrations/0001_initial.py",
+      "added": 14,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/operations_migrations/0002_rename_oldmodel_to_newmodel.py",
+      "added": 14,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/operations_migrations/__init__.py",
+      "added": 0,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/test_management.py",
+      "added": 176,
+      "deleted": 2,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

@@ -1,0 +1,41 @@
+{
+  "repo": "django/django",
+  "number": 18971,
+  "url": "https://github.com/django/django/pull/18971",
+  "commit_url": "https://github.com/django/django/commit/91bebf1adb43561b54bac18e76224759dc70acb3",
+  "title": "Fixed #31170 -- Added change event trigger to dismissRelatedLookupPopup.",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\n[ticket-31170](https://code.djangoproject.com/ticket/31170)\r\n\r\n#### Branch description\r\nThe dismissRelatedLookupPopup function now triggers a change event after\r\nsetting the value, matching the behavior of dismissAddRelatedObjectPopup.\r\nThis ensures that dependent fields are properly updated when a value is\r\nselected via the popup.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Refs #31170 -- Added JavaScript tests for RelatedObjectLookups.js.",
+  "labels": [
+    "selenium"
+  ],
+  "author": "Кайрат Макым",
+  "merged_at": "2025-02-18T09:44:13+01:00",
+  "tickets": [
+    31170
+  ],
+  "base_commit": "727731d76d9dfd5304d536478d862778f6dd6d9b",
+  "head_commit": "91bebf1adb43561b54bac18e76224759dc70acb3",
+  "changed_lines": 45,
+  "files": [
+    {
+      "path": "django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js",
+      "added": 3,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "js_tests/admin/RelatedObjectLookups.test.js",
+      "added": 38,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "js_tests/tests.html",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

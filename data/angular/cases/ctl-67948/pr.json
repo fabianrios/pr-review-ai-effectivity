@@ -1,0 +1,101 @@
+{
+  "repo": "angular/angular",
+  "number": 67948,
+  "url": "https://github.com/angular/angular/pull/67948",
+  "title": "feat(core): bootstrap via `ApplicationRef` with config",
+  "description": "This is to align the shape of the method with `createComponent`\r\n\r\nBREAKING CHANGE=The second arguement of appRef.bootstrap does not accept `any` anymore. Make sure the element you pass is not nullable. \r\n\r\nfixes #67946\r\n",
+  "labels": [
+    "action: merge",
+    "area: core",
+    "target: major",
+    "merge: caretaker note",
+    "detected: feature",
+    "detected: breaking change"
+  ],
+  "author": "JeanMeche",
+  "merged_at": "2026-04-07T19:48:53Z",
+  "base_commit": "77f1ca08e4aa1d1ddd1a8062c602eac0d1044d5a",
+  "head_commit": "ed6f190f34568669657325333403925e149be766",
+  "changed_lines": 123,
+  "files": [
+    {
+      "path": "goldens/public-api/core/index.api.md",
+      "added": 7,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "integration/platform-server-hydration/size.json",
+      "added": 2,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "packages/core/src/application/application_ref.ts",
+      "added": 58,
+      "deleted": 6,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/application_ref_spec.ts",
+      "added": 36,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/create_component/bundle.golden_symbols.json",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/defer/bundle.golden_symbols.json",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/hydration/bundle.golden_symbols.json",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/router/bundle.golden_symbols.json",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/examples/core/ts/platform/platform.ts",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

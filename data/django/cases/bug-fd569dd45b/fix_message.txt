@@ -1,0 +1,3 @@
+Refs #36210 -- Corrected output_field comparison in Subquery.resolve_expression().
+
+Regression in fd569dd45bf0746378faf7f65172497f21ed27f0.

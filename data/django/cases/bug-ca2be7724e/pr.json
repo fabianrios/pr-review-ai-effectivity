@@ -1,0 +1,73 @@
+{
+  "repo": "django/django",
+  "number": null,
+  "url": "https://github.com/django/django/commit/ca2be7724e1244a4cb723de40a070f873c6e94bf",
+  "commit_url": "https://github.com/django/django/commit/ca2be7724e1244a4cb723de40a070f873c6e94bf",
+  "title": "Fixed CVE-2024-56374 -- Mitigated potential DoS in IPv6 validation.",
+  "description": "Fixed CVE-2024-56374 -- Mitigated potential DoS in IPv6 validation.\n\nThanks Saravana Kumar for the report, and Sarah Boyce and Mariusz\nFelisiak for the reviews.\n\nCo-authored-by: Natalia <124304+nessita@users.noreply.github.com>",
+  "commit_message": "Fixed CVE-2024-56374 -- Mitigated potential DoS in IPv6 validation.\n\nThanks Saravana Kumar for the report, and Sarah Boyce and Mariusz\nFelisiak for the reviews.\n\nCo-authored-by: Natalia <124304+nessita@users.noreply.github.com>",
+  "labels": [],
+  "author": "Michael Manfre",
+  "merged_at": "2024-12-11T21:39:32-05:00",
+  "tickets": [],
+  "base_commit": "9a2dd9789a2edeed7344a8ec0d17142ad27443a1",
+  "head_commit": "ca2be7724e1244a4cb723de40a070f873c6e94bf",
+  "changed_lines": 145,
+  "files": [
+    {
+      "path": "django/db/models/fields/__init__.py",
+      "added": 3,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "django/forms/fields.py",
+      "added": 5,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "django/utils/ipv6.py",
+      "added": 16,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "docs/ref/forms/fields.txt",
+      "added": 11,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/4.2.18.txt",
+      "added": 12,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.0.11.txt",
+      "added": 12,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.1.5.txt",
+      "added": 12,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/forms_tests/field_tests/test_genericipaddressfield.py",
+      "added": 32,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/utils_tests/test_ipv6.py",
+      "added": 28,
+      "deleted": 3,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

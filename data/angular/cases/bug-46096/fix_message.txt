@@ -1,0 +1,10 @@
+fix(compiler-cli): only consider used pipes for inline type-check requirement (#46807)
+
+After a bugfix in #46096, the compiler is now better capable of detecting pipes
+which require an inline type constructor. However, there is an issue in how all
+pipes are considered when verifying the inline type-ctor requirement: it should
+only check actually used pipes.
+
+Fixes #46747
+
+PR Close #46807

@@ -1,0 +1,7 @@
+fix(zone.js): guard against null handle when detecting refreshable timers
+
+A timer wrapper such as a browser extension, policy, or automation harness can block a call and return null instead of a handle. patchTimer then read `.refresh` on that null value and threw synchronously.
+
+Treat a nullish handle as non-refreshable so the patched timer keeps working.
+
+Fixes #70044

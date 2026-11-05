@@ -1,0 +1,35 @@
+{
+  "repo": "django/django",
+  "number": 18026,
+  "url": "https://github.com/django/django/pull/18026",
+  "commit_url": "https://github.com/django/django/commit/cd0479ff764272add5e0aba2afcf5649a241ca00",
+  "title": "Fixed #35331 -- Updated dropdown lists with new entries added via the \"+\" sign from M2M field.",
+  "description": "# Trac ticket number\r\nticket-35331\r\n\r\n# Branch description\r\nWhen adding a new related entry on a filter horizontal vie the \"+\" sign from an M2M field, it used to not updated related fields. Now we call `UpdateRelatedSelectOptions` for all related fields except the `from` box. This also introduces a fix to ensure that the cache always accounts for items inside the selectBox so that they may be moved without requiring a refresh.",
+  "commit_message": "Fixed #35331 -- Updated dropdown lists with entries added via the '+' sign from M2M field.",
+  "labels": [
+    "selenium"
+  ],
+  "author": "Devin Cox",
+  "merged_at": "2024-07-24T09:43:39-07:00",
+  "tickets": [
+    35331
+  ],
+  "base_commit": "f359990e4909db8722820849d61a6f5724338723",
+  "head_commit": "cd0479ff764272add5e0aba2afcf5649a241ca00",
+  "changed_lines": 77,
+  "files": [
+    {
+      "path": "django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js",
+      "added": 12,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_views/test_related_object_lookups.py",
+      "added": 61,
+      "deleted": 2,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

@@ -1,0 +1,64 @@
+{
+  "repo": "django/django",
+  "number": 19459,
+  "url": "https://github.com/django/django/pull/19459",
+  "commit_url": "https://github.com/django/django/commit/fd569dd45bf0746378faf7f65172497f21ed27f0",
+  "title": "Fixed #36210 -- Allowed Subquery usage in further lookups against composite pks.",
+  "description": "#### Trac ticket number\r\n[ticket-36210](https://code.djangoproject.com/ticket/36210)\r\n\r\n#### Branch description\r\nFollowing-up to ticket-36181 (#19160), which added support for `pk__in=Subquery(...` for composite primary keys, now other lookups besides `in` are supported, e.g. `exact`.\r\n\r\nBecause lookups besides `in` require limiting subqueries to a single result, handling this correctly uncovered situations where cardinality violations were flying under the radar, so a preparatory commit fixes correctness in some tests.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [n/a] I have added or updated relevant docs, including release notes if applicable.\r\n- [n/a] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #36210, Refs #36181 -- Allowed Subquery usage in further lookups against composite pks.\n\nFollow-up to 8561100425876bde3be4b2a22324655f74ff9609.\n\nCo-authored-by: Simon Charette <charette.s@gmail.com>",
+  "labels": [],
+  "author": "Jacob Walls",
+  "merged_at": "2025-05-11T22:04:09-04:00",
+  "tickets": [
+    36181,
+    36210
+  ],
+  "base_commit": "de7bb7eab84dc53a7117127ad8eec44970efc509",
+  "head_commit": "fd569dd45bf0746378faf7f65172497f21ed27f0",
+  "changed_lines": 107,
+  "files": [
+    {
+      "path": "django/db/backends/base/features.py",
+      "added": 4,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "django/db/backends/oracle/features.py",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "django/db/models/expressions.py",
+      "added": 16,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "django/db/models/fields/tuple_lookups.py",
+      "added": 15,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "django/db/models/sql/query.py",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/composite_pk/test_filter.py",
+      "added": 41,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "tests/expressions/tests.py",
+      "added": 23,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

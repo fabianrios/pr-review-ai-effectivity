@@ -1,0 +1,49 @@
+{
+  "repo": "django/django",
+  "number": null,
+  "url": "https://github.com/django/django/commit/9e9792228a6bb5d6402a5d645bc3be4cf364aefb",
+  "commit_url": "https://github.com/django/django/commit/9e9792228a6bb5d6402a5d645bc3be4cf364aefb",
+  "title": "Fixed CVE-2024-39614 -- Mitigated potential DoS in get_supported_language_variant().",
+  "description": "Fixed CVE-2024-39614 -- Mitigated potential DoS in get_supported_language_variant().\n\nLanguage codes are now parsed with a maximum length limit of 500 chars.\n\nThanks to MProgrammer for the report.",
+  "commit_message": "Fixed CVE-2024-39614 -- Mitigated potential DoS in get_supported_language_variant().\n\nLanguage codes are now parsed with a maximum length limit of 500 chars.\n\nThanks to MProgrammer for the report.",
+  "labels": [],
+  "author": "Sarah Boyce",
+  "merged_at": "2024-06-26T12:11:54+02:00",
+  "tickets": [],
+  "base_commit": "fe4a0bbe2088d0c2b331216dad21ccd0bb3ee80d",
+  "head_commit": "9e9792228a6bb5d6402a5d645bc3be4cf364aefb",
+  "changed_lines": 76,
+  "files": [
+    {
+      "path": "django/utils/translation/trans_real.py",
+      "added": 20,
+      "deleted": 5,
+      "binary": false
+    },
+    {
+      "path": "docs/ref/utils.txt",
+      "added": 10,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/4.2.14.txt",
+      "added": 15,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.0.7.txt",
+      "added": 15,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/i18n/tests.py",
+      "added": 11,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

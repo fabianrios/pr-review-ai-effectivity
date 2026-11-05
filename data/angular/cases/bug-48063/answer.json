@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-48063",
+  "pr_url": "https://github.com/angular/angular/pull/48063",
+  "kind": "bug",
+  "ground_truth": "In the bootstrap listener the PR replaces `bootstrapDone.next(); bootstrapDone.complete();` with `if (!bootstrapDone.closed) { bootstrapDone.next(); bootstrapDone.unsubscribe(); }`. `unsubscribe()` on a Subject does not complete it, so the initial navigation (with `initialNavigation: 'enabledBlocking'`), which waits on `bootstrapDone`, never completes and its `finalize` never clears the router's current navigation; later navigations (e.g. re-navigating from a component's init) misbehave. Fixed by completing the subject again and taking only one emission in the navigation transition.",
+  "bug_files": [
+    "packages/router/src/provide_router.ts"
+  ],
+  "fix_pr": 49572,
+  "fix_commit": "fa3909e8b4b982423357a6e3d6c1d719ea6fa378",
+  "issue": 49567,
+  "fix_tickets": [],
+  "evidence_url": null
+}

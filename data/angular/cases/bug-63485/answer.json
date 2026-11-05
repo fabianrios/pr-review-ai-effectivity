@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-63485",
+  "pr_url": "https://github.com/angular/angular/pull/63485",
+  "kind": "bug",
+  "ground_truth": "The PR replaces `.toPromise()` with a custom `firstValueFrom` (built on rxjs `first()`) in route recognition (`matchWithChecks`, `runCanLoadGuards`, `loadChildren`). Unlike `toPromise()`, which resolves `undefined` when an observable completes without emitting, `first()` errors with an EmptyError. Guards or matchers whose observables complete without emitting now throw EmptyError instead of being treated as \"no match\"; the recognizer's catch only skips NoMatch errors, so navigation fails instead of moving on to the next route. Fixed by also treating EmptyError as a non-match in recognize.ts.",
+  "bug_files": [
+    "packages/router/src/recognize.ts"
+  ],
+  "fix_pr": 63546,
+  "fix_commit": "4c36659ba982d5d26ced14d3854cbd16703f6c01",
+  "issue": null,
+  "fix_tickets": [],
+  "evidence_url": null
+}

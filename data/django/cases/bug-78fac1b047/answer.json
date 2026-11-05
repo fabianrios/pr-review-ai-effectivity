@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-78fac1b047",
+  "pr_url": "https://github.com/django/django/pull/19626",
+  "kind": "bug",
+  "ground_truth": "To accept both str and bytes, the commit adds `password = force_str(password)` (and the same for salt) in `PBKDF2PasswordHasher.encode()` and `MD5PasswordHasher.encode()`. `force_str` decodes bytes as UTF-8, so a bytes password that is not valid UTF-8 (a perfectly valid password value) now raises `UnicodeDecodeError` instead of being hashed. Fixed by passing the password through unchanged in PBKDF2 (`pbkdf2()` accepts bytes) and hashing `force_bytes(salt) + force_bytes(password)` in MD5.",
+  "bug_files": [
+    "django/contrib/auth/hashers.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "356e5b0f5ddb473eec3ed96d8ad9a37f3f8585eb",
+  "issue": null,
+  "fix_tickets": [
+    37184
+  ],
+  "evidence_url": null
+}

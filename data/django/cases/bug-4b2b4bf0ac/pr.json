@@ -1,0 +1,42 @@
+{
+  "repo": "django/django",
+  "number": 20718,
+  "url": "https://github.com/django/django/pull/20718",
+  "commit_url": "https://github.com/django/django/commit/4b2b4bf0ac2707dc9c4d51cabfa72168eaea95fe",
+  "title": "Fixed #36926 -- Made admin use boolean icons for related BooleanFields in list_display",
+  "description": "#### Trac ticket number\r\n\r\n[ticket-36926](https://code.djangoproject.com/ticket/36926)\r\n\r\n#### Branch description\r\nWhen using related field lookups in list_display:\r\n```\r\nclass GrandChildAdmin(admin.ModelAdmin):\r\n    list_display = ['name', 'parent__is_active']  # parent__is_active is a BooleanField\r\n```\r\n**Before the fix**:\r\nDisplayed: True or False (as plain text)\r\nUsers had to create workaround methods with @admin.display(boolean=True)\r\n\r\n**After the fix**:\r\n\r\nDisplays: ✅ (green checkmark) or ❌ (red X icon)\r\nWorks automatically, just like direct BooleanFields\r\n\r\n<img width=\"1512\" height=\"735\" alt=\"Screenshot 2026-02-17 at 2 07 14 AM\" src=\"https://github.com/user-attachments/assets/0ba87420-6b93-4198-b5c4-08b68a2ae957\" />\r\n<img width=\"1512\" height=\"735\" alt=\"Screenshot 2026-02-17 at 2 07 07 AM\" src=\"https://github.com/user-attachments/assets/03a805de-c8d0-4dbb-b1e8-b34232347997\" />\r\n\r\n\r\n#### AI Assistance Disclosure (REQUIRED)\r\n<!-- Please select exactly ONE of the following: -->\r\n- [ ] **No AI tools were used** in preparing this PR.\r\n- [x] **If AI tools were used**, I have disclosed which ones, and fully reviewed and verified their output.\r\n\r\n#### Checklist\r\n- [x] This PR follows the [contribution guidelines](https://docs.djangoproject.com/en/stable/internals/contributing/writing-code/submitting-patches/).\r\n- [x] This PR **does not** disclose a security vulnerability (see [vulnerability reporting](https://docs.djangoproject.com/en/stable/internals/security/)).\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [x] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #36926 -- Made admin use boolean icons for related BooleanFields in list_display.\n\nWhen using related field lookups like 'parent__is_active' in list_display,\nthe admin now correctly detects if the final field is a BooleanField and\ndisplays boolean icons instead of 'True'/'False' text.\n\nModified lookup_field() in django/contrib/admin/utils.py to retrieve the\nfinal field from the path when traversing relations using LOOKUP_SEP (__),\nallowing display_for_field() to properly handle BooleanFields.",
+  "labels": [
+    "selenium",
+    "coverage"
+  ],
+  "author": "huwaiza tahir",
+  "merged_at": "2026-03-18T12:40:04+05:00",
+  "tickets": [
+    36926
+  ],
+  "base_commit": "2e33abe57c37dce6ce5eff9e6cbaf47cdddcf1e3",
+  "head_commit": "4b2b4bf0ac2707dc9c4d51cabfa72168eaea95fe",
+  "changed_lines": 35,
+  "files": [
+    {
+      "path": "django/contrib/admin/utils.py",
+      "added": 4,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_changelist/models.py",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_changelist/tests.py",
+      "added": 29,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

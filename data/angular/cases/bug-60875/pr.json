@@ -1,0 +1,38 @@
+{
+  "repo": "angular/angular",
+  "number": 60875,
+  "url": "https://github.com/angular/angular/pull/60875",
+  "title": "RouterLink refactors",
+  "description": "See individual commits",
+  "labels": [
+    "action: merge",
+    "area: router",
+    "target: rc"
+  ],
+  "author": "atscott",
+  "merged_at": "2025-05-07T18:31:11Z",
+  "base_commit": "b2c8fb3c6b22b981324ebe26adfd71de9b80b8d8",
+  "head_commit": "87ce78b4606d377980d0ccd59c5cc3593b8a3a1f",
+  "changed_lines": 94,
+  "files": [
+    {
+      "path": "goldens/public-api/router/index.api.md",
+      "added": 4,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/router/bundle.golden_symbols.json",
+      "added": 8,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/router/src/directives/router_link.ts",
+      "added": 50,
+      "deleted": 31,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

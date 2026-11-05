@@ -1,0 +1,39 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 6f90f11f1b..04372c509e 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -2019,6 +2019,11 @@ class SQLUpdateCompiler(SQLCompiler):
+                         "Window expressions are not allowed in this query "
+                         "(%s=%r)." % (field.name, val)
+                     )
++                if isinstance(val, ColPairs):
++                    raise FieldError(
++                        "Composite primary keys expressions are not allowed "
++                        "in this query (%s=F('pk'))." % field.name
++                    )
+             elif hasattr(val, "prepare_database_save"):
+                 if field.remote_field:
+                     val = val.prepare_database_save(field)
+diff --git a/tests/composite_pk/test_update.py b/tests/composite_pk/test_update.py
+index 5bc53f1fe1..697383b007 100644
+--- a/tests/composite_pk/test_update.py
++++ b/tests/composite_pk/test_update.py
+@@ -1,5 +1,6 @@
+ from django.core.exceptions import FieldError
+ from django.db import connection
++from django.db.models import F
+ from django.test import TestCase
+ 
+ from .models import Comment, Tenant, TimeStamped, Token, User
+@@ -182,3 +183,11 @@ class CompositePKUpdateTests(TestCase):
+         msg = "Composite primary key fields must be updated individually."
+         with self.assertRaisesMessage(FieldError, msg):
+             qs.update(pk=(1, 10))
++
++    def test_update_value_not_composite(self):
++        msg = (
++            "Composite primary keys expressions are not allowed in this "
++            "query (text=F('pk'))."
++        )
++        with self.assertRaisesMessage(FieldError, msg):
++            Comment.objects.update(text=F("pk"))

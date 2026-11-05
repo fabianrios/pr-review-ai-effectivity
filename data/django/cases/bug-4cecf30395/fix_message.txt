@@ -1,0 +1,24 @@
+Fixed #37263 -- Fixed changelist __exact search crashes and over-matching.
+
+Search terms for non-text `__exact` `search_fields` entries were validated
+with the model field's `formfield().to_python()`, which failed to reject
+invalid terms for two kinds of fields:
+
+- Fields with choices use `TypedChoiceField`, whose `to_python()` returns
+  the raw string unvalidated, so any non-matching search term (e.g.
+  `"john"` against an `IntegerField` with `choices`) reached the ORM and
+  crashed the changelist with a `ValueError` (HTTP 500).
+
+- `BooleanField` uses `forms.BooleanField`, whose `to_python()` maps almost
+  any string to `True`, so an arbitrary search term OR-matched every row
+  with a `True` value instead of matching nothing.
+
+Boolean search terms are now parsed such that arbitrary strings do not
+match anything, and Typed(Multiple)ChoiceField search terms now coerce
+to the correct types.
+
+Regression in 4cecf3039586ea738afafb9a28c946bff42c37c1.
+
+Thanks Adam Johnson for the report and Sarah Boyce for the review.
+
+Co-authored-by: Jacob Walls <jacobtylerwalls@gmail.com>

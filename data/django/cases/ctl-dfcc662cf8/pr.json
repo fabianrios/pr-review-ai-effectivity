@@ -1,0 +1,33 @@
+{
+  "repo": "django/django",
+  "number": 20061,
+  "url": "https://github.com/django/django/pull/20061",
+  "commit_url": "https://github.com/django/django/commit/dfcc662cf8fd7f897ddcdfeaf5cb4ae6c963ebf8",
+  "title": "Fixed #36709 -- Included staticmethods in system check for UserModel.is_anonymous/is_authenticated methods.",
+  "description": "#### Trac ticket number\r\n\r\nticket-36709\r\n\r\n#### Branch description\r\nFix auth system check to detect staticmethod/classmethod overrides of is_authenticated and is_anonymous. Replace isinstance(..., MethodType) with callable(...) in django/contrib/auth/checks.py, add a regression test in tests/auth_tests/test_checks.py, and remove the unused MethodType import.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [x] I have added or updated relevant docs, including release notes if applicable.\r\n",
+  "commit_message": "Fixed #36709 -- Included static methods in system check for UserModel.is_anonymous/is_authenticated methods.",
+  "labels": [],
+  "author": "Harsh Jain",
+  "merged_at": "2025-11-06T03:26:15+05:30",
+  "tickets": [
+    36709
+  ],
+  "base_commit": "c5a107e8248813f07325ae65232b5e53e9ac4238",
+  "head_commit": "dfcc662cf8fd7f897ddcdfeaf5cb4ae6c963ebf8",
+  "changed_lines": 44,
+  "files": [
+    {
+      "path": "django/contrib/auth/checks.py",
+      "added": 2,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/test_checks.py",
+      "added": 39,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

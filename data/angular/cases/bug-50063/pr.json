@@ -1,0 +1,76 @@
+{
+  "repo": "angular/angular",
+  "number": 50063,
+  "url": "https://github.com/angular/angular/pull/50063",
+  "title": "Use `globalThis` for `global`",
+  "description": " use `globalThis` for `global`\r\n\r\n`globalThis` is now available on every runtime supported by Angular\r\n\r\nSee individual commits for the 3 impacted packages. \r\n\r\n\r\n## PR Type\r\nWhat kind of change does this PR introduce?\r\n\r\n- [x] Refactoring (no functional changes, no api changes)\r\n\r\n\r\n## Does this PR introduce a breaking change?\r\n\r\n- [x] No\r\n\r\n\r\n<!-- If this PR contains a breaking change, please describe the impact and migration path for existing applications below. -->\r\n\r\n\r\n## Other information\r\n",
+  "labels": [
+    "action: merge",
+    "area: core",
+    "merge: caretaker note",
+    "area: compiler",
+    "target: minor"
+  ],
+  "author": "JeanMeche",
+  "merged_at": "2023-07-14T18:32:07Z",
+  "base_commit": "29f6912e95f7e901d02578357879b80b99157c39",
+  "head_commit": "9afa26d398c322e58fb507a2ef8ff5b65b288a76",
+  "changed_lines": 109,
+  "files": [
+    {
+      "path": "integration/side-effects/snapshots/core/esm2022.js",
+      "added": 1,
+      "deleted": 9,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/util.ts",
+      "added": 1,
+      "deleted": 16,
+      "binary": false
+    },
+    {
+      "path": "packages/core/src/util/global.ts",
+      "added": 1,
+      "deleted": 17,
+      "binary": false
+    },
+    {
+      "path": "packages/core/testing/src/test_hooks.ts",
+      "added": 2,
+      "deleted": 10,
+      "binary": false
+    },
+    {
+      "path": "packages/localize/init/index.ts",
+      "added": 2,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "packages/localize/private.ts",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/localize/src/localize/index.ts",
+      "added": 0,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/localize/src/localize/src/global.ts",
+      "added": 0,
+      "deleted": 36,
+      "binary": false
+    },
+    {
+      "path": "packages/platform-browser/testing/src/matchers.ts",
+      "added": 4,
+      "deleted": 5,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

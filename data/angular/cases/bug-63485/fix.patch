@@ -1,0 +1,21 @@
+diff --git a/packages/router/src/recognize.ts b/packages/router/src/recognize.ts
+index 4f1654d9d858..b79ae6c8bb40 100644
+--- a/packages/router/src/recognize.ts
++++ b/packages/router/src/recognize.ts
+@@ -39,6 +39,7 @@ import {
+ } from './utils/config_matching';
+ import {TreeNode} from './utils/tree';
+ import {firstValueFrom} from './utils/first_value_from';
++import {isEmptyError} from './utils/type_guards';
+ 
+ /**
+  * Class used to indicate there were no additional route config matches but that all segments of
+@@ -257,7 +258,7 @@ export class Recognizer {
+           parentRoute,
+         );
+       } catch (e: any) {
+-        if (e?.name === NO_MATCH_ERROR_NAME) {
++        if (e?.name === NO_MATCH_ERROR_NAME || isEmptyError(e)) {
+           continue;
+         }
+         throw e;

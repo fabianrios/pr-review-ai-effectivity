@@ -1,0 +1,86 @@
+diff --git a/packages/router/src/provide_router.ts b/packages/router/src/provide_router.ts
+index 2c96a85d13..a094c99c24 100644
+--- a/packages/router/src/provide_router.ts
++++ b/packages/router/src/provide_router.ts
+@@ -208,8 +208,10 @@ export function getBootstrapListener() {
+     injector.get(ROUTER_PRELOADER, null, InjectFlags.Optional)?.setUpPreloading();
+     injector.get(ROUTER_SCROLLER, null, InjectFlags.Optional)?.init();
+     router.resetRootComponentType(ref.componentTypes[0]);
+-    bootstrapDone.next();
+-    bootstrapDone.complete();
++    if (!bootstrapDone.closed) {
++      bootstrapDone.next();
++      bootstrapDone.unsubscribe();
++    }
+   };
+ }
+ 
+diff --git a/packages/router/test/bootstrap.spec.ts b/packages/router/test/bootstrap.spec.ts
+index 111ae70993..6127ef76d4 100644
+--- a/packages/router/test/bootstrap.spec.ts
++++ b/packages/router/test/bootstrap.spec.ts
+@@ -11,7 +11,7 @@ import {ApplicationRef, Component, CUSTOM_ELEMENTS_SCHEMA, destroyPlatform, Inje
+ import {inject} from '@angular/core/testing';
+ import {BrowserModule} from '@angular/platform-browser';
+ import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
+-import {NavigationEnd, provideRouter, Resolve, Router, RouterModule, withEnabledBlockingInitialNavigation} from '@angular/router';
++import {NavigationEnd, provideRouter, Resolve, Router, RouterModule, RouterOutlet, withEnabledBlockingInitialNavigation} from '@angular/router';
+ 
+ // This is needed, because all files under `packages/` are compiled together as part of the
+ // [legacy-unit-tests-saucelabs][1] CI job, including the `lib.webworker.d.ts` typings brought in by
+@@ -112,6 +112,55 @@ describe('bootstrap', () => {
+        });
+      });
+ 
++  it('should finish navigation when initial navigation is enabledBlocking and component renavigates on render',
++     async () => {
++       @Component({
++         template: '',
++         standalone: true,
++       })
++       class Renavigate {
++         constructor(router: Router) {
++           router.navigateByUrl('/other');
++         }
++       }
++       @Component({
++         template: '',
++         standalone: true,
++       })
++       class BlankCmp {
++       }
++
++       let resolveFn: () => void;
++       const navigationEndPromise = new Promise<void>(r => {
++         resolveFn = r;
++       });
++
++       @NgModule({
++         imports: [BrowserModule, RouterOutlet],
++         declarations: [RootCmp],
++         bootstrap: [RootCmp],
++         providers: [
++           {provide: LocationStrategy, useClass: HashLocationStrategy},
++           provideRouter(
++               [{path: '', component: Renavigate}, {path: 'other', component: BlankCmp}],
++               withEnabledBlockingInitialNavigation())
++         ],
++       })
++       class TestModule {
++         constructor(router: Router) {
++           router.events.subscribe(e => {
++             if (e instanceof NavigationEnd) {
++               resolveFn();
++               expect(router.url).toEqual('/other');
++             }
++           });
++         }
++       }
++
++       await Promise.all(
++           [platformBrowserDynamic([]).bootstrapModule(TestModule), navigationEndPromise]);
++     });
++
+   it('should wait for redirect when initialNavigation = enabledBlocking', async () => {
+     @Injectable({providedIn: 'root'})
+     class Redirect {

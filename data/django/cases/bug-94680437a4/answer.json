@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-94680437a4",
+  "pr_url": "https://github.com/django/django/pull/19868",
+  "kind": "bug",
+  "ground_truth": "In the insert branch of `Model._save_table`, the change builds `returning_fields = list(meta.db_returning_fields)` and then, for each insert field, calls `returning_fields.remove(field)` (the `elif field.db_returning:` branch) whenever the field's pre_save value is not an expression. Before this change, every `db_returning` field was always fetched back via RETURNING and assigned to the instance. Now a `db_returning` field with an explicitly set value keeps the in-memory Python value instead of the value the database actually stored. This happens even on backends that support RETURNING (PostgreSQL, SQLite, Oracle). For example, an explicitly set primary key or a custom `db_returning=True` field whose stored or converted value (via `from_db_value`, normalization or triggers) differs from the assigned value is left stale on the instance after `save()`/`create()`. The fix only removes such fields from `returning_fields` when the backend cannot return columns from insert, and never removes the auto field when the pk was set.",
+  "bug_files": [
+    "django/db/models/base.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "4fcc2883faa8e33152d9e45744354cff35636975",
+  "issue": null,
+  "fix_tickets": [],
+  "evidence_url": null
+}

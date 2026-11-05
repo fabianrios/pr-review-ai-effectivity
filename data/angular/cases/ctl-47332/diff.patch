@@ -1,0 +1,88 @@
+diff --git a/packages/core/test/bundling/router/bundle.golden_symbols.json b/packages/core/test/bundling/router/bundle.golden_symbols.json
+index 620ce9c332..3a897959fa 100644
+--- a/packages/core/test/bundling/router/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/router/bundle.golden_symbols.json
+@@ -323,6 +323,9 @@
+   {
+     "name": "LocationStrategy"
+   },
++  {
++    "name": "MATRIX_PARAM_SEGMENT_RE"
++  },
+   {
+     "name": "MODIFIER_KEYS"
+   },
+diff --git a/packages/router/src/url_tree.ts b/packages/router/src/url_tree.ts
+index 5fc2321e0a..dceb442336 100644
+--- a/packages/router/src/url_tree.ts
++++ b/packages/router/src/url_tree.ts
+@@ -513,12 +513,18 @@ function serializeQueryParams(params: {[key: string]: any}): string {
+   return strParams.length ? `?${strParams.join('&')}` : '';
+ }
+ 
+-const SEGMENT_RE = /^[^\/()?;=#]+/;
++const SEGMENT_RE = /^[^\/()?;#]+/;
+ function matchSegments(str: string): string {
+   const match = str.match(SEGMENT_RE);
+   return match ? match[0] : '';
+ }
+ 
++const MATRIX_PARAM_SEGMENT_RE = /^[^\/()?;=#]+/;
++function matchMatrixKeySegments(str: string): string {
++  const match = str.match(MATRIX_PARAM_SEGMENT_RE);
++  return match ? match[0] : '';
++}
++
+ const QUERY_PARAM_RE = /^[^=?&#]+/;
+ // Return the name of the query param at the start of the string or an empty string
+ function matchQueryParams(str: string): string {
+@@ -624,7 +630,7 @@ class UrlParser {
+   }
+ 
+   private parseParam(params: {[key: string]: string}): void {
+-    const key = matchSegments(this.remaining);
++    const key = matchMatrixKeySegments(this.remaining);
+     if (!key) {
+       return;
+     }
+diff --git a/packages/router/test/url_serializer.spec.ts b/packages/router/test/url_serializer.spec.ts
+index 7f1cc901a4..d16be4af4f 100644
+--- a/packages/router/test/url_serializer.spec.ts
++++ b/packages/router/test/url_serializer.spec.ts
+@@ -34,6 +34,36 @@ describe('url serializer', () => {
+     expect(url.serialize(tree)).toEqual('/one/two(left:three//right:four)');
+   });
+ 
++  it('should parse secondary segments with an = in the name', () => {
++    const tree = url.parse('/path/to/some=file');
++    expect(tree.root.children.primary.segments[2].path).toEqual('some=file');
++  });
++
++  it('should parse segments with matrix parameters when the name contains an =', () => {
++    const tree = url.parse('/path/to/some=file;test=11');
++    expect(tree.root.children.primary.segments[2].path).toEqual('some=file');
++    expect(tree.root.children.primary.segments[2].parameterMap.keys).toHaveSize(1);
++    expect(tree.root.children.primary.segments[2].parameterMap.get('test')).toEqual('11');
++  });
++
++  it('should parse segments that end with an =', () => {
++    const tree = url.parse('/password/de/MDAtMNTk=');
++    expect(tree.root.children.primary.segments[2].path).toEqual('MDAtMNTk=');
++  });
++
++  it('should parse segments that only contain an =', () => {
++    const tree = url.parse('example.com/prefix/=');
++    expect(tree.root.children.primary.segments[2].path).toEqual('=');
++  });
++
++  it('should parse segments with matrix parameter values containing an =', () => {
++    const tree = url.parse('/path/to/something;query=file=test;query2=test2');
++    expect(tree.root.children.primary.segments[2].path).toEqual('something');
++    expect(tree.root.children.primary.segments[2].parameterMap.keys).toHaveSize(2);
++    expect(tree.root.children.primary.segments[2].parameterMap.get('query')).toEqual('file=test');
++    expect(tree.root.children.primary.segments[2].parameterMap.get('query2')).toEqual('test2');
++  });
++
+   it('should parse top-level nodes with only secondary segment', () => {
+     const tree = url.parse('/(left:one)');
+ 

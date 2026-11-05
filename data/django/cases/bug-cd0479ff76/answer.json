@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-cd0479ff76",
+  "pr_url": "https://github.com/django/django/pull/18026",
+  "kind": "bug",
+  "ground_truth": "The change added a block to `updateRelatedSelectsOptions` in RelatedObjectLookups.js that, after appending a new option to another related select, calls `SelectBox.add_to_cache(select.id, option)` and `SelectBox.redisplay(select.id)`. The guard is only `window.SelectBox !== undefined && !SelectBox.cache[currentSelect.id]`; it never checks that `select` itself is managed by SelectBox. Consider a form with several relations to the same model where only some use `filter_horizontal`, so SelectBox.js is loaded. Adding an object via the '+' popup then reaches other plain `<select>` widgets that have no `SelectBox.cache` entry. `add_to_cache` then pushes onto an undefined cache entry and throws a TypeError. That aborts `dismissAddRelatedObjectPopup`, so the popup window never closes. The fix adds the condition `SelectBox.cache[select.id]`, so the cache is updated only for fields SelectBox actually manages.",
+  "bug_files": [
+    "django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js"
+  ],
+  "fix_pr": null,
+  "fix_commit": "08a0b923298fd2489871cd88254d11f8246b8c93",
+  "issue": null,
+  "fix_tickets": [
+    36468
+  ],
+  "evidence_url": null
+}

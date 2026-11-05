@@ -1,0 +1,28 @@
+fix(core): preserve leave animation for sibling instances sharing a TNode
+
+`animate.leave` was skipped — the element was removed from the DOM
+synchronously instead of running its leave animation — whenever a
+sibling instance of the same template entered in a different DOM parent
+during the same change-detection tick (e.g. an exclusive-expansion
+accordion or nav where opening section B collapses section A).
+
+`leavingNodes` is keyed by `TNode`, which is shared by every instance of
+a template. When a node was inserted, `cancelLeavingNodes` force-removed
+any tracked leaving node whose DOM parent differed from the entering
+node's parent (the `leavingParent !== newParent` branch added to
+de-duplicate a dynamic component re-rendered into a fresh overlay pane).
+For two distinct live sibling instances that merely share a `TNode`,
+"different parent" is the normal situation, so the still-animating
+sibling was ripped out.
+
+Track the declaration view of each leaving element alongside it, and
+only perform the cross-parent removal when the entering element belongs
+to the same declaration view as the leaving one — i.e. the same logical
+view re-rendered, the case the branch was written for. Two distinct
+instances of a shared template have different declaration views, so
+their `animate.leave` is now left to run to completion.
+
+This preserves the dynamic-component/overlay de-duplication (#67032) and
+the drag-and-drop node-move rescue (#67361), which are unchanged.
+
+Fixes #69291

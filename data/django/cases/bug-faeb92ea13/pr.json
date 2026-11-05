@@ -1,0 +1,27 @@
+{
+  "repo": "django/django",
+  "number": 17936,
+  "url": "https://github.com/django/django/pull/17936",
+  "commit_url": "https://github.com/django/django/commit/faeb92ea13f0c1b2cc83f45b512f2c41cfb4f02d",
+  "title": "Fixed #35270 -- Optimized model's Options._property_names.",
+  "description": "# Trac ticket number\r\n\r\nticket-35270\r\n\r\n# Branch description\r\n\r\nCovered in the ticket.\r\n\r\n# Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" **ticket flag** in the Trac system.\r\n- [x] I have added or updated relevant **tests**.\r\n- [x] I have added or updated relevant **docs**, including release notes if applicable.\r\n- [n/a] For UI changes, I have attached **screenshots** in both light and dark modes.\r\n",
+  "commit_message": "Fixed #35270 -- Optimized model's Options._property_names.\n\nco-authored-by: Nick Pope <nick@nickpope.me.uk>",
+  "labels": [],
+  "author": "Adam Johnson",
+  "merged_at": "2024-03-08T11:50:11+00:00",
+  "tickets": [
+    35270
+  ],
+  "base_commit": "73df8b54a2fab53bec4c7573cda5ad8c869c2fd8",
+  "head_commit": "faeb92ea13f0c1b2cc83f45b512f2c41cfb4f02d",
+  "changed_lines": 13,
+  "files": [
+    {
+      "path": "django/db/models/options.py",
+      "added": 7,
+      "deleted": 6,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

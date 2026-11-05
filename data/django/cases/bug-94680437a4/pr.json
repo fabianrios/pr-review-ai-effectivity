@@ -1,0 +1,63 @@
+{
+  "repo": "django/django",
+  "number": 19868,
+  "url": "https://github.com/django/django/pull/19868",
+  "commit_url": "https://github.com/django/django/commit/94680437a45a71c70ca8bd2e68b72aa1e2eff337",
+  "title": "Refs #27222 -- Restored Model.save()'s refreshing of db_returning fields, even if a value is set.",
+  "description": "Regression in 94680437a45a71c70ca8bd2e68b72aa1e2eff337.\r\n\r\nDiscussed at https://github.com/django/django/pull/19285/files#r2076268448.",
+  "commit_message": "Fixed #27222 -- Refreshed model field values assigned expressions on save().\n\nRemoved the can_return_columns_from_insert skip gates on existing\nfield_defaults tests to confirm the expected number of queries are\nperformed and that returning field overrides are respected.",
+  "labels": [],
+  "author": "Simon Charette",
+  "merged_at": "2025-03-19T01:39:19-04:00",
+  "tickets": [
+    27222
+  ],
+  "base_commit": "55a0073b3beb9de8f7c1f7c44a7d0bc10126c841",
+  "head_commit": "94680437a45a71c70ca8bd2e68b72aa1e2eff337",
+  "changed_lines": 186,
+  "files": [
+    {
+      "path": "django/db/models/base.py",
+      "added": 20,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "docs/ref/models/expressions.txt",
+      "added": 17,
+      "deleted": 22,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/6.0.txt",
+      "added": 2,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/basic/tests.py",
+      "added": 22,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/expressions/tests.py",
+      "added": 10,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "tests/field_defaults/tests.py",
+      "added": 37,
+      "deleted": 33,
+      "binary": false
+    },
+    {
+      "path": "tests/update_only_fields/tests.py",
+      "added": 15,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

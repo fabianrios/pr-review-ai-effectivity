@@ -1,0 +1,57 @@
+{
+  "repo": "angular/angular",
+  "number": 56852,
+  "url": "https://github.com/angular/angular/pull/56852",
+  "title": "fix(zone.js): support `Timeout.refresh` in Node.js",
+  "description": "\r\nThe `Timeout` object in Node.js has a `refresh` method, used to restart `setTimeout`/`setInterval` timers. Before this commit, `Timeout.refresh` was not handled, leading to memory leaks when using `fetch` in Node.js. This issue arose because `undici` (the Node.js fetch implementation) uses a refreshed `setTimeout` for cleanup operations.\r\n\r\nFor reference, see: https://github.com/nodejs/undici/blob/1dff4fd9b1b2cee97c5f8cf44041521a62d3f133/lib/util/timers.js#L45\r\n\r\nFixes: #56586",
+  "labels": [
+    "action: merge",
+    "area: zones",
+    "target: patch",
+    "merge: caretaker note"
+  ],
+  "author": "alan-agius4",
+  "merged_at": "2024-07-16T19:46:54Z",
+  "base_commit": "97d718dc2f71aa59e3edbf2443fa85809831e1d5",
+  "head_commit": "827ff1bf4c20d301af3011fbe4940f3d4daf468e",
+  "changed_lines": 228,
+  "files": [
+    {
+      "path": "packages/zone.js/lib/common/timers.ts",
+      "added": 67,
+      "deleted": 44,
+      "binary": false
+    },
+    {
+      "path": "packages/zone.js/lib/common/utils.ts",
+      "added": 8,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/zone.js/lib/zone-impl.ts",
+      "added": 29,
+      "deleted": 14,
+      "binary": false
+    },
+    {
+      "path": "packages/zone.js/test/node/timer.spec.ts",
+      "added": 59,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/zone.js/test/zone-spec/async-test.spec.ts",
+      "added": 0,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "packages/zone.js/test/zone-spec/fake-async-test.spec.ts",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

@@ -1,0 +1,11 @@
+Fixed #36796 -- Handled lazy routes correctly in RoutePattern.match().
+
+Coerce lazy route values to `str` at match time to support prefix and
+endpoint matching when using `gettext_lazy()` route paths.
+
+Regression in f920937c8a63df6bea220e4386f59cdb45b2e355.
+
+Thanks to Andrea Angelini for the report, and to Jake Howard and Jacob
+Walls for reviews.
+
+Co-authored-by: Natalia <124304+nessita@users.noreply.github.com>

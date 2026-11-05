@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-8638d8bf74",
+  "pr_url": "https://github.com/django/django/pull/19395",
+  "kind": "bug",
+  "ground_truth": "The new `Index.check()` method passes `{*self.fields, *self.include, *references}` to `model._check_local_fields()`. `self.fields` holds the raw field strings, including the \"-\" prefix used for descending order. The old Model-level check used the field names from `index.fields_orders`, which has that prefix stripped. As a result, a valid index such as `models.Index(fields=[\"-name\"], name=\"idx\")` now fails the system check with \"'indexes' refers to the nonexistent field '-name'\" (models.E012). The fix passes `field for field, _ in self.fields_orders` instead of `self.fields`.",
+  "bug_files": [
+    "django/db/models/indexes.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "edde2891c355103ba455f3fea95cff962e40962c",
+  "issue": null,
+  "fix_tickets": [
+    36660
+  ],
+  "evidence_url": null
+}

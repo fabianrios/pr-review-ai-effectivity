@@ -1,0 +1,11 @@
+refactor(router): Add handling for empty observables in guards (#63546)
+
+This fixes a bug introduced in #63485 where `firstValueFrom` was used. This
+doesn't work in all situations here because some observables don't
+emit before completing. These errors should result in the route matching
+logic moving on to the next route.
+
+Note: This is marked as a refactor rather than fix because the commit above is not in
+any release yet.
+
+PR Close #63546

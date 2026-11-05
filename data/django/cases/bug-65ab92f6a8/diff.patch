@@ -1,0 +1,13 @@
+diff --git a/django/contrib/admindocs/utils.py b/django/contrib/admindocs/utils.py
+index f8e329a79d..334d9907ea 100644
+--- a/django/contrib/admindocs/utils.py
++++ b/django/contrib/admindocs/utils.py
+@@ -82,7 +82,7 @@ def parse_rst(text, default_reference_context, thing_being_parsed=None):
+         source % text,
+         source_path=thing_being_parsed,
+         destination_path=None,
+-        writer_name="html",
++        writer="html",
+         settings_overrides=overrides,
+     )
+     return mark_safe(parts["fragment"])

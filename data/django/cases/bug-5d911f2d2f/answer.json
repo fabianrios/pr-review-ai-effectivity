@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-5d911f2d2f",
+  "pr_url": "https://github.com/django/django/pull/19534",
+  "kind": "bug",
+  "ground_truth": "The new deprecation check in `Parser.parse()` for variable nodes tests `\"..\" in str(filter_expression.var)`. For constant expressions, `filter_expression.var` is the resolved literal value (a string or translated string), not a `Variable` lookup. So a template containing a literal with two consecutive dots, such as `{{ \"a..b\" }}` or `{{ 'a..b'|upper }}`, wrongly emits a `RemovedInDjango70Warning` about double-dot lookups. That warning becomes an exception when warnings are treated as errors. The check would also reject valid templates once it is elevated to an error as planned. The fix applies the check only when the expression is a variable lookup: `filter_expression.is_var and \"..\" in filter_expression.var.var`.",
+  "bug_files": [
+    "django/template/base.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "b5388a3a80cafcce2e34196d8e81cf5b48eb33bb",
+  "issue": null,
+  "fix_tickets": [
+    37257
+  ],
+  "evidence_url": null
+}

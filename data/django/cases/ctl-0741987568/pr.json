@@ -1,0 +1,33 @@
+{
+  "repo": "django/django",
+  "number": 20183,
+  "url": "https://github.com/django/django/pull/20183",
+  "commit_url": "https://github.com/django/django/commit/07419875685997a30cd281396e0dc867e98aefe3",
+  "title": "Fixed #36737 -- Escaped C1 control characters in escapejs.",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\nticket-[#36737](https://code.djangoproject.com/ticket/36737)\r\n\r\n#### Branch description\r\nIn Ticket 36737 there was a discussion on C0 control characters of ASCII value and it was a relatively an easy issue to solve I felt that I could tackle the given problem. which was simply solved by adding limits to the loop \r\nI would like to apologize to any problem or error I have caused. \r\n\r\n#### Checklist\r\n- [ ] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [ ] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [ ] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [ ] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #36737 -- Escaped further control characters in escapejs.",
+  "labels": [],
+  "author": "farthestmage",
+  "merged_at": "2025-11-17T15:56:50+05:30",
+  "tickets": [
+    36737
+  ],
+  "base_commit": "97acd4d2f92eef8c285bac070d437bf0fd52e071",
+  "head_commit": "07419875685997a30cd281396e0dc867e98aefe3",
+  "changed_lines": 11,
+  "files": [
+    {
+      "path": "django/utils/html.py",
+      "added": 6,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "tests/utils_tests/test_html.py",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

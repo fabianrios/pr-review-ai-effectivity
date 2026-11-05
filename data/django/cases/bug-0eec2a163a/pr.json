@@ -1,0 +1,63 @@
+{
+  "repo": "django/django",
+  "number": 20080,
+  "url": "https://github.com/django/django/pull/20080",
+  "commit_url": "https://github.com/django/django/commit/0eec2a163a4b2ea4e82c53ae1d7b71bf43ac911d",
+  "title": "Fixed #36724 -- Removed broken 'for' attribute from the legend tag",
+  "description": "#### Trac ticket number\r\n\r\nticket-36724\r\n\r\n#### Branch description\r\n\r\n~~The `FilteredSelectMultiple` widget (initialized by `SelectFilter2.js`) has a `<legend>` with a `for` attribute that points to the field's original `id` (e.g., `for=\"id_groups\"`).~~\r\n\r\n~~This patch fixes the issue by assigning the original `field_id` (e.g., `id_groups`) to the main wrapper `div` (`selector_div`) that the script creates. This gives the `<legend>` a valid element to point to, resolving the broken link.~~\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.~~\r\n\r\n\r\n",
+  "commit_message": "Fixed #36724 -- Removed invalid \"for\" attribute on <legend> tags.",
+  "labels": [],
+  "author": "Kasyap Pentamaraju",
+  "merged_at": "2025-11-11T14:59:28+05:30",
+  "tickets": [
+    36724
+  ],
+  "base_commit": "7e765a68598b2b798e49bf1f4b431a7bcac085a4",
+  "head_commit": "0eec2a163a4b2ea4e82c53ae1d7b71bf43ac911d",
+  "changed_lines": 86,
+  "files": [
+    {
+      "path": "django/forms/boundfield.py",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/forms_tests/tests/test_forms.py",
+      "added": 38,
+      "deleted": 22,
+      "binary": false
+    },
+    {
+      "path": "tests/forms_tests/tests/test_i18n.py",
+      "added": 2,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "tests/forms_tests/widget_tests/test_clearablefileinput.py",
+      "added": 3,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "tests/forms_tests/widget_tests/test_selectdatewidget.py",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/model_forms/tests.py",
+      "added": 3,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "tests/model_formsets/tests.py",
+      "added": 2,
+      "deleted": 2,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

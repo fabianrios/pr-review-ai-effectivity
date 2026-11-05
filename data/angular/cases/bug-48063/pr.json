@@ -1,0 +1,32 @@
+{
+  "repo": "angular/angular",
+  "number": 48063,
+  "url": "https://github.com/angular/angular/pull/48063",
+  "title": "fix(router): Ensure renavigating in component init works with enabled…",
+  "description": "…Blocking\r\n\r\nThe way to complete the `Subject` in a way that is able to be read on\r\nthe subject properties itself is to call `unsubscribe`:\r\nhttps://github.com/ReactiveX/rxjs/blob/afac3d574323333572987e043adcd0f8d4cff546/src/internal/Subject.ts#L101-L104\r\nThis sets the `closed` property to `true` whereas `complete` does not.\r\n\r\nfixes https://github.com/angular/angular/issues/48052\r\n",
+  "labels": [
+    "action: merge",
+    "area: router",
+    "target: patch"
+  ],
+  "author": "atscott",
+  "merged_at": "2022-11-17T19:01:19Z",
+  "base_commit": "954f700ab44b705e7ad95b7d102f6394553d4e12",
+  "head_commit": "55be9e1560c671cace9f5ba72d8c84b72aa92a3e",
+  "changed_lines": 57,
+  "files": [
+    {
+      "path": "packages/router/src/provide_router.ts",
+      "added": 4,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "packages/router/test/bootstrap.spec.ts",
+      "added": 50,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

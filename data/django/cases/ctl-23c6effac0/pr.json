@@ -1,0 +1,51 @@
+{
+  "repo": "django/django",
+  "number": 19037,
+  "url": "https://github.com/django/django/pull/19037",
+  "commit_url": "https://github.com/django/django/commit/23c6effac0c39669e17904165c9762f24b010cc5",
+  "title": "Fixed #36087 -- Supported password reset on a custom user model with a composite primary key.",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\nticket-36087\r\n\r\n#### Branch description\r\nProvide a concise overview of the issue or rationale behind the proposed changes.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #36087 -- Supported password reset on a custom user model with a composite primary key.",
+  "labels": [],
+  "author": "Sarah Boyce",
+  "merged_at": "2025-01-13T12:01:49+01:00",
+  "tickets": [
+    36087
+  ],
+  "base_commit": "d83fb782d33aa7aaa1b2c995c648a59eddb46047",
+  "head_commit": "23c6effac0c39669e17904165c9762f24b010cc5",
+  "changed_lines": 41,
+  "files": [
+    {
+      "path": "django/contrib/auth/forms.py",
+      "added": 2,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/auth/views.py",
+      "added": 2,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/models/__init__.py",
+      "added": 7,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/models/custom_user.py",
+      "added": 13,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/test_views.py",
+      "added": 13,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

@@ -1,0 +1,7 @@
+Fixed #35627 -- Raised a LookupError rather than an unhandled ValueError in get_supported_language_variant().
+
+LocaleMiddleware didn't handle the ValueError raised by
+get_supported_language_variant() when language codes were
+over 500 characters.
+
+Regression in 9e9792228a6bb5d6402a5d645bc3be4cf364aefb.

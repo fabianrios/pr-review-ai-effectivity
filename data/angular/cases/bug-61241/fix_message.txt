@@ -1,0 +1,10 @@
+fix(devtools): errors caused by the injector tree (#62029)
+
+Errors:
+- Attempting to translate SVGs when the tab is not on focus (Regression from #61241)
+- Null injector node focus error
+
+Extra:
+- Improve scoping of the injector-tree component class members
+
+PR Close #62029

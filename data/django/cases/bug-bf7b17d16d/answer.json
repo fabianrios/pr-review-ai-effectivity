@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-bf7b17d16d",
+  "pr_url": "https://github.com/django/django/pull/19018",
+  "kind": "bug",
+  "ground_truth": "The change rewrote `Options._non_pk_concrete_field_names` in options.py to filter with `if field not in self.pk_fields` instead of `if not field.primary_key`. Under multi-table inheritance, a child model's `pk_fields` contains only its own primary key (the parent link). The parent's primary key (e.g. the parent's `id` AutoField) also appears in the child's `concrete_fields` with `primary_key=True`, but it is not in the child's `pk_fields`. As a result, the parent's pk is now reported as an updatable non-pk concrete field. For example, `child.save(update_fields=[\"id\"])` no longer raises the expected ValueError, and code relying on this set, such as the `update_or_create` update_fields subset check, treats the parent pk as a regular field. The fix collects the `pk_fields` of the model and of all its parents (`all_parents`) and excludes all of them. It also updates the save() error message to mention primary keys.",
+  "bug_files": [
+    "django/db/models/options.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "f07360e8087d3b403d1d12ff696da3138116055a",
+  "issue": null,
+  "fix_tickets": [],
+  "evidence_url": null
+}

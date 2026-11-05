@@ -1,0 +1,27 @@
+{
+  "repo": "django/django",
+  "number": 19684,
+  "url": "https://github.com/django/django/pull/19684",
+  "commit_url": "https://github.com/django/django/commit/65ab92f6a83644bbb555d0eff3a02d8d9301aba4",
+  "title": "Fixed writer_name deprecation warning in docutils 0.22+.",
+  "description": "https://pypi.org/project/docutils/0.22/",
+  "commit_message": "Fixed writer_name deprecation warning in docutils 0.22+.",
+  "labels": [
+    "no ticket"
+  ],
+  "author": "Mariusz Felisiak",
+  "merged_at": "2025-07-30T02:50:16+02:00",
+  "tickets": [],
+  "base_commit": "d55979334dcefdb11626220000bec97ade09df07",
+  "head_commit": "65ab92f6a83644bbb555d0eff3a02d8d9301aba4",
+  "changed_lines": 2,
+  "files": [
+    {
+      "path": "django/contrib/admindocs/utils.py",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

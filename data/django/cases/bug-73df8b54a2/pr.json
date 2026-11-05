@@ -1,0 +1,45 @@
+{
+  "repo": "django/django",
+  "number": 17831,
+  "url": "https://github.com/django/django/pull/17831",
+  "commit_url": "https://github.com/django/django/commit/73df8b54a2fab53bec4c7573cda5ad8c869c2fd8",
+  "title": "Fixed #35044 -- Avoided clearing reverse relations and private fields when accessing deferred fields.",
+  "description": "[ticket-35044](https://code.djangoproject.com/ticket/35044)\r\n\r\nThanks @adamchainz for the report, @charettes for the ideas.\r\n",
+  "commit_message": "Fixed #35044 -- Avoided clearing reverse relations and private fields when accessing deferred fields.\n\nRegression in a7b5ad8b19a08d7d57302ece74f6e26d2887fd9f for reverse\nrelations and possibly in 123b1d3fcf79f091573c40be6da7113a6ef35b62 for\nprivate fields.",
+  "labels": [],
+  "author": "Giannis Terzopoulos",
+  "merged_at": "2024-02-09T23:47:06+01:00",
+  "tickets": [
+    35044
+  ],
+  "base_commit": "74f7fe3f3dd9725e92aa079c5f54b65d66db28de",
+  "head_commit": "73df8b54a2fab53bec4c7573cda5ad8c869c2fd8",
+  "changed_lines": 77,
+  "files": [
+    {
+      "path": "django/db/models/base.py",
+      "added": 6,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "tests/contenttypes_tests/test_fields.py",
+      "added": 35,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/defer/models.py",
+      "added": 8,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/defer/tests.py",
+      "added": 26,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

@@ -1,0 +1,26 @@
+diff --git a/devtools/projects/shell-browser/src/index.html b/devtools/projects/shell-browser/src/index.html
+index 0b80ae245460..a76f0fef54e0 100644
+--- a/devtools/projects/shell-browser/src/index.html
++++ b/devtools/projects/shell-browser/src/index.html
+@@ -15,7 +15,7 @@
+   <body>
+     <app-root></app-root>
+ 
+-    <script src="./npm/node_modules/zone.js/bundles/zone.umd.min.js"></script>
++    <script src="./node_modules/zone.js/bundles/zone.umd.min.js"></script>
+     <script type="module" src="./bundle/main.js"></script>
+   </body>
+ </html>
+diff --git a/devtools/src/index.html b/devtools/src/index.html
+index 5e91f96eb5f4..54d425d2c1b4 100644
+--- a/devtools/src/index.html
++++ b/devtools/src/index.html
+@@ -18,7 +18,7 @@
+       <app-root></app-root>
+     </div>
+ 
+-    <script src="./npm/node_modules/zone.js/bundles/zone.umd.min.js"></script>
++    <script src="./node_modules/zone.js/bundles/zone.umd.min.js"></script>
+     <script type="module" src="./bundle/main.js"></script>
+   </body>
+ </html>

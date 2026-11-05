@@ -1,0 +1,7 @@
+{
+  "case_id": "ctl-0741987568",
+  "pr_url": "https://github.com/django/django/pull/20183",
+  "kind": "control",
+  "ground_truth": null,
+  "matched_to": "a9fe98d5bd"
+}

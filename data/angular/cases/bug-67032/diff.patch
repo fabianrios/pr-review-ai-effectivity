@@ -1,0 +1,590 @@
+diff --git a/packages/core/src/animation/queue.ts b/packages/core/src/animation/queue.ts
+index e5432a2d1f..86e4942ebe 100644
+--- a/packages/core/src/animation/queue.ts
++++ b/packages/core/src/animation/queue.ts
+@@ -103,17 +103,3 @@ export function queueEnterAnimations(
+     addToAnimationQueue(injector, nodeAnimations.animateFns);
+   }
+ }
+-
+-export function removeAnimationsFromQueue(
+-  injector: Injector,
+-  animationFns: VoidFunction | VoidFunction[],
+-) {
+-  const animationQueue = injector.get(ANIMATION_QUEUE);
+-  if (Array.isArray(animationFns)) {
+-    for (const animateFn of animationFns) {
+-      animationQueue.queue.delete(animateFn);
+-    }
+-  } else {
+-    animationQueue.queue.delete(animationFns);
+-  }
+-}
+diff --git a/packages/core/src/animation/utils.ts b/packages/core/src/animation/utils.ts
+index 365dd1f429..e919509f51 100644
+--- a/packages/core/src/animation/utils.ts
++++ b/packages/core/src/animation/utils.ts
+@@ -16,12 +16,11 @@ import {
+   LeaveNodeAnimations,
+   AnimationClassBindingFn,
+ } from './interfaces';
+-import {INJECTOR, LView, DECLARATION_LCONTAINER, ANIMATIONS} from '../render3/interfaces/view';
++import {INJECTOR, LView, ANIMATIONS} from '../render3/interfaces/view';
+ import {RuntimeError, RuntimeErrorCode} from '../errors';
+ import {Renderer} from '../render3/interfaces/renderer';
+ import {RElement} from '../render3/interfaces/renderer_dom';
+ import {TNode} from '../render3/interfaces/node';
+-import {getBeforeNodeForView} from '../render3/node_manipulation';
+ 
+ const DEFAULT_ANIMATIONS_DISABLED = false;
+ 
+@@ -131,26 +130,40 @@ export function clearLeavingNodes(tNode: TNode, el: HTMLElement): void {
+ }
+ 
+ /**
+- * In the case that we have an existing node that's animating away, like when
+- * an `@if` toggles quickly, we need to end the animation for the former node
+- * and remove it right away to prevent duplicate nodes showing up.
++ * In the case that we have an existing node that's animating away in a
++ * different DOM parent (e.g. a CDK overlay menu that renders each instance
++ * in its own overlay pane), we need to end the animation for the former
++ * node and remove it right away to prevent duplicate nodes showing up.
++ *
++ * Leaving elements in the same parent are left alone — their leave
++ * animation will complete naturally and remove them from the DOM.
+  */
+-export function cancelLeavingNodes(tNode: TNode, lView: LView): void {
+-  const leavingEl = leavingNodes.get(tNode)?.shift();
+-  const lContainer = lView[DECLARATION_LCONTAINER];
+-  if (lContainer) {
+-    // this is the insertion point for the new TNode element.
+-    // it will be inserted before the declaring containers anchor.
+-    const beforeNode = getBeforeNodeForView(tNode.index, lContainer);
+-    // here we need to check the previous sibling of that anchor. The first
+-    // previousSibling node will be the new element added. The second
+-    // previousSibling will be the one that's being removed.
+-    const previousNode = beforeNode?.previousSibling;
+-    // We really only want to cancel animations if the leaving node is the
+-    // same as the node before where the new node will be inserted. This is
+-    // the control flow scenario where an if was toggled.
+-    if (leavingEl && previousNode && leavingEl === previousNode) {
++export function cancelLeavingNodes(tNode: TNode, newElement: HTMLElement): void {
++  const nodes = leavingNodes.get(tNode);
++  if (!nodes || nodes.length === 0) return;
++
++  const newParent = newElement.parentNode;
++  const prevSibling = newElement.previousSibling;
++
++  for (let i = nodes.length - 1; i >= 0; i--) {
++    const leavingEl = nodes[i];
++    const leavingParent = leavingEl.parentNode;
++    // Cancel if the leaving element is:
++    // - The direct previousSibling of the new element. This is reliable
++    //   because Angular inserts new elements at the same position (before
++    //   the container anchor) where the leaving element was, making them
++    //   always adjacent. Covers @if toggling and same-VCR toggling.
++    // - In a different DOM parent (overlay/portal case where each instance
++    //   renders in its own container, e.g. CDK Overlay).
++    // Leaving elements in the same parent that are NOT the previousSibling
++    // are left alone (e.g. @for items animating out at different positions).
++    if (
++      (prevSibling && leavingEl === prevSibling) ||
++      (leavingParent && newParent && leavingParent !== newParent)
++    ) {
++      nodes.splice(i, 1);
+       leavingEl.dispatchEvent(new CustomEvent('animationend', {detail: {cancel: true}}));
++      leavingEl.parentNode?.removeChild(leavingEl);
+     }
+   }
+ }
+@@ -164,8 +177,11 @@ export function trackLeavingNodes(tNode: TNode, el: HTMLElement): void {
+   // We need to track this tNode's element just to be sure we don't add
+   // a new RNode for this TNode while this one is still animating away.
+   // once the animation is complete, we remove this reference.
+-  if (leavingNodes.has(tNode)) {
+-    leavingNodes.get(tNode)?.push(el);
++  const nodes = leavingNodes.get(tNode);
++  if (nodes) {
++    if (!nodes.includes(el)) {
++      nodes.push(el);
++    }
+   } else {
+     leavingNodes.set(tNode, [el]);
+   }
+diff --git a/packages/core/src/render3/instructions/animation.ts b/packages/core/src/render3/instructions/animation.ts
+index 2e9846c6d4..d9a01f97c0 100644
+--- a/packages/core/src/render3/instructions/animation.ts
++++ b/packages/core/src/render3/instructions/animation.ts
+@@ -29,7 +29,6 @@ import {
+   assertAnimationTypes,
+   assertElementNodes,
+   cancelAnimationsIfRunning,
+-  cancelLeavingNodes,
+   cleanupAfterLeaveAnimations,
+   cleanupEnterClassData,
+   clearLeavingNodes,
+@@ -69,7 +68,6 @@ export function ɵɵanimateEnter(value: string | AnimationClassBindingFn): typeo
+   }
+ 
+   const tNode = getCurrentTNode()!;
+-  cancelLeavingNodes(tNode, lView);
+ 
+   // Capture NgZone eagerly while the injector is still valid. The animation
+   // function runs later from the queue, at which point the lView injector
+@@ -205,7 +203,6 @@ export function ɵɵanimateEnterListener(value: AnimationFunction): typeof ɵɵa
+     return ɵɵanimateEnterListener;
+   }
+   const tNode = getCurrentTNode()!;
+-  cancelLeavingNodes(tNode, lView);
+ 
+   addAnimationToLView(getLViewEnterAnimations(lView), tNode, () =>
+     runEnterAnimationFunction(lView, tNode, value),
+@@ -259,7 +256,6 @@ export function ɵɵanimateLeave(value: string | AnimationClassBindingFn): typeo
+   }
+ 
+   const tNode = getCurrentTNode()!;
+-  cancelLeavingNodes(tNode, lView);
+ 
+   // Capture NgZone eagerly while the injector is still valid. The animation
+   // function runs later from the queue, at which point the lView injector
+@@ -397,7 +393,6 @@ export function ɵɵanimateLeaveListener(value: AnimationFunction): typeof ɵɵa
+ 
+   const lView = getLView();
+   const tNode = getCurrentTNode()!;
+-  cancelLeavingNodes(tNode, lView);
+ 
+   allLeavingAnimations.add(lView[ID]);
+ 
+diff --git a/packages/core/src/render3/node_animations.ts b/packages/core/src/render3/node_animations.ts
+index 3b53d0e3a9..98015d490d 100644
+--- a/packages/core/src/render3/node_animations.ts
++++ b/packages/core/src/render3/node_animations.ts
+@@ -12,11 +12,7 @@ import {
+   AnimationLViewData,
+ } from '../animation/interfaces';
+ import {allLeavingAnimations} from '../animation/longest_animation';
+-import {
+-  queueEnterAnimations,
+-  addToAnimationQueue,
+-  removeAnimationsFromQueue,
+-} from '../animation/queue';
++import {queueEnterAnimations, addToAnimationQueue} from '../animation/queue';
+ import {Injector, INJECTOR} from '../di';
+ import {CONTAINER_HEADER_OFFSET} from './interfaces/container';
+ import {TNode, TNodeType} from './interfaces/node';
+@@ -55,11 +51,6 @@ export function runLeaveAnimationsWithCallback(
+ 
+   const animations = lView?.[ANIMATIONS];
+ 
+-  // regarding the TNode index to see if it is the same element.
+-  if (animations?.enter?.has(tNode.index)) {
+-    removeAnimationsFromQueue(injector, animations.enter.get(tNode.index)!.animateFns);
+-  }
+-
+   // get all nodes in the current view that are descendants of tNode and have leave animations
+   const nodesWithExitAnimations = aggregateDescendantAnimations(lView, tNode, animations);
+ 
+diff --git a/packages/core/src/render3/node_manipulation.ts b/packages/core/src/render3/node_manipulation.ts
+index a29c9032d1..985d6a17f2 100644
+--- a/packages/core/src/render3/node_manipulation.ts
++++ b/packages/core/src/render3/node_manipulation.ts
+@@ -82,6 +82,7 @@ import {assertTNodeType} from './node_assert';
+ import {profiler} from './profiler';
+ import {ProfilerEvent} from '../../primitives/devtools';
+ import {getLViewParent, getNativeByTNode, unwrapRNode} from './util/view_utils';
++import {cancelLeavingNodes, trackLeavingNodes} from '../animation/utils';
+ import {Injector} from '../di';
+ import {maybeQueueEnterAnimation, runLeaveAnimationsWithCallback} from './node_animations';
+ 
+@@ -144,7 +145,11 @@ function applyToElementOrContainer(
+     } else if (action === WalkTNodeTreeAction.Insert && parent !== null) {
+       maybeQueueEnterAnimation(parentLView, parent, tNode, injector);
+       nativeInsertBefore(renderer, parent, rNode, beforeNode || null, true);
++      cancelLeavingNodes(tNode, rNode as HTMLElement);
+     } else if (action === WalkTNodeTreeAction.Detach) {
++      if (parentLView?.[ANIMATIONS]?.leave?.has(tNode.index)) {
++        trackLeavingNodes(tNode, rNode as HTMLElement);
++      }
+       runLeaveAnimationsWithCallback(
+         parentLView,
+         tNode,
+diff --git a/packages/core/test/acceptance/animation_spec.ts b/packages/core/test/acceptance/animation_spec.ts
+index d62964deb4..431cd750ae 100644
+--- a/packages/core/test/acceptance/animation_spec.ts
++++ b/packages/core/test/acceptance/animation_spec.ts
+@@ -2373,7 +2373,7 @@ describe('Animation', () => {
+   });
+ 
+   describe('animation element duplication', () => {
+-    it('should not duplicate elements when using dynamic components', async () => {
++    it('should not duplicate elements when using dynamic components in overlay-like containers', fakeAsync(() => {
+       const animateStyles = `
+         .example-menu {
+           display: inline-flex;
+@@ -2415,6 +2415,7 @@ describe('Animation', () => {
+         @ViewChild('menu') menuTpl!: TemplateRef<unknown>;
+         vcr = inject(ViewContainerRef);
+         opened = false;
++        private currentPane: HTMLElement | null = null;
+ 
+         toggle() {
+           if (this.opened) {
+@@ -2426,12 +2427,23 @@ describe('Animation', () => {
+ 
+         open() {
+           this.opened = true;
+-          this.vcr.createEmbeddedView(this.menuTpl);
++          const viewRef = this.vcr.createEmbeddedView(this.menuTpl);
++          // Simulate CDK DomPortalOutlet: after creating the view, move
++          // the root nodes to a new "overlay pane" div, just like CDK
++          // Overlay does with outletElement.appendChild(rootNode).
++          const pane = document.createElement('div');
++          pane.className = 'overlay-pane';
++          document.body.appendChild(pane);
++          for (const node of viewRef.rootNodes) {
++            pane.appendChild(node);
++          }
++          this.currentPane = pane;
+         }
+ 
+         close() {
+           this.opened = false;
+           this.vcr.clear();
++          // CDK Overlay may or may not remove the pane immediately
+         }
+       }
+ 
+@@ -2449,22 +2461,36 @@ describe('Animation', () => {
+ 
+       const cmp = fixture.debugElement.query(By.css('dynamic-menu')).componentInstance;
+ 
+-      const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
++      // Query from document since overlay panes are appended to body
++      const countMenus = () => document.querySelectorAll('.example-menu').length;
++
++      // Helper to complete the leave animation for all leaving menu elements
++      const finishLeaveAnimations = () => {
++        tickAnimationFrames(1);
++        document.querySelectorAll('.example-menu.close').forEach((el) => {
++          el.dispatchEvent(new AnimationEvent('animationend', {animationName: 'open'}));
++        });
++        tick();
++      };
+ 
+-      // Toggle the menu quickly multiple times
++      // Simulate rapid clicking with CD between each toggle
+       for (let i = 0; i < 20; i++) {
+         cmp.toggle();
+-        // Wait 1ms to allow some logic to run but less than animation duration
+-        await delay(1);
+         fixture.detectChanges();
++        tickAnimationFrames(1);
++        // At no point should there be more than one menu element
++        expect(countMenus()).toBeLessThanOrEqual(1);
+       }
+ 
+-      // Finish remaining animations (wait 100ms real time which is > 10ms animation)
+-      await delay(200);
++      // Complete any remaining leave animations
++      finishLeaveAnimations();
+       fixture.detectChanges();
+ 
+-      const menus = fixture.debugElement.nativeElement.querySelectorAll('.example-menu');
+-      expect(menus.length).toBe(0);
+-    });
++      // 20 toggles (even) = closed = 0 elements
++      expect(countMenus()).toBe(0);
++
++      // Clean up overlay panes
++      document.querySelectorAll('.overlay-pane').forEach((p) => p.remove());
++    }));
+   });
+ });
+diff --git a/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json b/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json
+index 366f1ea9bb..7381ee720c 100644
+--- a/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json
+@@ -364,6 +364,7 @@
+       "callHook",
+       "callHookInternal",
+       "callHooks",
++      "cancelLeavingNodes",
+       "captureError",
+       "checkStable",
+       "classIndexOf",
+@@ -661,6 +662,7 @@
+       "leaveSkipHydrationBlock",
+       "leaveView",
+       "leaveViewLight",
++      "leavingNodes",
+       "linkTNodeInTView",
+       "listenOnPlayer",
+       "locateDirectiveOrProvider",
+@@ -760,7 +762,6 @@
+       "relativePath",
+       "rememberChangeHistoryAndInvokeOnChangesHook",
+       "remove",
+-      "removeAnimationsFromQueue",
+       "removeClass",
+       "removeElements",
+       "removeFromArray",
+@@ -839,6 +840,7 @@
+       "timeoutProvider",
+       "toInputRefArray",
+       "toOutputRefArray",
++      "trackLeavingNodes",
+       "trackMovedView",
+       "transition",
+       "transitionFailed",
+diff --git a/packages/core/test/bundling/create_component/bundle.golden_symbols.json b/packages/core/test/bundling/create_component/bundle.golden_symbols.json
+index de11c10a6f..c3e76b26fa 100644
+--- a/packages/core/test/bundling/create_component/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/create_component/bundle.golden_symbols.json
+@@ -284,6 +284,7 @@
+       "callHook",
+       "callHookInternal",
+       "callHooks",
++      "cancelLeavingNodes",
+       "captureError",
+       "checkStable",
+       "cleanUpView",
+@@ -550,6 +551,7 @@
+       "leaveDI",
+       "leaveView",
+       "leaveViewLight",
++      "leavingNodes",
+       "linkTNodeInTView",
+       "listenToDomEvent",
+       "listenToOutput",
+@@ -623,7 +625,6 @@
+       "relativePath",
+       "rememberChangeHistoryAndInvokeOnChangesHook",
+       "remove",
+-      "removeAnimationsFromQueue",
+       "removeElements",
+       "removeFromArray",
+       "removeLViewOnDestroy",
+@@ -696,6 +697,7 @@
+       "timeoutProvider",
+       "toInputRefArray",
+       "toOutputRefArray",
++      "trackLeavingNodes",
+       "trackMovedView",
+       "uniqueIdCounter",
+       "unregisterLView",
+diff --git a/packages/core/test/bundling/defer/bundle.golden_symbols.json b/packages/core/test/bundling/defer/bundle.golden_symbols.json
+index f8abf85954..1cd4ce15f5 100644
+--- a/packages/core/test/bundling/defer/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/defer/bundle.golden_symbols.json
+@@ -327,6 +327,7 @@
+       "callHook",
+       "callHookInternal",
+       "callHooks",
++      "cancelLeavingNodes",
+       "captureError",
+       "checkStable",
+       "classIndexOf",
+@@ -593,6 +594,7 @@
+       "leaveSkipHydrationBlock",
+       "leaveView",
+       "leaveViewLight",
++      "leavingNodes",
+       "linkTNodeInTView",
+       "locateDirectiveOrProvider",
+       "locateHostElement",
+@@ -660,7 +662,6 @@
+       "registerPreOrderHooks",
+       "rememberChangeHistoryAndInvokeOnChangesHook",
+       "remove",
+-      "removeAnimationsFromQueue",
+       "removeFromArray",
+       "removeLViewFromLContainer",
+       "removeLViewOnDestroy",
+@@ -734,6 +735,7 @@
+       "timeoutProvider",
+       "toInputRefArray",
+       "toOutputRefArray",
++      "trackLeavingNodes",
+       "trackMovedView",
+       "triggerDeferBlock",
+       "triggerResourceLoading",
+diff --git a/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json b/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json
+index 48562db827..e7b99dc5c3 100644
+--- a/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json
+@@ -391,6 +391,7 @@
+       "callHookInternal",
+       "callHooks",
+       "callOrApply",
++      "cancelLeavingNodes",
+       "captureError",
+       "checkStable",
+       "checkStylingProperty",
+@@ -764,6 +765,7 @@
+       "leaveSkipHydrationBlock",
+       "leaveView",
+       "leaveViewLight",
++      "leavingNodes",
+       "lengthOrSize",
+       "linkTNodeInTView",
+       "listenToDomEvent",
+@@ -879,7 +881,6 @@
+       "relativePath",
+       "rememberChangeHistoryAndInvokeOnChangesHook",
+       "remove",
+-      "removeAnimationsFromQueue",
+       "removeElements",
+       "removeFromArray",
+       "removeLViewOnDestroy",
+@@ -997,6 +998,7 @@
+       "toOutputRefArray",
+       "toTStylingRange",
+       "trackByIdentity",
++      "trackLeavingNodes",
+       "trackMovedView",
+       "uniqueIdCounter",
+       "unregisterLView",
+diff --git a/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json b/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json
+index 8b53ac27f5..2322ce70ce 100644
+--- a/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json
+@@ -396,6 +396,7 @@
+       "callHookInternal",
+       "callHooks",
+       "callOrApply",
++      "cancelLeavingNodes",
+       "captureError",
+       "checkStable",
+       "checkStylingProperty",
+@@ -765,6 +766,7 @@
+       "leaveSkipHydrationBlock",
+       "leaveView",
+       "leaveViewLight",
++      "leavingNodes",
+       "lengthOrSize",
+       "linkTNodeInTView",
+       "listenToDomEvent",
+@@ -877,7 +879,6 @@
+       "relativePath",
+       "rememberChangeHistoryAndInvokeOnChangesHook",
+       "remove",
+-      "removeAnimationsFromQueue",
+       "removeElements",
+       "removeFromArray",
+       "removeLViewOnDestroy",
+@@ -997,6 +998,7 @@
+       "toOutputRefArray",
+       "toTStylingRange",
+       "trackByIdentity",
++      "trackLeavingNodes",
+       "trackMovedView",
+       "uniqueIdCounter",
+       "unregisterLView",
+diff --git a/packages/core/test/bundling/hydration/bundle.golden_symbols.json b/packages/core/test/bundling/hydration/bundle.golden_symbols.json
+index 1fdbc3f3fb..cee174e569 100644
+--- a/packages/core/test/bundling/hydration/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/hydration/bundle.golden_symbols.json
+@@ -325,6 +325,7 @@
+       "callHookInternal",
+       "callHooks",
+       "canHydrateNode",
++      "cancelLeavingNodes",
+       "captureError",
+       "checkStable",
+       "cleanUpView",
+@@ -618,6 +619,7 @@
+       "leaveDI",
+       "leaveView",
+       "leaveViewLight",
++      "leavingNodes",
+       "linkTNodeInTView",
+       "locateDehydratedViewsInContainer",
+       "locateDirectiveOrProvider",
+@@ -702,7 +704,6 @@
+       "relativePath",
+       "rememberChangeHistoryAndInvokeOnChangesHook",
+       "remove",
+-      "removeAnimationsFromQueue",
+       "removeDehydratedView",
+       "removeDehydratedViews",
+       "removeElements",
+@@ -784,6 +785,7 @@
+       "timeoutProvider",
+       "toInputRefArray",
+       "toOutputRefArray",
++      "trackLeavingNodes",
+       "trackMovedView",
+       "transferCacheInterceptorFn",
+       "uniqueIdCounter",
+diff --git a/packages/core/test/bundling/router/bundle.golden_symbols.json b/packages/core/test/bundling/router/bundle.golden_symbols.json
+index acd2799977..f66b37dabe 100644
+--- a/packages/core/test/bundling/router/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/router/bundle.golden_symbols.json
+@@ -445,6 +445,7 @@
+       "callHooks",
+       "callOrApply",
+       "canLoadFails",
++      "cancelLeavingNodes",
+       "captureError",
+       "catchError",
+       "checkGuards",
+@@ -879,6 +880,7 @@
+       "leaveSkipHydrationBlock",
+       "leaveView",
+       "leaveViewLight",
++      "leavingNodes",
+       "linkTNodeInTView",
+       "linkedSignal",
+       "linkedSignalSetFn",
+@@ -1007,7 +1009,6 @@
+       "relativePath",
+       "rememberChangeHistoryAndInvokeOnChangesHook",
+       "remove",
+-      "removeAnimationsFromQueue",
+       "removeElements",
+       "removeFromArray",
+       "removeLViewOnDestroy",
+@@ -1140,6 +1141,7 @@
+       "timeoutProvider",
+       "toInputRefArray",
+       "toOutputRefArray",
++      "trackLeavingNodes",
+       "trackMovedView",
+       "tree",
+       "trustedScriptURLFromStringBypass",
+diff --git a/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json b/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json
+index 6e94b2663a..db9a26025e 100644
+--- a/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json
+@@ -263,6 +263,7 @@
+       "callHook",
+       "callHookInternal",
+       "callHooks",
++      "cancelLeavingNodes",
+       "captureError",
+       "checkStable",
+       "cleanUpView",
+@@ -490,6 +491,7 @@
+       "leaveDI",
+       "leaveView",
+       "leaveViewLight",
++      "leavingNodes",
+       "linkTNodeInTView",
+       "locateDirectiveOrProvider",
+       "locateHostElement",
+@@ -556,7 +558,6 @@
+       "relativePath",
+       "rememberChangeHistoryAndInvokeOnChangesHook",
+       "remove",
+-      "removeAnimationsFromQueue",
+       "removeElements",
+       "removeFromArray",
+       "removeLViewOnDestroy",
+@@ -620,6 +621,7 @@
+       "timeoutProvider",
+       "toInputRefArray",
+       "toOutputRefArray",
++      "trackLeavingNodes",
+       "trackMovedView",
+       "uniqueIdCounter",
+       "unregisterLView",

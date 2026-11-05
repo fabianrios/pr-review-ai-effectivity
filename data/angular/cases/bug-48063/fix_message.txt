@@ -1,0 +1,12 @@
+fix(router): Ensure initial navigation clears current navigation when blocking (#49572)
+
+The navigation transition clears the current navigation in the finalize
+operator of the current navigation Observer. This commit both completes
+the `bootstrapDone` observable and updates the transition to only take 1
+emit from the completed navigation. Either of these changes on their own
+would fix the issue. The latter is a preventative measure in case a
+mistake like the former is made again.
+
+fixes #49567
+
+PR Close #49572

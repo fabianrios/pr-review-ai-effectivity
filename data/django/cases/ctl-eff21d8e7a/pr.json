@@ -1,0 +1,45 @@
+{
+  "repo": "django/django",
+  "number": 17908,
+  "url": "https://github.com/django/django/pull/17908",
+  "commit_url": "https://github.com/django/django/commit/eff21d8e7a1cb297aedf1c702668b590a1b618f3",
+  "title": "Fixed #35252 -- Optimized _route_to_regex().",
+  "description": "ticket-35252",
+  "commit_message": "Fixed #35252 -- Optimized _route_to_regex().\n\nco-authored-by: Nick Pope <nick@nickpope.me.uk>",
+  "labels": [],
+  "author": "Adam Johnson",
+  "merged_at": "2024-02-26T10:41:15+00:00",
+  "tickets": [
+    35252
+  ],
+  "base_commit": "241adf678f8d6f0d6ec62d0bed5e32611a3fb75c",
+  "head_commit": "eff21d8e7a1cb297aedf1c702668b590a1b618f3",
+  "changed_lines": 67,
+  "files": [
+    {
+      "path": "django/urls/converters.py",
+      "added": 4,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "django/urls/resolvers.py",
+      "added": 23,
+      "deleted": 23,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.1.txt",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/urlpatterns/tests.py",
+      "added": 4,
+      "deleted": 6,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

@@ -1,0 +1,12 @@
+diff --git a/django/utils/html.py b/django/utils/html.py
+index 734d7fbfb3d0..b04d6bc5eef6 100644
+--- a/django/utils/html.py
++++ b/django/utils/html.py
+@@ -297,6 +297,7 @@ class Urlizer:
+     simple_url_re = _lazy_re_compile(r"^https?://\[?\w", re.IGNORECASE)
+     simple_url_2_re = _lazy_re_compile(
+         rf"^www\.|^(?!http)(?:{DomainNameValidator.hostname_re})"
++        rf"(?:{DomainNameValidator.domain_re})"
+         r"\.(com|edu|gov|int|mil|net|org)($|/.*)$",
+         re.IGNORECASE,
+     )

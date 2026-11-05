@@ -1,0 +1,17 @@
+{
+  "case_id": "bug-9b8e4c6d7d",
+  "pr_url": "https://github.com/django/django/pull/20009",
+  "kind": "bug",
+  "ground_truth": "For databases without a native JSON field, `JSONIn` now treats any `Value(...)` right-hand-side parameter as already JSON-serialized and uses `param.value` directly. That only holds for `Value(..., JSONField())`. A bare `Value(\"x\")`, `Value(True)` or `Value(None)` has a non-JSON output field, so its raw primitive is passed where JSON text is expected. `__in` lookups with such values then crash (e.g. `Value(None)` on SQLite) or silently return wrong results. Fixed by JSON-encoding the Value's raw value when its output field is not a JSONField.",
+  "bug_files": [
+    "django/db/models/fields/json.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "fabce94374e166e80e2643db8b85d1e3442427bf",
+  "issue": null,
+  "fix_tickets": [
+    37377,
+    37403
+  ],
+  "evidence_url": null
+}

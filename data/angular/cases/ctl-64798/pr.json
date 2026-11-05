@@ -1,0 +1,32 @@
+{
+  "repo": "angular/angular",
+  "number": 64798,
+  "url": "https://github.com/angular/angular/pull/64798",
+  "title": "fix(devtools): signal graph value preview mat-tree row indentation",
+  "description": "## PR Checklist\r\nPlease check if your PR fulfills the following requirements:\r\n\r\n- [x] The commit message follows our guidelines: https://github.com/angular/angular/blob/main/contributing-docs/commit-message-guidelines.md\r\n- [ ] Tests for the changes have been added (for bug fixes / features)\r\n- [ ] Docs have been added / updated (for bug fixes / features)\r\n\r\n\r\n## PR Type\r\nWhat kind of change does this PR introduce?\r\n\r\n<!-- Please check the one that applies to this PR using \"x\". -->\r\n\r\n- [x] Bugfix\r\n\r\n## What is the new behavior?\r\n\r\nFix the identation and arrows of signal graph value preview mat-tree.",
+  "labels": [
+    "action: merge",
+    "target: minor",
+    "area: devtools"
+  ],
+  "author": "hawkgs",
+  "merged_at": "2025-10-30T17:18:31Z",
+  "base_commit": "b0c9c63784f80e8fbae5403a14d5ac075b917044",
+  "head_commit": "88126b2929e4672defbd53b17133251cab617523",
+  "changed_lines": 19,
+  "files": [
+    {
+      "path": "devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/signals-view/signals-details/signals-details.component.scss",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/signals-view/signals-details/signals-value-tree/signals-value-tree.component.scss",
+      "added": 10,
+      "deleted": 7,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

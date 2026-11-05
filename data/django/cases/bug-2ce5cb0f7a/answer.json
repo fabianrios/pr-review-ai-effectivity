@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-2ce5cb0f7a",
+  "pr_url": "https://github.com/django/django/pull/20374",
+  "kind": "bug",
+  "ground_truth": "The new `Query.orderby_issubset_groupby` property resolves every string in `order_by` with `F(order_by)`. Order-by strings may carry a \"-\" prefix for descending order or be \"?\" for random order, which are not field names. So e.g. `.values(\"is_staff\").annotate(latest=Max(...)).order_by(\"-latest\").count()` crashes with `FieldError: Cannot resolve keyword '-latest' into field`. Fixed by stripping the \"-\" prefix and returning False for \"?\".",
+  "bug_files": [
+    "django/db/models/sql/query.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "a284a49153f005f2a7af087025e5112ba06cbd5f",
+  "issue": null,
+  "fix_tickets": [
+    37047
+  ],
+  "evidence_url": null
+}

@@ -1,0 +1,33 @@
+{
+  "repo": "angular/angular",
+  "number": 55796,
+  "url": "https://github.com/angular/angular/pull/55796",
+  "title": "fix(zone.js): do not mutate event listener options (may be readonly)",
+  "description": "Prior to this commit, event listener options were mutated directly, for example,\r\n`options.signal = undefined` or `options.once = false`.\r\n\r\nThis issue arises in apps using third-party libraries where the responsibility lies\r\nwith the library provider. Some libraries, like WalletConnect, pass an abort controller\r\nas `addEventListener` options. Because the abort controller has the `signal` property,\r\nthis is a valid case. Thus, mutating options would throw an error since `signal`\r\nis a readonly property.\r\n\r\nEven though zone.js is being deprecated as Angular moves towards zoneless change detection,\r\nthis fix is necessary for apps that still use zone.js and cannot migrate to zoneless change\r\ndetection because they rely on third-party libraries and are not responsible for the code\r\nused in them.\r\n\r\nCloses #54142",
+  "labels": [
+    "action: merge",
+    "area: zones",
+    "target: patch",
+    "merge: caretaker note"
+  ],
+  "author": "arturovt",
+  "merged_at": "2024-05-22T23:20:37Z",
+  "base_commit": "ef029b8d0058bec67c76ef06fb89960cd5f7c9c3",
+  "head_commit": "6679674d9980d8ea1e0f4174f70fa9b5dd1e4377",
+  "changed_lines": 121,
+  "files": [
+    {
+      "path": "packages/zone.js/lib/common/events.ts",
+      "added": 67,
+      "deleted": 15,
+      "binary": false
+    },
+    {
+      "path": "packages/zone.js/test/browser/browser.spec.ts",
+      "added": 39,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

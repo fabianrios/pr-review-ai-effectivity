@@ -1,0 +1,12 @@
+Fixed #37257, Refs #35738 -- Prevented double-dot deprecation warnings for template literals.
+
+The deprecation warning for double-dot variable lookups checked
+str(filter_expression.var), which for constants is the resolved literal
+value rather than a variable lookup. Templates containing string or translated
+string literals with two consecutive dots, such as {{ "a..b" }} or
+{{ 'a..b'|upper }}, therefore incorrectly raised a RemovedInDjango70Warning.
+
+The check now only applies when the filter expression's variable is a
+Variable lookup.
+
+Regression in 5d911f2d2fecc703be91b2b9b28acc59d34b35f3.

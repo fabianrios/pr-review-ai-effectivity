@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-aba0e541ca",
+  "pr_url": "https://github.com/django/django/pull/18261",
+  "kind": "bug",
+  "ground_truth": "The change adds the module-level `EmailAttachment = namedtuple(\"Attachment\", [\"filename\", \"content\", \"mimetype\"])` in `django/core/mail/message.py`. `EmailMessage.attach()` now stores each attachment as an instance of it. Pickle serializes namedtuple instances by looking up the class by its `__qualname__` (\"Attachment\") in its module. No `Attachment` attribute exists in `django.core.mail.message`; the class is bound to the name `EmailAttachment`. As a result, pickling an `EmailMessage` with any attachment fails with a `PicklingError` (attribute lookup Attachment on django.core.mail.message failed), e.g. `msg.attach(\"a.txt\", \"x\", \"text/plain\"); pickle.dumps(msg)`, which breaks queuing emails through task queues or caches. The fix renames the namedtuple type names to match their variable names (`namedtuple(\"EmailAttachment\", ...)`, and likewise `EmailAlternative`).",
+  "bug_files": [
+    "django/core/mail/message.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "0596263c3136bc26cffa670e5322bd0aa56c4d34",
+  "issue": null,
+  "fix_tickets": [
+    36309
+  ],
+  "evidence_url": null
+}

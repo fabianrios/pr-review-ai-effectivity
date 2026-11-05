@@ -1,0 +1,33 @@
+{
+  "repo": "django/django",
+  "number": 20321,
+  "url": "https://github.com/django/django/pull/20321",
+  "commit_url": "https://github.com/django/django/commit/c68e4adea0703354508d51895b091771b1f6ac45",
+  "title": "Fixed #29257 -- Caught DatabaseError when attempting to close a possibly already-closed cursor.",
+  "description": "#### Trac ticket number\r\n\r\nticket-29257\r\n\r\n#### Branch description\r\nWhen ``cursor.execute()`` raises an exception and ``cursor.close()`` also raises, Django used to surface the ``cursor.close()`` error, adding noise to the original execution failure and producing misleading messages such as: \"cursor _django_curs_xxx does not exist\".\r\n\r\nThis patch ensures that the original ``execute()`` exception is preserved without unnecessary context. A regression test is included to verify that ``cursor.close()`` errors do not distract from the real underlying exception.\r\n\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #29257 -- Caught DatabaseError when attempting to close a possibly already-closed cursor.",
+  "labels": [],
+  "author": "VIZZARD-X",
+  "merged_at": "2025-11-25T23:49:56+05:30",
+  "tickets": [
+    29257
+  ],
+  "base_commit": "b59c215eab1d6ac98072731ea1fd58e0ebfd6909",
+  "head_commit": "c68e4adea0703354508d51895b091771b1f6ac45",
+  "changed_lines": 37,
+  "files": [
+    {
+      "path": "django/db/models/sql/compiler.py",
+      "added": 5,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "tests/queries/test_sqlcompiler.py",
+      "added": 27,
+      "deleted": 3,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

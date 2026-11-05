@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-ec7d69035a",
+  "pr_url": "https://github.com/django/django/pull/18620",
+  "kind": "bug",
+  "ground_truth": "The new `MinimumLengthValidator.get_error_message()` applies `% self.min_length` to each string literal before passing it to `ngettext`. The msgids that `ngettext` receives are therefore already formatted strings, such as \"This password is too short. It must contain at least 8 characters.\". These never match the translation catalog entries, which contain the `%d` placeholder. As a result, with a non-English active language (e.g. French), the too-short password error is always shown untranslated in English. The fix calls `ngettext` with the unformatted singular/plural msgids and applies `% self.min_length` to the translated result. It also restores `params={\"min_length\": ...}` on the raised `ValidationError`.",
+  "bug_files": [
+    "django/contrib/auth/password_validation.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "d469db978ea6a705549b9519313d9adc198e4232",
+  "issue": null,
+  "fix_tickets": [
+    36314
+  ],
+  "evidence_url": null
+}

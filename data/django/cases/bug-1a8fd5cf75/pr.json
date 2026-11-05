@@ -1,0 +1,125 @@
+{
+  "repo": "django/django",
+  "number": 20300,
+  "url": "https://github.com/django/django/pull/20300",
+  "commit_url": "https://github.com/django/django/commit/1a8fd5cf75bf855852f6bc2f75c3da9f7b145669",
+  "title": "Fixed #36727 -- Deprecated Field.get_placeholder in favor of get_placeholder_sql.",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\nticket-36727\r\n\r\n#### Branch description\r\n\r\nThe lack of ability of the get_placeholder call chain to return SQL and parameters separated so they can be mogrified by the backend at execution time forced implementations to dangerously interpolate potentially user controlled values.\r\n\r\nThe get_placeholder_sql name was chosen due to it's proximity to the previous method but other options such as Field.as_sql were considered but ultimately rejected due to its different input signature compared to Expression.as_sql that might have lead to confusion.\r\n\r\nThere is a lot of overlap between what Field.get_db_prep_value and get_placeholder_sql do but folding the latter in the former would require changing its return signature to return expression which is a way more invasive change than what is proposed here.\r\n\r\nGiven we always call get_db_prep_value it might still be an avenue worth exploring in the future to offer a publicly documented interface to allow field to take an active part in the compilation chain.\r\n",
+  "commit_message": "Fixed #36727 -- Deprecated Field.get_placeholder in favor of get_placeholder_sql.\n\nThe lack of ability of the get_placeholder call chain to return SQL and\nparameters separated so they can be mogrified by the backend at execution time\nforced implementations to dangerously interpolate potentially user controlled\nvalues.\n\nThe get_placeholder_sql name was chosen due to its proximity to the previous\nmethod, but other options such as Field.as_sql were considered but ultimately\nrejected due to its different input signature compared to Expression.as_sql\nthat might have lead to confusion.\n\nThere is a lot of overlap between what Field.get_db_prep_value and\nget_placeholder_sql do but folding the latter in the former would require\nchanging its return signature to return expression which is a way more invasive\nchange than what is proposed here.\n\nGiven we always call get_db_prep_value it might still be an avenue worth\nexploring in the future to offer a publicly documented interface to allow field\nto take an active part in the compilation chain.\n\nThanks Jacob for the review.",
+  "labels": [
+    "geodjango"
+  ],
+  "author": "Simon Charette",
+  "merged_at": "2025-11-22T13:32:34-05:00",
+  "tickets": [
+    36727
+  ],
+  "base_commit": "7cb2221e9267dec3f1cf7c88b8686d38fd956639",
+  "head_commit": "1a8fd5cf75bf855852f6bc2f75c3da9f7b145669",
+  "changed_lines": 258,
+  "files": [
+    {
+      "path": "django/contrib/gis/db/backends/base/operations.py",
+      "added": 15,
+      "deleted": 17,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/gis/db/backends/oracle/operations.py",
+      "added": 3,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/gis/db/backends/postgis/operations.py",
+      "added": 8,
+      "deleted": 10,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/gis/db/models/fields.py",
+      "added": 2,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/gis/db/models/lookups.py",
+      "added": 5,
+      "deleted": 5,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/postgres/fields/array.py",
+      "added": 6,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/postgres/fields/ranges.py",
+      "added": 6,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "django/db/backends/base/operations.py",
+      "added": 4,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "django/db/backends/mysql/operations.py",
+      "added": 6,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "django/db/backends/postgresql/compiler.py",
+      "added": 2,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "django/db/models/expressions.py",
+      "added": 6,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "django/db/models/fields/__init__.py",
+      "added": 29,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "django/db/models/sql/compiler.py",
+      "added": 25,
+      "deleted": 21,
+      "binary": false
+    },
+    {
+      "path": "docs/internals/deprecation.txt",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/6.1.txt",
+      "added": 17,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/model_fields/tests.py",
+      "added": 38,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/postgres_tests/fields.py",
+      "added": 6,
+      "deleted": 2,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

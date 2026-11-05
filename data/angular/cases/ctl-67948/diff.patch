@@ -1,0 +1,321 @@
+diff --git a/goldens/public-api/core/index.api.md b/goldens/public-api/core/index.api.md
+index 10285c88f0..7c5fe8288c 100644
+--- a/goldens/public-api/core/index.api.md
++++ b/goldens/public-api/core/index.api.md
+@@ -133,7 +133,13 @@ export class ApplicationModule {
+ export class ApplicationRef {
+     constructor();
+     attachView(viewRef: ViewRef): void;
+-    bootstrap<C>(component: Type<C>, rootSelectorOrNode?: string | any): ComponentRef<C>;
++    bootstrap<C>(component: Type<C>, options?: {
++        hostElement?: Element | string;
++        directives?: (Type<unknown> | DirectiveWithBindings<unknown>)[];
++        bindings?: Binding[];
++    }): ComponentRef<C>;
++    // (undocumented)
++    bootstrap<C>(component: Type<C>, hostElement?: Element | string): ComponentRef<C>;
+     readonly components: ComponentRef<any>[];
+     readonly componentTypes: Type<any>[];
+     destroy(): void;
+diff --git a/integration/platform-server-hydration/size.json b/integration/platform-server-hydration/size.json
+index 9464fd57a2..c08ba357b7 100644
+--- a/integration/platform-server-hydration/size.json
++++ b/integration/platform-server-hydration/size.json
+@@ -1,5 +1,5 @@
+ {
+-  "dist/browser/main-[hash].js": 227093,
+-  "dist/browser/polyfills-[hash].js": 34544,
++  "dist/browser/main-[hash].js": 232126,
++  "dist/browser/polyfills-[hash].js": 35726,
+   "dist/browser/event-dispatch-contract.min.js": 476
+ }
+diff --git a/packages/core/src/application/application_ref.ts b/packages/core/src/application/application_ref.ts
+index 9ecb9f7535..08a452115a 100644
+--- a/packages/core/src/application/application_ref.ts
++++ b/packages/core/src/application/application_ref.ts
+@@ -37,6 +37,7 @@ import {RendererFactory2} from '../render/api';
+ import {AfterRenderManager} from '../render3/after_render/manager';
+ import {ComponentFactory as R3ComponentFactory} from '../render3/component_ref';
+ import {isStandalone} from '../render3/def_getters';
++import type {Binding, DirectiveWithBindings} from '../render3/dynamic_bindings';
+ import {ChangeDetectionMode, detectChangesInternal} from '../render3/instructions/change_detection';
+ import {publishDefaultGlobalUtils as _publishDefaultGlobalUtils} from '../render3/util/global_utils';
+ import {requiresRefreshOrTraversal} from '../render3/util/view_utils';
+@@ -375,7 +376,7 @@ export class ApplicationRef {
+    *
+    * When bootstrapping a component, Angular mounts it onto a target DOM element
+    * and kicks off automatic change detection. The target DOM element can be
+-   * provided using the `rootSelectorOrNode` argument.
++   * provided using the `hostElement` argument.
+    *
+    * If the target DOM element is not provided, Angular tries to find one on a page
+    * using the `selector` of the component that is being bootstrapped
+@@ -403,7 +404,16 @@ export class ApplicationRef {
+    *
+    * {@example core/ts/platform/platform.ts region='domNode'}
+    */
+-  bootstrap<C>(component: Type<C>, rootSelectorOrNode?: string | any): ComponentRef<C>;
++  bootstrap<C>(
++    component: Type<C>,
++    options?: {
++      hostElement?: Element | string;
++      directives?: (Type<unknown> | DirectiveWithBindings<unknown>)[];
++      bindings?: Binding[];
++    },
++  ): ComponentRef<C>;
++
++  bootstrap<C>(component: Type<C>, hostElement?: Element | string): ComponentRef<C>;
+ 
+   /**
+    * Bootstrap a component onto the element identified by its selector or, optionally, to a
+@@ -414,7 +424,7 @@ export class ApplicationRef {
+    *
+    * When bootstrapping a component, Angular mounts it onto a target DOM element
+    * and kicks off automatic change detection. The target DOM element can be
+-   * provided using the `rootSelectorOrNode` argument.
++   * provided using the `hostElement` argument.
+    *
+    * If the target DOM element is not provided, Angular tries to find one on a page
+    * using the `selector` of the component that is being bootstrapped
+@@ -448,7 +458,15 @@ export class ApplicationRef {
+ 
+   private bootstrapImpl<C>(
+     component: Type<C>,
+-    rootSelectorOrNode?: string | any,
++    hostElementOrOptions?:
++      | Element
++      | string
++      | undefined
++      | {
++          hostElement?: Element | string | undefined;
++          directives?: (Type<unknown> | DirectiveWithBindings<unknown>)[];
++          bindings?: Binding[];
++        },
+     injector: Injector = Injector.NULL,
+   ): ComponentRef<C> {
+     const ngZone = this._injector.get(NgZone);
+@@ -479,8 +497,16 @@ export class ApplicationRef {
+       const ngModule = isBoundToModule(componentFactory)
+         ? undefined
+         : this._injector.get(NgModuleRef);
+-      const selectorOrNode = rootSelectorOrNode || componentFactory.selector;
+-      const compRef = componentFactory.create(injector, [], selectorOrNode, ngModule);
++      const {hostElement, directives, bindings} = normalizeBootstrapOptions(hostElementOrOptions);
++      const selectorOrNode = hostElement || componentFactory.selector;
++      const compRef = componentFactory.create(
++        injector,
++        [],
++        selectorOrNode,
++        ngModule,
++        directives,
++        bindings,
++      );
+       const nativeElement = compRef.location.nativeElement;
+       const testability = compRef.injector.get(TESTABILITY, null);
+       testability?.registerApplication(nativeElement);
+@@ -803,6 +829,32 @@ export class ApplicationRef {
+   }
+ }
+ 
++function normalizeBootstrapOptions(
++  hostElementOrOptions:
++    | Element
++    | string
++    | undefined
++    | {
++        hostElement?: Element | string | undefined;
++        directives?: (Type<unknown> | DirectiveWithBindings<unknown>)[];
++        bindings?: Binding[];
++      },
++): {
++  hostElement?: Element | string | undefined;
++  directives?: (Type<unknown> | DirectiveWithBindings<unknown>)[];
++  bindings?: Binding[];
++} {
++  if (
++    hostElementOrOptions === undefined ||
++    typeof hostElementOrOptions === 'string' ||
++    hostElementOrOptions instanceof Element
++  ) {
++    return {hostElement: hostElementOrOptions};
++  }
++
++  return hostElementOrOptions;
++}
++
+ function warnIfDestroyed(destroyed: boolean): void {
+   if (destroyed) {
+     console.warn(
+diff --git a/packages/core/test/application_ref_spec.ts b/packages/core/test/application_ref_spec.ts
+index 0d6112d008..dc5a2b7822 100644
+--- a/packages/core/test/application_ref_spec.ts
++++ b/packages/core/test/application_ref_spec.ts
+@@ -21,8 +21,11 @@ import {
+   ChangeDetectionStrategy,
+   Component,
+   DestroyRef,
++  Directive,
+   EnvironmentInjector,
+   Injector,
++  Input,
++  inputBinding,
+   LOCALE_ID,
+   NgModule,
+   NgZone,
+@@ -213,6 +216,38 @@ describe('bootstrap', () => {
+         const comp = ref.bootstrap(ZoneComp);
+         expect(comp.instance.inNgZone).toBeTrue();
+       }));
++
++      it('supports passing bootstrap options object', inject(
++        [ApplicationRef],
++        (ref: ApplicationRef) => {
++          @Directive({
++            host: {'[attr.data-dir]': 'value'},
++          })
++          class HostDir {
++            @Input()
++            value = 'unset';
++          }
++
++          @Component({
++            selector: 'bootstrap-app',
++            template: `{{ name }}`,
++          })
++          class StandaloneBootComp {
++            @Input()
++            name = 'default';
++          }
++
++          createRootEl('custom-selector');
++          const comp = ref.bootstrap(StandaloneBootComp, {
++            hostElement: 'custom-selector',
++            directives: [{type: HostDir, bindings: [inputBinding('value', () => 'bound')]}],
++            bindings: [inputBinding('name', () => 'hello from binding')],
++          });
++
++          expect(comp.location.nativeElement.getAttribute('data-dir')).toBe('bound');
++          expect(comp.location.nativeElement.textContent.trim()).toBe('hello from binding');
++        },
++      ));
+     });
+ 
+     describe('bootstrapImpl', () => {
+@@ -236,7 +271,7 @@ describe('bootstrap', () => {
+         const appRef = ref as unknown as {bootstrapImpl: ApplicationRef['bootstrapImpl']};
+         const compRef = appRef.bootstrapImpl(
+           InjectingComponent,
+-          /* rootSelectorOrNode */ undefined,
++          /* hostElement */ undefined,
+           injector,
+         );
+         expect(compRef.instance.myService).toBe(myService);
+diff --git a/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json b/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json
+index c1a1f6ab30..3e96d72de0 100644
+--- a/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json
+@@ -713,6 +713,7 @@
+       "noop2",
+       "normalizeAnimationEntry",
+       "normalizeAnimationOptions",
++      "normalizeBootstrapOptions",
+       "normalizeKeyframes",
+       "normalizeKeyframes",
+       "normalizeParams",
+diff --git a/packages/core/test/bundling/create_component/bundle.golden_symbols.json b/packages/core/test/bundling/create_component/bundle.golden_symbols.json
+index 9614a27e99..71f716d8bd 100644
+--- a/packages/core/test/bundling/create_component/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/create_component/bundle.golden_symbols.json
+@@ -587,6 +587,7 @@
+       "noSideEffects",
+       "noop",
+       "noop2",
++      "normalizeBootstrapOptions",
+       "notFoundValueOrThrow",
+       "observable",
+       "onEnter",
+diff --git a/packages/core/test/bundling/defer/bundle.golden_symbols.json b/packages/core/test/bundling/defer/bundle.golden_symbols.json
+index 4f7adb9306..855e509d2c 100644
+--- a/packages/core/test/bundling/defer/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/defer/bundle.golden_symbols.json
+@@ -631,6 +631,7 @@
+       "noSideEffects",
+       "noop",
+       "noop2",
++      "normalizeBootstrapOptions",
+       "notFoundValueOrThrow",
+       "observable",
+       "onEnter",
+diff --git a/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json b/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json
+index 6cbc835a67..1103cff66c 100644
+--- a/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json
+@@ -860,6 +860,7 @@
+       "noSideEffects",
+       "noop",
+       "noop2",
++      "normalizeBootstrapOptions",
+       "normalizeSuffix",
+       "normalizeValidators",
+       "notFoundValueOrThrow",
+diff --git a/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json b/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json
+index de67197ee8..5a64061990 100644
+--- a/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json
+@@ -857,6 +857,7 @@
+       "noSideEffects",
+       "noop",
+       "noop2",
++      "normalizeBootstrapOptions",
+       "normalizeSuffix",
+       "normalizeValidators",
+       "notFoundValueOrThrow",
+diff --git a/packages/core/test/bundling/hydration/bundle.golden_symbols.json b/packages/core/test/bundling/hydration/bundle.golden_symbols.json
+index 4fc63f0fad..781fd99e5f 100644
+--- a/packages/core/test/bundling/hydration/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/hydration/bundle.golden_symbols.json
+@@ -665,6 +665,7 @@
+       "noSideEffects",
+       "noop",
+       "noop2",
++      "normalizeBootstrapOptions",
+       "notFoundValueOrThrow",
+       "observable",
+       "observeOn",
+diff --git a/packages/core/test/bundling/router/bundle.golden_symbols.json b/packages/core/test/bundling/router/bundle.golden_symbols.json
+index 30c31b1ee9..492583542d 100644
+--- a/packages/core/test/bundling/router/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/router/bundle.golden_symbols.json
+@@ -948,6 +948,7 @@
+       "noop",
+       "noop2",
+       "noop3",
++      "normalizeBootstrapOptions",
+       "normalizeQueryParams",
+       "normalizeQueryParams2",
+       "notFoundValueOrThrow",
+diff --git a/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json b/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json
+index 693a6a0e96..822f337967 100644
+--- a/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json
+@@ -525,6 +525,7 @@
+       "noSideEffects",
+       "noop",
+       "noop2",
++      "normalizeBootstrapOptions",
+       "notFoundValueOrThrow",
+       "observable",
+       "onEnter",
+diff --git a/packages/examples/core/ts/platform/platform.ts b/packages/examples/core/ts/platform/platform.ts
+index 64cfd5e2ef..f39b1d55ac 100644
+--- a/packages/examples/core/ts/platform/platform.ts
++++ b/packages/examples/core/ts/platform/platform.ts
+@@ -74,7 +74,7 @@ export class AppModuleThree implements DoBootstrap {
+   // #docregion domNode
+   ngDoBootstrap(appRef: ApplicationRef) {
+     const element = document.querySelector('#root-element');
+-    appRef.bootstrap(ComponentFour, element);
++    appRef.bootstrap(ComponentFour, element!);
+   }
+   // #enddocregion domNode
+ }

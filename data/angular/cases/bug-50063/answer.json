@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-50063",
+  "pr_url": "https://github.com/angular/angular/pull/50063",
+  "kind": "bug",
+  "ground_truth": "While replacing `global` with `globalThis`, the PR removed the guards around the Jasmine/Jest hooks in `@angular/core/testing` test_hooks.ts: `if (_global.beforeEach) {...}` became an unconditional `beforeEach(...)` / `afterEach(...)`. When this module is evaluated outside a test runner (e.g. it ends up in an application bundle), `beforeEach` is undefined and loading the module throws a ReferenceError. Fixed by calling `globalThis.beforeEach?.(...)` / `globalThis.afterEach?.(...)`.",
+  "bug_files": [
+    "packages/core/testing/src/test_hooks.ts"
+  ],
+  "fix_pr": 51394,
+  "fix_commit": "a9b3c006f8593e0187298df21418644070312a40",
+  "issue": 51382,
+  "fix_tickets": [],
+  "evidence_url": null
+}

@@ -1,0 +1,46 @@
+{
+  "repo": "angular/angular",
+  "number": 46096,
+  "url": "https://github.com/angular/angular/pull/46096",
+  "title": "fix(compiler-cli): use inline type-check blocks for components outside `rootDir`",
+  "description": "An inline type-check block is required when a reference to a component class\r\ncannot be emitted from an ngtypecheck shim file, but the logic to detect this\r\nsituation did not consider the configured `rootDir`. When a `rootDir` is\r\nconfigured the reference emitter does not allow generating an import outside\r\nthis directory, which meant that a shim file wouldn't be able to reference\r\nthe component class. Consequently, type-check block generation would fail\r\nwith a fatal error that is unaccounted for, as gathering diagnostics should\r\nbe non-fallible.\r\n\r\nThis commit fixes the problem by leveraging the existing `canReferenceType`\r\nlogic of the type-checking `Environment`, instead of the rudimentary check\r\nwhether the class is exported as top-level symbol (`checkIfClassIsExported`).\r\nInstead, `canReferenceType` pre-flights the generation of an import using the\r\n`ReferenceEmitter` to tell exactly whether it will succeed or not; thus taking\r\ninto account the `rootDirs` constraint as well.\r\n\r\nFixes #44999",
+  "labels": [
+    "action: merge",
+    "target: patch",
+    "action: presubmit",
+    "area: compiler",
+    "compiler: template type-checking"
+  ],
+  "author": "JoostK",
+  "merged_at": "2022-06-10T20:40:24Z",
+  "base_commit": "76f5a559e8047113985b5bc2741b96264da32eb9",
+  "head_commit": "e702a967c1b1fcf19be85730e1999889970c4ecf",
+  "changed_lines": 71,
+  "files": [
+    {
+      "path": "packages/compiler-cli/src/ngtsc/typecheck/src/context.ts",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler-cli/src/ngtsc/typecheck/src/tcb_util.ts",
+      "added": 5,
+      "deleted": 7,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler-cli/src/ngtsc/typecheck/src/ts_util.ts",
+      "added": 0,
+      "deleted": 45,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler-cli/src/ngtsc/typecheck/test/diagnostics_spec.ts",
+      "added": 12,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

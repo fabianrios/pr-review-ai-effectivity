@@ -1,0 +1,78 @@
+{
+  "repo": "django/django",
+  "number": 18742,
+  "url": "https://github.com/django/django/pull/18742",
+  "commit_url": "https://github.com/django/django/commit/857b1048d53ebf5fc5581c110e85c212b81ca83a",
+  "title": "Fixed #34619 -- Ensured FilteredSelectMultiple elements were associated with their labels.",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\nticket-34619\r\n\r\n#### Branch description\r\nAdded aria labels to elements in the admin:auth_group_add view\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.",
+  "commit_message": "Fixed #34619 -- Associated FilteredSelectMultiple elements to their label and help text.",
+  "labels": [
+    "selenium",
+    "screenshots 🖼️"
+  ],
+  "author": "GappleBee",
+  "merged_at": "2024-10-24T19:44:31+01:00",
+  "tickets": [
+    34619
+  ],
+  "base_commit": "f60d5e46e131b94d6ecc92b6891689ccc94bd1c9",
+  "head_commit": "857b1048d53ebf5fc5581c110e85c212b81ca83a",
+  "changed_lines": 276,
+  "files": [
+    {
+      "path": "django/contrib/admin/static/admin/css/responsive.css",
+      "added": 2,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/admin/static/admin/css/rtl.css",
+      "added": 4,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/admin/static/admin/css/widgets.css",
+      "added": 25,
+      "deleted": 14,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/admin/static/admin/js/SelectFilter2.js",
+      "added": 64,
+      "deleted": 42,
+      "binary": false
+    },
+    {
+      "path": "js_tests/admin/SelectFilter2.test.js",
+      "added": 18,
+      "deleted": 6,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_inlines/tests.py",
+      "added": 25,
+      "deleted": 13,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_views/test_related_object_lookups.py",
+      "added": 2,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_views/tests.py",
+      "added": 1,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_widgets/tests.py",
+      "added": 27,
+      "deleted": 23,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

@@ -1,0 +1,7 @@
+fix(devtools): handle case where directive metadata has `undefined` dependencies (#60256)
+
+This fixes a bug introduced by [#60206](https://github.com/angular/angular/pull/60206/files#diff-c07b9ecd59f6e0ed636ac9672b9644178d9a999f04bc8b8198b13e86589dfa5b). Previously `DirectiveMetadata.prototype.dependencies` was always set, but in that PR `dependencies` is only set if an `Injector` is found (which only happens when `ng.getInjector` is *not* defined). This causes an error when evaluating `dependencies.length` in the template.
+
+Fix is just to check for existance before calling `length`.
+
+PR Close #60256

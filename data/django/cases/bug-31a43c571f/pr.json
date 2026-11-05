@@ -1,0 +1,33 @@
+{
+  "repo": "django/django",
+  "number": 19709,
+  "url": "https://github.com/django/django/pull/19709",
+  "commit_url": "https://github.com/django/django/commit/31a43c571f4d036827d4fd7a5f615591637dc1be",
+  "title": "Fixed #36540 -- Updated request.auser() in contrib.auth.alogin() and contrib.auth.alogout().",
+  "description": "#### Trac ticket number\r\n\r\nticket-36540\r\n\r\n#### Branch description\r\n\r\nFix a bug where `request.auser()` will return cached result even after login and logout.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [x] I have added or updated relevant docs, including release notes if applicable.\r\n- [x] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #36540 -- Updated request.auser() in contrib.auth.alogin() and contrib.auth.alogout().",
+  "labels": [],
+  "author": "Xinyi Rong",
+  "merged_at": "2025-08-06T10:17:10-07:00",
+  "tickets": [
+    36540
+  ],
+  "base_commit": "117f90dea53b0dd121eb14f07bcbadb295665ff7",
+  "head_commit": "31a43c571f4d036827d4fd7a5f615591637dc1be",
+  "changed_lines": 36,
+  "files": [
+    {
+      "path": "django/contrib/auth/__init__.py",
+      "added": 11,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/test_middleware.py",
+      "added": 20,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

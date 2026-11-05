@@ -1,0 +1,15 @@
+Fixed #37184 -- Allowed non-UTF-8 bytes passwords in the PBKDF2 and MD5 password hashers.
+
+An unnecessary force_str() call in the PBKDF2 hasher raised
+UnicodeDecodeError on perfectly valid password values.
+
+The MD5 hasher had a similar issue, however the same commit that
+introduced the bug also happened to allow bytes in general, so preserve
+the support while removing the constraint on UTF-8 validity by
+concatenating like:
+
+    force_bytes(salt) + force_bytes(password)
+
+Regression in 78fac1b0473ed8960ecd2a30aca4fa8420d150b8.
+
+Co-authored-by: Vishy <vis.pypi@gmail.com>

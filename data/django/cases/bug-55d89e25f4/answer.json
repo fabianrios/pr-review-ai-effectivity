@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-55d89e25f4",
+  "pr_url": "https://github.com/django/django/commit/55d89e25f4115c5674cdd9b9bcba2bb2bb6d820b",
+  "kind": "bug",
+  "ground_truth": "The rewritten `django.utils.text.wrap()` loops over `text.splitlines(True)`, passes each line to `textwrap.TextWrapper.wrap()`, and joins the pieces with \"\\n\". `TextWrapper.wrap()` returns an empty list for an empty or whitespace-only line, so those lines vanish from the output. With the default `replace_whitespace=True`, the trailing newline kept by `splitlines(True)` becomes a space and is dropped, so a trailing newline in the input is lost too. For example, `wordwrap(\"first\\n\\nsecond\\n\", 80)` returns \"first\\nsecond\" instead of \"first\\n\\nsecond\\n\", which merges paragraphs in templates. The fix sets `replace_whitespace=False` and splits with `splitlines()` (no kept ends). It appends the original line whenever the wrapper returns nothing, and appends a final empty element when the text ends with \"\\n\".",
+  "bug_files": [
+    "django/utils/text.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "1e9db35836d42a3c72f3d1015c2f302eb6fee046",
+  "issue": null,
+  "fix_tickets": [
+    36341
+  ],
+  "evidence_url": null
+}

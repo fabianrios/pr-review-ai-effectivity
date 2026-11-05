@@ -1,0 +1,7 @@
+Fixed #37230 -- Fixed a crash for second-degree relations in ModelAdmin.list_display.
+
+Thanks Rob Kuipers for the report.
+
+Regression in 4b2b4bf0ac2707dc9c4d51cabfa72168eaea95fe.
+
+Co-authored-by: Jacob Walls <jacobtylerwalls@gmail.com>

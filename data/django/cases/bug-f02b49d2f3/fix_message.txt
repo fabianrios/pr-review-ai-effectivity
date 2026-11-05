@@ -1,0 +1,5 @@
+Refs #27489 -- Made RenamePermission() operation respect database.
+
+Regression in f02b49d2f3bf84f5225de920ca510149f1f9f1da.
+
+Co-authored-by: Mariusz Felisiak <felisiak.mariusz@gmail.com>

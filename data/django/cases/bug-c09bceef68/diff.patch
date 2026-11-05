@@ -1,0 +1,226 @@
+diff --git a/django/contrib/admin/models.py b/django/contrib/admin/models.py
+index 5723ebff7f..453e65cf01 100644
+--- a/django/contrib/admin/models.py
++++ b/django/contrib/admin/models.py
+@@ -24,9 +24,7 @@ ACTION_FLAG_CHOICES = [
+ class LogEntryManager(models.Manager):
+     use_in_migrations = True
+ 
+-    def log_actions(
+-        self, user_id, queryset, action_flag, change_message="", *, single_object=False
+-    ):
++    def log_actions(self, user_id, queryset, action_flag, change_message=""):
+         if isinstance(change_message, list):
+             change_message = json.dumps(change_message)
+ 
+@@ -44,7 +42,7 @@ class LogEntryManager(models.Manager):
+             for obj in queryset
+         ]
+ 
+-        if single_object and log_entry_list:
++        if len(log_entry_list) == 1:
+             instance = log_entry_list[0]
+             instance.save()
+             return instance
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 3c2cf9d130..090b12151a 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -946,7 +946,6 @@ class ModelAdmin(BaseModelAdmin):
+             queryset=[obj],
+             action_flag=ADDITION,
+             change_message=message,
+-            single_object=True,
+         )
+ 
+     def log_change(self, request, obj, message):
+@@ -962,7 +961,6 @@ class ModelAdmin(BaseModelAdmin):
+             queryset=[obj],
+             action_flag=CHANGE,
+             change_message=message,
+-            single_object=True,
+         )
+ 
+     def log_deletions(self, request, queryset):
+diff --git a/docs/releases/5.1.7.txt b/docs/releases/5.1.7.txt
+index d1ed21ec5d..77e89d9c27 100644
+--- a/docs/releases/5.1.7.txt
++++ b/docs/releases/5.1.7.txt
+@@ -22,3 +22,7 @@ Bugfixes
+   of ``ManyToManyField`` related managers would always return ``0`` and
+   ``False`` when the intermediary model back references used ``to_field``
+   (:ticket:`36197`).
++
++* Fixed a regression in Django 5.1 where the ``pre_save`` and ``post_save``
++  signals for ``LogEntry`` were not sent when deleting a single object in the
++  admin (:ticket:`36217`).
+diff --git a/docs/releases/5.1.txt b/docs/releases/5.1.txt
+index 799f3ee819..a57bf60cbd 100644
+--- a/docs/releases/5.1.txt
++++ b/docs/releases/5.1.txt
+@@ -401,6 +401,11 @@ Miscellaneous
+ * The minimum supported version of ``asgiref`` is increased from 3.7.0 to
+   3.8.1.
+ 
++* To improve performance, the ``delete_selected`` admin action now uses
++  ``QuerySet.bulk_create()`` when creating multiple ``LogEntry`` objects. As a
++  result, ``pre_save`` and ``post_save`` signals for ``LogEntry`` are not sent
++  when multiple objects are deleted via this admin action.
++
+ .. _deprecated-features-5.1:
+ 
+ Features deprecated in 5.1
+diff --git a/tests/admin_changelist/tests.py b/tests/admin_changelist/tests.py
+index 17866c8ad6..6003ce47d8 100644
+--- a/tests/admin_changelist/tests.py
++++ b/tests/admin_changelist/tests.py
+@@ -1845,7 +1845,7 @@ class GetAdminLogTests(TestCase):
+         """{% get_admin_log %} works without specifying a user."""
+         user = User(username="jondoe", password="secret", email="super@example.com")
+         user.save()
+-        LogEntry.objects.log_actions(user.pk, [user], 1, single_object=True)
++        LogEntry.objects.log_actions(user.pk, [user], 1)
+         context = Context({"log_entries": LogEntry.objects.all()})
+         t = Template(
+             "{% load log %}"
+diff --git a/tests/admin_utils/test_logentry.py b/tests/admin_utils/test_logentry.py
+index 491a220199..7ba43c4ba0 100644
+--- a/tests/admin_utils/test_logentry.py
++++ b/tests/admin_utils/test_logentry.py
+@@ -5,6 +5,7 @@ from django.contrib.admin.models import ADDITION, CHANGE, DELETION, LogEntry
+ from django.contrib.admin.utils import quote
+ from django.contrib.auth.models import User
+ from django.contrib.contenttypes.models import ContentType
++from django.db.models.signals import post_save, pre_save
+ from django.test import TestCase, override_settings
+ from django.urls import reverse
+ from django.utils import translation
+@@ -41,11 +42,23 @@ class LogEntryTests(TestCase):
+             [cls.a1],
+             CHANGE,
+             change_message="Changed something",
+-            single_object=True,
+         )
+ 
+     def setUp(self):
+         self.client.force_login(self.user)
++        self.signals = []
++
++        pre_save.connect(self.pre_save_listener, sender=LogEntry)
++        self.addCleanup(pre_save.disconnect, self.pre_save_listener, sender=LogEntry)
++
++        post_save.connect(self.post_save_listener, sender=LogEntry)
++        self.addCleanup(post_save.disconnect, self.post_save_listener, sender=LogEntry)
++
++    def pre_save_listener(self, instance, **kwargs):
++        self.signals.append(("pre_save", instance))
++
++    def post_save_listener(self, instance, created, **kwargs):
++        self.signals.append(("post_save", instance, created))
+ 
+     def test_logentry_save(self):
+         """
+@@ -271,6 +284,7 @@ class LogEntryTests(TestCase):
+             for obj in queryset
+         ]
+         self.assertSequenceEqual(logs, expected_log_values)
++        self.assertEqual(self.signals, [])
+ 
+     def test_recentactions_without_content_type(self):
+         """
+@@ -314,6 +328,8 @@ class LogEntryTests(TestCase):
+             "created_1": "00:00",
+         }
+         changelist_url = reverse("admin:admin_utils_articleproxy_changelist")
++        expected_signals = []
++        self.assertEqual(self.signals, expected_signals)
+ 
+         # add
+         proxy_add_url = reverse("admin:admin_utils_articleproxy_add")
+@@ -322,6 +338,10 @@ class LogEntryTests(TestCase):
+         proxy_addition_log = LogEntry.objects.latest("id")
+         self.assertEqual(proxy_addition_log.action_flag, ADDITION)
+         self.assertEqual(proxy_addition_log.content_type, proxy_content_type)
++        expected_signals.extend(
++            [("pre_save", proxy_addition_log), ("post_save", proxy_addition_log, True)]
++        )
++        self.assertEqual(self.signals, expected_signals)
+ 
+         # change
+         article_id = proxy_addition_log.object_id
+@@ -334,6 +354,10 @@ class LogEntryTests(TestCase):
+         proxy_change_log = LogEntry.objects.latest("id")
+         self.assertEqual(proxy_change_log.action_flag, CHANGE)
+         self.assertEqual(proxy_change_log.content_type, proxy_content_type)
++        expected_signals.extend(
++            [("pre_save", proxy_change_log), ("post_save", proxy_change_log, True)]
++        )
++        self.assertEqual(self.signals, expected_signals)
+ 
+         # delete
+         proxy_delete_url = reverse(
+@@ -344,6 +368,10 @@ class LogEntryTests(TestCase):
+         proxy_delete_log = LogEntry.objects.latest("id")
+         self.assertEqual(proxy_delete_log.action_flag, DELETION)
+         self.assertEqual(proxy_delete_log.content_type, proxy_content_type)
++        expected_signals.extend(
++            [("pre_save", proxy_delete_log), ("post_save", proxy_delete_log, True)]
++        )
++        self.assertEqual(self.signals, expected_signals)
+ 
+     def test_action_flag_choices(self):
+         tests = ((1, "Addition"), (2, "Change"), (3, "Deletion"))
+@@ -358,7 +386,6 @@ class LogEntryTests(TestCase):
+             [self.a1],
+             CHANGE,
+             change_message="Article changed message",
+-            single_object=True,
+         )
+         c1 = Car.objects.create()
+         LogEntry.objects.log_actions(
+@@ -366,7 +393,6 @@ class LogEntryTests(TestCase):
+             [c1],
+             ADDITION,
+             change_message="Car created message",
+-            single_object=True,
+         )
+         exp_str_article = escape(str(self.a1))
+         exp_str_car = escape(str(c1))
+diff --git a/tests/admin_views/test_history_view.py b/tests/admin_views/test_history_view.py
+index dfac3530bf..7079c1d0d8 100644
+--- a/tests/admin_views/test_history_view.py
++++ b/tests/admin_views/test_history_view.py
+@@ -66,7 +66,6 @@ class SeleniumTests(AdminSeleniumTestCase):
+                 [self.superuser],
+                 CHANGE,
+                 change_message=f"Changed something {i}",
+-                single_object=True,
+             )
+         self.admin_login(
+             username="super",
+diff --git a/tests/admin_views/tests.py b/tests/admin_views/tests.py
+index 1fa2c62353..5e1aa719c1 100644
+--- a/tests/admin_views/tests.py
++++ b/tests/admin_views/tests.py
+@@ -3884,21 +3884,18 @@ class AdminViewStringPrimaryKeyTest(TestCase):
+             [cls.m1],
+             2,
+             change_message="Changed something",
+-            single_object=True,
+         )
+         LogEntry.objects.log_actions(
+             user_pk,
+             [cls.m1],
+             1,
+             change_message="Added something",
+-            single_object=True,
+         )
+         LogEntry.objects.log_actions(
+             user_pk,
+             [cls.m1],
+             3,
+             change_message="Deleted something",
+-            single_object=True,
+         )
+ 
+     def setUp(self):

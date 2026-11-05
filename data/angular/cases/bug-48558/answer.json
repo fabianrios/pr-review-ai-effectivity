@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-48558",
+  "pr_url": "https://github.com/angular/angular/pull/48558",
+  "kind": "bug",
+  "ground_truth": "To avoid treating the space in an escaped selector (\".\\fc ber\") as a combinator, the PR skips a separator when the preceding part matches `_placeholderRe` (`__ph-N__`) and the next character is a hex digit. But SafeSelector uses the same `__ph-N__` placeholder for attribute selectors and other content, not only for escape sequences. In minified CSS without spaces, e.g. `:host[foo]>div`, the `>` separator is skipped because the part contains an attribute placeholder and the next char 'd' is hex, so the selector is scoped incorrectly and styles on :host attributes break in production builds. Fixed by giving escapes their own `__esc-ph-N__` placeholder and checking only for that.",
+  "bug_files": [
+    "packages/compiler/src/shadow_css.ts"
+  ],
+  "fix_pr": 49118,
+  "fix_commit": "0198d21231565f5eeaa27a871b9bb9e950b4a869",
+  "issue": 49100,
+  "fix_tickets": [],
+  "evidence_url": null
+}

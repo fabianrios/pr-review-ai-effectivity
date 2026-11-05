@@ -1,0 +1,39 @@
+{
+  "repo": "django/django",
+  "number": 19626,
+  "url": "https://github.com/django/django/pull/19626",
+  "commit_url": "https://github.com/django/django/commit/78fac1b0473ed8960ecd2a30aca4fa8420d150b8",
+  "title": "Fixed #36226 -- Accepted str or bytes for password and salt in password hashers.",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\n[ticket-36226](https://code.djangoproject.com/ticket/36226)\r\n\r\n#### Branch description\r\n\r\nEnsure that all hashers' `.encode()` method is flexible to accept `str` or `bytes` value. The returned hashed/encoded value is also verifiable regardless of whether the password provided in the hasher's `verify()` method is in `str` or `bytes` type.\r\n\r\n- `PBKDF2PasswordHasher`\r\n- `MD5PasswordHasher`\r\n- `PBKDF2PasswordHasher`\r\n- `PBKDF2SHA1PasswordHasher`\r\n- `ScryptPasswordHasher`\r\n- `BCryptPasswordHasher`\r\n- `BCryptSHA256PasswordHasher`\r\n- `Argon2PasswordHasher`\r\n\r\nRelated ticket (inactive?): https://github.com/django/django/pull/19235 \r\n\r\nEdit: Add support for accepting salt as `str` or `bytes` when encoding and verifying passwords.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #36226 -- Accepted str or bytes for password and salt in password hashers.\n\nCo-authored-by: Screamadelica <1621456391@sjtu.edu.cn>",
+  "labels": [],
+  "author": "Roel Delos Reyes",
+  "merged_at": "2025-07-09T00:14:00+08:00",
+  "tickets": [
+    36226
+  ],
+  "base_commit": "e709301000edddc48ebfe9535e2e2177d3bcedb1",
+  "head_commit": "78fac1b0473ed8960ecd2a30aca4fa8420d150b8",
+  "changed_lines": 70,
+  "files": [
+    {
+      "path": "AUTHORS",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/auth/hashers.py",
+      "added": 13,
+      "deleted": 7,
+      "binary": false
+    },
+    {
+      "path": "tests/auth_tests/test_hashers.py",
+      "added": 49,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

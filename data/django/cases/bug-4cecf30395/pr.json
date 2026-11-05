@@ -1,0 +1,39 @@
+{
+  "repo": "django/django",
+  "number": 20538,
+  "url": "https://github.com/django/django/pull/20538",
+  "commit_url": "https://github.com/django/django/commit/4cecf3039586ea738afafb9a28c946bff42c37c1",
+  "title": "Fixed #36865 -- Removed casting from exact lookups in admin searches.",
+  "description": "Fixes https://code.djangoproject.com/ticket/36865\r\n\r\n## Description\r\n\r\nThis PR fixes a performance regression introduced in PR #17885.\r\n\r\nThe `Cast` to `CharField` for non-string field exact lookups prevents database index usage on primary key fields, generating SQL like:\r\n\r\n```sql\r\nWHERE (\"table\".\"id\")::varchar = '123'\r\n```\r\n\r\nThis cannot use the primary key index and causes full table scans, resulting in timeouts on large tables (reported in [ticket #26001 comment 24](https://code.djangoproject.com/ticket/26001#comment:24)), and discovered in a project I work on at https://github.com/freelawproject/courtlistener/issues/6790.\r\n\r\n## Solution\r\n\r\nDrop the casting approach introduced in #17885, and replace it with field validation that uses `to_python` on the results of `smart_split` to ensure that we only apply field-term pairs that make sense. For example: \r\n\r\n - searching a PrimaryKey field for \"foo\" --> Nope!\r\n - searching a TextField for \"foo\" --> Yes!\r\n - searching a TextField for \"123\" --> Close enough. Yes!\r\n\r\nAnd so forth. \r\n\r\nThis should ensure DB indexes are used and that we don't send nonsensical queries in the first place. \r\n\r\n## Trac tickets\r\n\r\nIntroducing issue: https://code.djangoproject.com/ticket/26001\r\nSolving it: https://code.djangoproject.com/ticket/36865",
+  "commit_message": "Fixed #36865 -- Removed casting from exact lookups in admin searches.\n\nInstead of casting non-text fields to CharField (which prevents index\nusage), skip exact lookups when the search term fails\nformfield.to_python().\n\nThis preserves index usage for valid searches while gracefully handling\ninvalid search terms by simply not including them in the query for that\nfield.\n\nFor multi-term searches like 'foo 123' on search_fields=['name', 'age__exact']:\n- 'foo': invalid for age, so only name lookup is used\n- '123': valid for both, so both lookups are used\n\nThis entails a slight increase in permissiveness for search terms that\ncan be normalized by formfield.to_python().",
+  "labels": [],
+  "author": "mlissner",
+  "merged_at": "2026-01-15T12:30:21-08:00",
+  "tickets": [
+    36865
+  ],
+  "base_commit": "b25bc2441827a31b5629e9f79ad7296b992648a2",
+  "head_commit": "4cecf3039586ea738afafb9a28c946bff42c37c1",
+  "changed_lines": 142,
+  "files": [
+    {
+      "path": "django/contrib/admin/options.py",
+      "added": 37,
+      "deleted": 26,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_changelist/models.py",
+      "added": 7,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_changelist/tests.py",
+      "added": 72,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

@@ -1,0 +1,88 @@
+{
+  "repo": "angular/angular",
+  "number": 53473,
+  "url": "https://github.com/angular/angular/pull/53473",
+  "title": "refactor(compiler): Generate trusted const values for extracted attrs",
+  "description": "",
+  "labels": [
+    "action: merge",
+    "target: patch",
+    "merge: caretaker note",
+    "area: compiler",
+    "compiler: template pipeline"
+  ],
+  "author": "mmalerba",
+  "merged_at": "2023-12-12T17:00:43Z",
+  "base_commit": "f9731eec93effa50929eb9178af113fce9ee3ea6",
+  "head_commit": "8b7adbe64a2ef24a547d17d39ebca471f1f39570",
+  "changed_lines": 207,
+  "files": [
+    {
+      "path": "packages/compiler-cli/test/compliance/test_cases/r3_compiler_compliance/elements/TEST_CASES.json",
+      "added": 2,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/render3/view/compiler.ts",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/template/pipeline/ir/src/enums.ts",
+      "added": 5,
+      "deleted": 12,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/template/pipeline/ir/src/expression.ts",
+      "added": 8,
+      "deleted": 26,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/template/pipeline/ir/src/ops/create.ts",
+      "added": 15,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/template/pipeline/src/ingest.ts",
+      "added": 27,
+      "deleted": 16,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/template/pipeline/src/phases/attribute_extraction.ts",
+      "added": 11,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/template/pipeline/src/phases/const_collection.ts",
+      "added": 15,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/template/pipeline/src/phases/parse_extracted_styles.ts",
+      "added": 5,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/template/pipeline/src/phases/reify.ts",
+      "added": 0,
+      "deleted": 14,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/template/pipeline/src/phases/resolve_sanitizers.ts",
+      "added": 27,
+      "deleted": 9,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

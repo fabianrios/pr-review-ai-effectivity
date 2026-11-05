@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-57796",
+  "pr_url": "https://github.com/angular/angular/pull/57796",
+  "kind": "bug",
+  "ground_truth": "In `ShadowCss._scopeSelector`/`_applySelectorScope`, the change replaced the simple `/ ?, ?/` comma split and the combinator separator with regexes that do not split inside parentheses. A selector part like `.foo:is(.a,\\n.b)` therefore now reaches `_scopeSelectorPart` as a single string that can contain newlines. That function splits the part with `/([^:]*)(:*)(.*)/`, both in the newly added pseudo-function `:host` branch (`scopedP.match(...)`) and in the non-host branch (`t.match(...)`). Because `.` does not match a newline, everything after the first newline is silently dropped. For example, a component style `.foo:is(.a,\\n.b) {}` is emitted as `.foo[contenta]:is(.a,`, with the rest of the selector and the closing parenthesis lost, which breaks the stylesheet. The fix changed the trailing group of both regexes to `([\\s\\S]*)` so content after newlines is kept.",
+  "bug_files": [
+    "packages/compiler/src/shadow_css.ts"
+  ],
+  "fix_pr": null,
+  "fix_commit": "549a00d18b9060b7bae35a715e233021ef34a39a",
+  "issue": 58399,
+  "fix_tickets": [],
+  "evidence_url": null
+}

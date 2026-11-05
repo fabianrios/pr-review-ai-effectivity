@@ -1,0 +1,52 @@
+diff --git a/AUTHORS b/AUTHORS
+index 70f402588f3d..3edfbecf2ab4 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -1151,6 +1151,7 @@ answer newbie questions, and generally made Django that much better:
+     Zeynel Özdemir <ozdemir.zynl@gmail.com>
+     Zlatko Mašek <zlatko.masek@gmail.com>
+     zriv <https://github.com/zriv>
++    Zubair Hassan <zubairhassan652@gmail.com>
+     <Please alphabetize new entries>
+ 
+ A big THANK YOU goes to:
+diff --git a/django/contrib/admin/templatetags/admin_list.py b/django/contrib/admin/templatetags/admin_list.py
+index a6adafabbefb..aafbae9d90cb 100644
+--- a/django/contrib/admin/templatetags/admin_list.py
++++ b/django/contrib/admin/templatetags/admin_list.py
+@@ -16,7 +16,7 @@
+     PAGE_VAR,
+     SEARCH_VAR,
+ )
+-from django.core.exceptions import ObjectDoesNotExist
++from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
+ from django.db import models
+ from django.db.models.constants import LOOKUP_SEP
+ from django.template import Library
+@@ -226,6 +226,12 @@ def link_in_col(is_first, field_name, cl):
+             empty_value_display = getattr(
+                 attr, "empty_value_display", empty_value_display
+             )
++            # Find boolean fields on relations.
++            if f is None and isinstance(field_name, str) and LOOKUP_SEP in field_name:
++                try:
++                    f = get_fields_from_path(cl.model, field_name)[-1]
++                except FieldDoesNotExist:
++                    pass  # e.g. __str__
+             if f is None or f.auto_created:
+                 if field_name == "action_checkbox":
+                     row_classes = ["action-checkbox"]
+diff --git a/django/contrib/admin/utils.py b/django/contrib/admin/utils.py
+index 746537e9c5f8..34f53a4df2c2 100644
+--- a/django/contrib/admin/utils.py
++++ b/django/contrib/admin/utils.py
+@@ -314,9 +314,6 @@ def lookup_field(name, obj, model_admin=None):
+                         attr = getattr(attr, part, sentinel)
+                         if attr is sentinel:
+                             return None, None, None
+-                    # The final field is needed for displaying boolean icons.
+-                    if LOOKUP_SEP in name:
+-                        f = get_fields_from_path(opts.model, name)[-1]
+                 value = attr
+             if hasattr(model_admin, "model") and hasattr(model_admin.model, name):
+                 attr = getattr(model_admin.model, name)

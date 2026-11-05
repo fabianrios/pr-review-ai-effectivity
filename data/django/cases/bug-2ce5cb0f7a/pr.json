@@ -1,0 +1,33 @@
+{
+  "repo": "django/django",
+  "number": 20374,
+  "url": "https://github.com/django/django/pull/20374",
+  "commit_url": "https://github.com/django/django/commit/2ce5cb0f7a4618dfdc5f5c10e53e2e9b9543d298",
+  "title": "Fixed #26434 -- Removed faulty clearing of ordering field when missing from explicit grouping.",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\nticket-26434\r\n\r\n#### Branch description\r\nThis is a fix for a broken functionality directly related to the use of `queryset.count()` and `queryset.aggregate(...)`, i.e., a fix for the `QuerySet API`.\r\n\r\nThe issue itself describes the problem well, but in short: the ORM, due to overly aggressive SQL query optimization, removes parts of order_by even for columns that are not logically part of group_by.\r\n\r\nOne solution was already in master, but it was flawed from two perspectives:\r\n1. Typically, the order_by part is just text, while the group_by part consists of column objects (Col). The previous solution did not reliably compare these two sets.\r\n2. The fix was placed in the shared logic for aggressive SQL query optimization. This is not the right place here - we want the fix to reside in the final top-level aggregation, i.e., the method `query.get_aggregate(...)`.\r\n\r\nPlease provide feedback on:\r\n1. The tests that have been written.\r\n2. Whether the implementation is headed in the right direction.\r\n3. What is missing in the implementation or what could be improved.\r\n4. Anything else you think is worth discussing.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n",
+  "commit_message": "Fixed #26434 -- Removed faulty clearing of ordering field when missing from explicit grouping.\n\nCo-authored-by: Simon Charette <charette.s@gmail.com>",
+  "labels": [],
+  "author": "Michal Mládek",
+  "merged_at": "2025-05-26T18:37:34+02:00",
+  "tickets": [
+    26434
+  ],
+  "base_commit": "0174a85770356fd12e4c8daa42a4f1c752ae00e6",
+  "head_commit": "2ce5cb0f7a4618dfdc5f5c10e53e2e9b9543d298",
+  "changed_lines": 48,
+  "files": [
+    {
+      "path": "django/db/models/sql/query.py",
+      "added": 29,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/aggregation_regress/tests.py",
+      "added": 18,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

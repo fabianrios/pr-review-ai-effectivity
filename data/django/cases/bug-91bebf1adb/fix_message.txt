@@ -1,0 +1,15 @@
+Fixed #36284, Refs #31170 -- Ensured related lookup popups are closed properly.
+
+In the admin, when selecting related objects via the helpers defined in
+`RelatedObjectLookups.js`, the `dismissRelatedLookupPopup` function was
+attempting to access `window.relatedWindows`, which does not exist in
+real execution, causing related lookup popups to remain open.
+    
+This change ensures that this code correctly accesses the module-local
+`relatedWindows` by explicitly assigning it to `window.relatedWindows`.
+    
+Regression in 91bebf1adb43561b54bac18e76224759dc70acb3.
+    
+Thanks Matthias Kestenholz for the report, the fix ideas, and testing.
+
+Co-authored-by: Matthias Kestenholz <mk@feinheit.ch>

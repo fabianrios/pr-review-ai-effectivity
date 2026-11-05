@@ -1,0 +1,7 @@
+{
+  "case_id": "ctl-67948",
+  "pr_url": "https://github.com/angular/angular/pull/67948",
+  "kind": "control",
+  "ground_truth": null,
+  "matched_to": 67032
+}

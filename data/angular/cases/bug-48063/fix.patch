@@ -1,0 +1,28 @@
+diff --git a/packages/router/src/navigation_transition.ts b/packages/router/src/navigation_transition.ts
+index 5a09a18e2d33..21b7a2fc9856 100644
+--- a/packages/router/src/navigation_transition.ts
++++ b/packages/router/src/navigation_transition.ts
+@@ -645,6 +645,11 @@ export class NavigationTransitions {
+                              this.rootContexts, router.routeReuseStrategy,
+                              (evt: Event) => this.events.next(evt), this.inputBindingEnabled),
+ 
++                         // Ensure that if some observable used to drive the transition doesn't
++                         // complete, the navigation still finalizes This should never happen, but
++                         // this is done as a safety measure to avoid surfacing this error (#49567).
++                         take(1),
++
+                          tap({
+                            next: (t: NavigationTransition) => {
+                              completed = true;
+diff --git a/packages/router/src/provide_router.ts b/packages/router/src/provide_router.ts
+index b1e356d03361..ed41b9fac041 100644
+--- a/packages/router/src/provide_router.ts
++++ b/packages/router/src/provide_router.ts
+@@ -211,6 +211,7 @@ export function getBootstrapListener() {
+     router.resetRootComponentType(ref.componentTypes[0]);
+     if (!bootstrapDone.closed) {
+       bootstrapDone.next();
++      bootstrapDone.complete();
+       bootstrapDone.unsubscribe();
+     }
+   };

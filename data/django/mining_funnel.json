@@ -1,0 +1,11 @@
+{
+  "since": "2024-01-01",
+  "pairs": 142,
+  "culprit_commits": 116,
+  "size_ok": 103,
+  "size_ok_code": 100,
+  "too_large": 13,
+  "no_shipped_code": 3,
+  "pr_found": 93,
+  "pr_not_found": 7
+}

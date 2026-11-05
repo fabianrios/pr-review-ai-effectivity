@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-9e9792228a",
+  "pr_url": "https://github.com/django/django/commit/9e9792228a6bb5d6402a5d645bc3be4cf364aefb",
+  "kind": "bug",
+  "ground_truth": "The security patch added a length check to `get_supported_language_variant()`. When `lang_code` exceeds `LANGUAGE_CODE_MAX_LENGTH` (500) and no generic variant can be cut off (or `strict=True`), it raises `ValueError(\"'lang_code' exceeds the maximum accepted length\")`. This breaks the function's documented contract of raising `LookupError` when nothing is found. Callers like `LocaleMiddleware` and `get_language_from_path()`/`get_language_from_request()` only catch `LookupError`, and with the default strict=False a long code without a usable \"-\" still reaches the `ValueError` branch. So a request whose URL language prefix or language cookie is longer than 500 characters crashes with an unhandled ValueError (HTTP 500) instead of falling back to another language. Fixed by raising `LookupError(lang_code)` instead of ValueError.",
+  "bug_files": [
+    "django/utils/translation/trans_real.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "0e94f292cda632153f2b3d9a9037eb0141ae9c2e",
+  "issue": null,
+  "fix_tickets": [
+    35627
+  ],
+  "evidence_url": null
+}

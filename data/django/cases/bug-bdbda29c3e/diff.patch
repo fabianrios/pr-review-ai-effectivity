@@ -1,0 +1,63 @@
+diff --git a/django/db/transaction.py b/django/db/transaction.py
+index fe6d3fed32..94f381779c 100644
+--- a/django/db/transaction.py
++++ b/django/db/transaction.py
+@@ -1,5 +1,6 @@
+ import warnings
+ from contextlib import ContextDecorator, contextmanager
++from functools import wraps
+ 
+ from django.db import (
+     DEFAULT_DB_ALIAS,
+@@ -337,10 +338,16 @@ def atomic(using=None, savepoint=True, durable=False):
+ 
+ def _non_atomic_requests(view, using):
+     try:
+-        view._non_atomic_requests.add(using)
++        databases = view._non_atomic_requests | {using}
+     except AttributeError:
+-        view._non_atomic_requests = {using}
+-    return view
++        databases = {using}
++
++    @wraps(view)
++    def wrapper(*args, **kwargs):
++        return view(*args, **kwargs)
++
++    wrapper._non_atomic_requests = databases
++    return wrapper
+ 
+ 
+ def non_atomic_requests(using=None):
+diff --git a/tests/handlers/tests.py b/tests/handlers/tests.py
+index 625090a66d..240c398988 100644
+--- a/tests/handlers/tests.py
++++ b/tests/handlers/tests.py
+@@ -1,7 +1,8 @@
+ from django.core.exceptions import ImproperlyConfigured
+ from django.core.handlers.wsgi import WSGIHandler, WSGIRequest, get_script_name
+ from django.core.signals import request_finished, request_started
+-from django.db import close_old_connections, connection
++from django.db import close_old_connections, connection, transaction
++from django.http import HttpResponse
+ from django.test import (
+     AsyncRequestFactory,
+     RequestFactory,
+@@ -143,6 +144,17 @@ class TransactionsPerRequestTests(TransactionTestCase):
+         # The non_atomic_requests decorator is used for an incorrect table.
+         self.assertContains(response, "True")
+ 
++    def test_non_atomic_requests_does_not_mutate_original(self):
++        def my_view(request):
++            return HttpResponse("Ok")
++
++        wrapped_once = transaction.non_atomic_requests(using="default")(my_view)
++        wrapped_twice = transaction.non_atomic_requests(using="other")(wrapped_once)
++
++        self.assertIsNot(wrapped_twice, wrapped_once)
++        self.assertEqual(wrapped_once._non_atomic_requests, {"default"})
++        self.assertEqual(wrapped_twice._non_atomic_requests, {"default", "other"})
++
+ 
+ @override_settings(ROOT_URLCONF="handlers.urls")
+ class SignalsTests(SimpleTestCase):

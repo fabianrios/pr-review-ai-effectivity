@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-a9fe98d5bd",
+  "pr_url": "https://github.com/django/django/pull/19781",
+  "kind": "bug",
+  "ground_truth": "In `urlize`, the simple-URL regex for bare domains is changed to use `DomainNameValidator.hostname_re` before the TLD. `hostname_re` matches a single DNS label (no dots), so bare multi-label domains without `www.` or a scheme, e.g. `docs.djangoproject.com`, no longer match and are not turned into links (`djangoproject.com` still works). Fixed by appending `DomainNameValidator.domain_re`, which matches the additional dotted labels.",
+  "bug_files": [
+    "django/utils/html.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "125b63ca745bace1e098ed3c7362d59136f68a8b",
+  "issue": null,
+  "fix_tickets": [
+    36710
+  ],
+  "evidence_url": null
+}

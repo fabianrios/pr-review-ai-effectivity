@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-857b1048d5",
+  "pr_url": "https://github.com/django/django/pull/18742",
+  "kind": "bug",
+  "ground_truth": "In `SelectFilter.init` in SelectFilter2.js, the change replaced the \"Choose all\", \"Choose selected\", \"Remove selected\" and \"Remove all\" `<a>` links with `<button>` elements built via `quickElement('button', ...)`. None of them is given a `type` attribute. Inside a form, a button with no type defaults to `type=\"submit\"`. When a user presses Enter in a text input of an admin change form containing a filter_horizontal/filter_vertical widget, the browser's implicit submission activates the first submit button in tree order. If one of these selector buttons comes first, its click handler fires (moving options, with the event default prevented) instead of the form being saved. The fix adds `'type', 'button'` to all four buttons so they no longer act as submit buttons.",
+  "bug_files": [
+    "django/contrib/admin/static/admin/js/SelectFilter2.js"
+  ],
+  "fix_pr": null,
+  "fix_commit": "90429625a85f1f77dfea200c91bd2dabab57974f",
+  "issue": null,
+  "fix_tickets": [
+    36423
+  ],
+  "evidence_url": null
+}

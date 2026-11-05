@@ -1,0 +1,77 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 84950d4ec0..8fffce5dec 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -534,7 +534,8 @@ class Query(BaseExpression):
+             # Queries with distinct_fields need ordering and when a limit is
+             # applied we must take the slice from the ordered query. Otherwise
+             # no need for ordering.
+-            inner_query.clear_ordering(force=False)
++            if inner_query.orderby_issubset_groupby:
++                inner_query.clear_ordering(force=False)
+             if not inner_query.distinct:
+                 # If the inner query uses default select and it has some
+                 # aggregate annotations, then we must make sure the inner
+@@ -2338,6 +2339,33 @@ class Query(BaseExpression):
+         else:
+             self.default_ordering = False
+ 
++    @property
++    def orderby_issubset_groupby(self):
++        if self.extra_order_by:
++            # Raw SQL from extra(order_by=...) can't be reliably compared
++            # against resolved OrderBy/Col expressions. Treat as not a subset.
++            return False
++        if self.group_by in (None, True):
++            # There is either no aggregation at all (None), or the group by
++            # is generated automatically from model fields (True), in which
++            # case the order by is necessarily a subset of them.
++            return True
++        if not self.order_by:
++            # Although an empty set is always a subset, there's no point in
++            # clearing ordering when there isn't any. Avoid the clone() below.
++            return True
++        # Don't pollute the original query (might disrupt joins).
++        q = self.clone()
++        order_by_set = {
++            (
++                order_by.resolve_expression(q)
++                if hasattr(order_by, "resolve_expression")
++                else F(order_by).resolve_expression(q)
++            )
++            for order_by in q.order_by
++        }
++        return order_by_set.issubset(self.group_by)
++
+     def clear_ordering(self, force=False, clear_default=True):
+         """
+         Remove any ordering settings if the current query allows it without
+diff --git a/tests/aggregation_regress/tests.py b/tests/aggregation_regress/tests.py
+index 3e1a6a71f9..c7d9271dd8 100644
+--- a/tests/aggregation_regress/tests.py
++++ b/tests/aggregation_regress/tests.py
+@@ -171,6 +171,24 @@ class AggregationTests(TestCase):
+         for attr, value in kwargs.items():
+             self.assertEqual(getattr(obj, attr), value)
+ 
++    def test_count_preserve_group_by(self):
++        # new release of the same book
++        Book.objects.create(
++            isbn="113235613",
++            name=self.b4.name,
++            pages=self.b4.pages,
++            rating=4.0,
++            price=Decimal("39.69"),
++            contact=self.a5,
++            publisher=self.p3,
++            pubdate=datetime.date(2018, 11, 3),
++        )
++        qs = Book.objects.values("contact__name", "publisher__name").annotate(
++            publications=Count("id")
++        )
++        self.assertEqual(qs.order_by("id").count(), len(qs.order_by("id")))
++        self.assertEqual(qs.extra(order_by=["id"]).count(), len(qs.order_by("id")))
++
+     def test_annotation_with_value(self):
+         values = (
+             Book.objects.filter(

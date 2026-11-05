@@ -1,0 +1,273 @@
+diff --git a/packages/core/src/render3/node_manipulation.ts b/packages/core/src/render3/node_manipulation.ts
+index 5d1bfe7d67..097cc7502c 100644
+--- a/packages/core/src/render3/node_manipulation.ts
++++ b/packages/core/src/render3/node_manipulation.ts
+@@ -26,7 +26,7 @@ import {TElementNode, TIcuContainerNode, TNode, TNodeFlags, TNodeType, TProjecti
+ import {Renderer} from './interfaces/renderer';
+ import {RComment, RElement, RNode, RTemplate, RText} from './interfaces/renderer_dom';
+ import {isLContainer, isLView} from './interfaces/type_checks';
+-import {CHILD_HEAD, CLEANUP, DECLARATION_COMPONENT_VIEW, DECLARATION_LCONTAINER, DestroyHookData, FLAGS, HookData, HookFn, HOST, LView, LViewFlags, NEXT, ON_DESTROY_HOOKS, PARENT, QUERIES, REACTIVE_TEMPLATE_CONSUMER, RENDERER, T_HOST, TVIEW, TView, TViewType} from './interfaces/view';
++import {CHILD_HEAD, CLEANUP, DECLARATION_COMPONENT_VIEW, DECLARATION_LCONTAINER, DestroyHookData, ENVIRONMENT, FLAGS, HookData, HookFn, HOST, LView, LViewFlags, NEXT, ON_DESTROY_HOOKS, PARENT, QUERIES, REACTIVE_TEMPLATE_CONSUMER, RENDERER, T_HOST, TVIEW, TView, TViewType} from './interfaces/view';
+ import {assertTNodeType} from './node_assert';
+ import {profiler, ProfilerEvent} from './profiler';
+ import {setUpAttributes} from './util/attrs_utils';
+@@ -138,8 +138,7 @@ export function createElementNode(
+  * @param lView The view from which elements should be added or removed
+  */
+ export function removeViewFromDOM(tView: TView, lView: LView): void {
+-  const renderer = lView[RENDERER];
+-  applyView(tView, lView, renderer, WalkTNodeTreeAction.Detach, null, null);
++  detachViewFromDOM(tView, lView);
+   lView[HOST] = null;
+   lView[T_HOST] = null;
+ }
+@@ -174,6 +173,9 @@ export function addViewToDOM(
+  * @param lView the `LView` to be detached.
+  */
+ export function detachViewFromDOM(tView: TView, lView: LView) {
++  // The scheduler must be notified because the animation engine is what actually does the DOM
++  // removal and only runs at the end of change detection.
++  lView[ENVIRONMENT].changeDetectionScheduler?.notify();
+   applyView(tView, lView, lView[RENDERER], WalkTNodeTreeAction.Detach, null, null);
+ }
+ 
+diff --git a/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json b/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json
+index e15dcd10c9..2afe5976ef 100644
+--- a/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json
+@@ -773,6 +773,9 @@
+   {
+     "name": "detachMovedView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/bundling/animations/bundle.golden_symbols.json b/packages/core/test/bundling/animations/bundle.golden_symbols.json
+index 368074d01a..3199f349bf 100644
+--- a/packages/core/test/bundling/animations/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/animations/bundle.golden_symbols.json
+@@ -839,6 +839,9 @@
+   {
+     "name": "detachMovedView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/bundling/cyclic_import/bundle.golden_symbols.json b/packages/core/test/bundling/cyclic_import/bundle.golden_symbols.json
+index 2143b5f648..a1949b70ab 100644
+--- a/packages/core/test/bundling/cyclic_import/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/cyclic_import/bundle.golden_symbols.json
+@@ -629,6 +629,9 @@
+   {
+     "name": "detachMovedView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/bundling/defer/bundle.golden_symbols.json b/packages/core/test/bundling/defer/bundle.golden_symbols.json
+index e8b294ba73..74def80b8f 100644
+--- a/packages/core/test/bundling/defer/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/defer/bundle.golden_symbols.json
+@@ -722,6 +722,9 @@
+   {
+     "name": "detachView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json b/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json
+index 02b62a6833..3303122288 100644
+--- a/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json
+@@ -890,6 +890,9 @@
+   {
+     "name": "detachView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json b/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json
+index bcb0e1aba8..8b40be2e4b 100644
+--- a/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json
+@@ -860,6 +860,9 @@
+   {
+     "name": "detachView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/bundling/hello_world/bundle.golden_symbols.json b/packages/core/test/bundling/hello_world/bundle.golden_symbols.json
+index 30d9b7f173..c1edeb8730 100644
+--- a/packages/core/test/bundling/hello_world/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/hello_world/bundle.golden_symbols.json
+@@ -488,6 +488,9 @@
+   {
+     "name": "detachMovedView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/bundling/hydration/bundle.golden_symbols.json b/packages/core/test/bundling/hydration/bundle.golden_symbols.json
+index cb959564e8..42c337a07c 100644
+--- a/packages/core/test/bundling/hydration/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/hydration/bundle.golden_symbols.json
+@@ -689,6 +689,9 @@
+   {
+     "name": "detachMovedView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/bundling/router/bundle.golden_symbols.json b/packages/core/test/bundling/router/bundle.golden_symbols.json
+index 54d80c8c92..582f828545 100644
+--- a/packages/core/test/bundling/router/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/router/bundle.golden_symbols.json
+@@ -1070,6 +1070,9 @@
+   {
+     "name": "detachView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json b/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json
+index db00cff39a..91f696887e 100644
+--- a/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json
+@@ -557,6 +557,9 @@
+   {
+     "name": "detachMovedView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/bundling/todo/bundle.golden_symbols.json b/packages/core/test/bundling/todo/bundle.golden_symbols.json
+index e43a1c1b28..5a9bda9a21 100644
+--- a/packages/core/test/bundling/todo/bundle.golden_symbols.json
++++ b/packages/core/test/bundling/todo/bundle.golden_symbols.json
+@@ -761,6 +761,9 @@
+   {
+     "name": "detachView"
+   },
++  {
++    "name": "detachViewFromDOM"
++  },
+   {
+     "name": "detectChangesInChildComponents"
+   },
+diff --git a/packages/core/test/change_detection_scheduler_spec.ts b/packages/core/test/change_detection_scheduler_spec.ts
+index 960267da6a..55d4695a85 100644
+--- a/packages/core/test/change_detection_scheduler_spec.ts
++++ b/packages/core/test/change_detection_scheduler_spec.ts
+@@ -221,8 +221,46 @@ describe('Angular with NoopNgZone', () => {
+       expect(fixture.location.nativeElement.innerText).toEqual('binding');
+     });
+ 
++    it('when destroying a view', async () => {
++      @Component({
++        template: '{{"binding"}}',
++        standalone: true,
++      })
++      class DynamicCmp {
++        elementRef = inject(ElementRef);
++      }
++      @Component({
++        template: '<ng-template #ref></ng-template>',
++        standalone: true,
++      })
++      class TestComponent {
++        @ViewChild('ref', {read: ViewContainerRef}) viewContainer!: ViewContainerRef;
++      }
++
++      const fixture = await createAndAttachComponent(TestComponent);
++      const component =
++          createComponent(DynamicCmp, {environmentInjector: TestBed.inject(EnvironmentInjector)});
++
++      fixture.instance.viewContainer.insert(component.hostView);
++      await nextRender();
++      expect(fixture.location.nativeElement.innerText).toEqual('binding');
++      fixture.instance.viewContainer.remove();
++      await nextRender();
++      expect(fixture.location.nativeElement.innerText).toEqual('');
++
++      const component2 =
++          createComponent(DynamicCmp, {environmentInjector: TestBed.inject(EnvironmentInjector)});
++      fixture.instance.viewContainer.insert(component2.hostView);
++      await nextRender();
++      expect(fixture.location.nativeElement.innerText).toEqual('binding');
++      component2.destroy();
++      await nextRender();
++      expect(fixture.location.nativeElement.innerText).toEqual('');
++    });
++
+     it('when attaching view to ApplicationRef', async () => {
+       @Component({
++        selector: 'dynamic-cmp',
+         template: '{{"binding"}}',
+         standalone: true,
+       })
+@@ -234,18 +272,27 @@ describe('Angular with NoopNgZone', () => {
+       const appRef = TestBed.inject(ApplicationRef);
+       const component = createComponent(DynamicCmp, {environmentInjector});
+       expect(scheduler.hasPendingChangeDetection).toBe(false);
+-      expect(component.instance.elementRef.nativeElement.innerText).toEqual('');
++      const host = document.createElement('div');
++      host.appendChild(component.instance.elementRef.nativeElement);
++      expect(host.innerHTML).toEqual('<dynamic-cmp></dynamic-cmp>');
+ 
+       appRef.attachView(component.hostView);
+-      expect(scheduler.hasPendingChangeDetection).toBe(true);
+       await nextRender();
+-      expect(component.instance.elementRef.nativeElement.innerText).toEqual('binding');
++      expect(host.innerHTML).toEqual('<dynamic-cmp>binding</dynamic-cmp>');
+ 
+-      // Don't need to run CD on detach because DOM nodes are just removed
+-      // That said, queries need to be updated and currently only update during CD but that's an
+-      // unrelated change that needs to happen.
++      const component2 = createComponent(DynamicCmp, {environmentInjector});
++      // TODO(atscott): Only needed because renderFactory will not run if ApplicationRef has no
++      // views This should likely be fixed in ApplicationRef
++      appRef.attachView(component2.hostView);
+       appRef.detachView(component.hostView);
+-      expect(scheduler.hasPendingChangeDetection).toBe(false);
++      // DOM is not synchronously removed because change detection hasn't run
++      expect(host.innerHTML).toEqual('<dynamic-cmp>binding</dynamic-cmp>');
++      expect(scheduler.hasPendingChangeDetection).toBe(true);
++      // TODO(atscott): Can use nextRender once ApplicationRef.tick flushes afterRender hooks rather
++      // than view.detectChanges
++      await new Promise(resolve => setTimeout(resolve, 1));
++      expect(host.innerHTML).toEqual('');
++      host.appendChild(component.instance.elementRef.nativeElement);
+       // reattaching non-dirty view does not notify scheduler
+       appRef.attachView(component.hostView);
+       expect(scheduler.hasPendingChangeDetection).toBe(false);

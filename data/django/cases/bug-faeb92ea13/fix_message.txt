@@ -1,0 +1,3 @@
+Fixed #35301 -- Fixed Options._property_names for overriden properties.
+
+Regression in faeb92ea13f0c1b2cc83f45b512f2c41cfb4f02d.

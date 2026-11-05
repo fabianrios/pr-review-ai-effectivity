@@ -1,0 +1,101 @@
+diff --git a/devtools/projects/ng-devtools-backend/src/lib/directive-forest/component-tree/component-tree.ts b/devtools/projects/ng-devtools-backend/src/lib/directive-forest/component-tree/component-tree.ts
+index 2ce79a151d12..0135176e5ca1 100644
+--- a/devtools/projects/ng-devtools-backend/src/lib/directive-forest/component-tree/component-tree.ts
++++ b/devtools/projects/ng-devtools-backend/src/lib/directive-forest/component-tree/component-tree.ts
+@@ -7,18 +7,19 @@
+  */
+ 
+ import type {
++  ɵAcxComponentDebugMetadata as AcxComponentDebugMetadata,
++  ɵAngularComponentDebugMetadata as AngularComponentDebugMetadata,
+   ClassProvider,
+   ExistingProvider,
+   FactoryProvider,
+   InjectOptions,
+   InjectionToken,
+   Injector,
++  ɵProviderRecord as ProviderRecord,
+   Type,
+   ValueProvider,
+-  ɵAngularComponentDebugMetadata as AngularComponentDebugMetadata,
+-  ɵAcxComponentDebugMetadata as AcxComponentDebugMetadata,
+-  ɵProviderRecord as ProviderRecord,
+ } from '@angular/core';
++import {buildDirectiveForestWithStrategy} from '..';
+ import {
+   ChangeDetection,
+   ComponentExplorerViewQuery,
+@@ -32,7 +33,11 @@ import {
+   SerializedProviderRecord,
+   UpdatedStateData,
+ } from '../../../../../protocol';
+-import {buildDirectiveForestWithStrategy} from '..';
++import {
++  ComponentInstanceType,
++  ComponentTreeNode,
++  DirectiveInstanceType,
++} from '../../shared/interfaces';
+ import {
+   ngDebugApiIsSupported,
+   ngDebugClient,
+@@ -42,16 +47,11 @@ import {
+   deeplySerializeSelectedProperties,
+   serializeDirectiveState,
+ } from '../../shared/state-serializer/state-serializer';
+-import {mutateNestedProp} from '../property-mutation/property-mutation';
+-import {
+-  ComponentTreeNode,
+-  DirectiveInstanceType,
+-  ComponentInstanceType,
+-} from '../../shared/interfaces';
+-import {getAppRoots} from './get-roots';
+-import {AcxChangeDetectionStrategy, ChangeDetectionStrategy, Framework} from '../core-enums';
+ import {unwrapSignal} from '../../shared/utils/general';
++import {AcxChangeDetectionStrategy, ChangeDetectionStrategy, Framework} from '../core-enums';
++import {mutateNestedProp} from '../property-mutation/property-mutation';
+ import {getLViewFromDirectiveOrElementInstance} from '../tree-strategies/ltree';
++import {getAppRoots} from './get-roots';
+ 
+ export const injectorToId = new WeakMap<Injector | HTMLElement, string>();
+ export const nodeInjectorToResolutionPath = new WeakMap<HTMLElement, SerializedInjector[]>();
+@@ -734,7 +734,7 @@ export const findNodeInForest = (
+ export const findNodeFromSerializedPosition = (
+   serializedPosition: string,
+ ): ComponentTreeNode | null => {
+-  const position: number[] = serializedPosition.split(',').map((index) => parseInt(index, 10));
++  const position: number[] = JSON.parse(serializedPosition);
+   return queryDirectiveForest(position, buildDirectiveForest());
+ };
+ 
+diff --git a/devtools/projects/shell-browser/src/app/BUILD.bazel b/devtools/projects/shell-browser/src/app/BUILD.bazel
+index 2f5baef968e1..7c72708a49f2 100644
+--- a/devtools/projects/shell-browser/src/app/BUILD.bazel
++++ b/devtools/projects/shell-browser/src/app/BUILD.bazel
+@@ -108,6 +108,27 @@ ts_project(
+     ],
+ )
+ 
++ts_test_library(
++    name = "chrome_application_operations_test_lib",
++    srcs = ["chrome-application-operations.spec.ts"],
++    deps = [
++        ":chrome_application_operations",
++        "//:node_modules/@angular/cdk",
++        "//:node_modules/@angular/core",
++        "//:node_modules/@types/chrome",
++        "//:node_modules/jasmine",
++        "//devtools/projects/ng-devtools",
++        "//devtools/projects/protocol",
++    ],
++)
++
++zoneless_web_test_suite(
++    name = "chrome_application_operations_test",
++    deps = [
++        ":chrome_application_operations_test_lib",
++    ],
++)
++
+ ts_project(
+     name = "same_page_message_bus",
+     srcs = [

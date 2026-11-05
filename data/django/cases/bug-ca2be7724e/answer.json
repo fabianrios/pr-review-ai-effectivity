@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-ca2be7724e",
+  "pr_url": "https://github.com/django/django/commit/ca2be7724e1244a4cb723de40a070f873c6e94bf",
+  "kind": "bug",
+  "ground_truth": "The change makes `is_valid_ipv6_address()` call the new helper `_ipv6_address_from_str()` instead of `ipaddress.IPv6Address(ip_str)`. The helper begins with `if len(ip_str) > max_length`, and `is_valid_ipv6_address()` still only catches `ValueError`. Before, non-string values that `ipaddress.IPv6Address` accepts, such as an `ipaddress.IPv6Address` instance or an int, were handled. Now they raise an uncaught `TypeError` (e.g. \"object of type 'IPv6Address' has no len()\"). As a result, `validate_ipv6_address(ipaddress.IPv6Address('::1'))` and `validate_ipv46_address(...)` crash instead of validating or raising `ValidationError`. The fix returns True early for `ipaddress.IPv6Address` instances and catches `TypeError` as well as `ValueError`, returning False.",
+  "bug_files": [
+    "django/utils/ipv6.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "b3c5830769d8a5dbf2f974da7116fe503c9454d9",
+  "issue": null,
+  "fix_tickets": [
+    36098
+  ],
+  "evidence_url": null
+}

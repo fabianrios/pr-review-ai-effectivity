@@ -1,0 +1,50 @@
+{
+  "repo": "angular/angular",
+  "number": 63485,
+  "url": "https://github.com/angular/angular/pull/63485",
+  "title": "refactor(router): Add `firstValueFrom` helper",
+  "description": "This fixes a bug introduced in #62994 where `toPromise` was used. This doesn't work in all situations here because some observables don't complete. This only affected the redirect path, since the others are already behind other rxjs code which takes the first value from the user guards.\r\n\r\nNote: This is marked as a refactor rather than fix because the commit above is not in any release yet.\r\n",
+  "labels": [
+    "action: merge",
+    "area: router",
+    "target: major"
+  ],
+  "author": "atscott",
+  "merged_at": "2025-08-29T19:02:07Z",
+  "base_commit": "6e1599d4cc836a51eea34a11f58cba77f3770421",
+  "head_commit": "6a0e477dac184bc9d0e44a7e29059babb67897fe",
+  "changed_lines": 81,
+  "files": [
+    {
+      "path": "packages/core/test/bundling/router/bundle.golden_symbols.json",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/router/src/apply_redirects.ts",
+      "added": 7,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "packages/router/src/recognize.ts",
+      "added": 8,
+      "deleted": 16,
+      "binary": false
+    },
+    {
+      "path": "packages/router/src/utils/first_value_from.ts",
+      "added": 20,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/router/test/apply_redirects.spec.ts",
+      "added": 23,
+      "deleted": 2,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

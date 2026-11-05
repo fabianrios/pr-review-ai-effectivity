@@ -1,0 +1,5 @@
+Fixed #35950 -- Restored refreshing of relations when fields deferred.
+
+Thank you to Simon Charette and Sarah Boyce for the review.
+
+Regression in 73df8b54a2fab53bec4c7573cda5ad8c869c2fd8.

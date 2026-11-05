@@ -1,0 +1,7 @@
+fix(compiler): fix multiline selectors (#58681)
+
+multiline selectors where not correctly recognized by the regexp, fix it to fetch newlines as well
+
+Fixes #58399
+
+PR Close #58681

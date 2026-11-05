@@ -1,0 +1,26 @@
+{
+  "repo": "angular/angular",
+  "number": 69309,
+  "url": "https://github.com/angular/angular/pull/69309",
+  "title": "refactor(devtools): ensure code is escaped",
+  "description": "By stringifying twice we ensure the code is escape before building the string template.\r\n",
+  "labels": [
+    "action: merge",
+    "target: patch",
+    "area: devtools"
+  ],
+  "author": "JeanMeche",
+  "merged_at": "2026-06-16T15:25:36Z",
+  "base_commit": "c092a002e40c7846a50496d21a9b381f6ea75723",
+  "head_commit": "0d8e68741ce73e19543929dddca96bf380676290",
+  "changed_lines": 18,
+  "files": [
+    {
+      "path": "devtools/projects/shell-browser/src/app/chrome-application-operations.ts",
+      "added": 11,
+      "deleted": 7,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

@@ -1,0 +1,3 @@
+Fixed #37405 -- Fixed crash if sort_keys option is used with YAML serializer.
+
+Regression in 7142667340f78403cbbcaa8f33703c494282b7b7.

@@ -1,0 +1,6 @@
+Fixed #36468 -- Fixed failure to close popup when adding a related object in the admin.
+
+The issue manifested when there were multiple relations and only some
+of them participated in a filter_horizontal.
+
+Regression in cd0479ff764272add5e0aba2afcf5649a241ca00.

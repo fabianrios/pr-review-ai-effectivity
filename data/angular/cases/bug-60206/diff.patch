@@ -1,0 +1,217 @@
+diff --git a/devtools/projects/ng-devtools-backend/src/lib/BUILD.bazel b/devtools/projects/ng-devtools-backend/src/lib/BUILD.bazel
+index 8753e5609f4..6dafd95b627 100644
+--- a/devtools/projects/ng-devtools-backend/src/lib/BUILD.bazel
++++ b/devtools/projects/ng-devtools-backend/src/lib/BUILD.bazel
+@@ -159,3 +159,18 @@ ts_library(
+         "//packages/core",
+     ],
+ )
++
++ts_test_library(
++    name = "component_tree_test_lib",
++    srcs = ["component-tree.spec.ts"],
++    deps = [
++        ":component_tree",
++        "//packages/core",
++        "@npm//jasmine",
++    ],
++)
++
++karma_web_test_suite(
++    name = "component_tree_test",
++    deps = [":component_tree_test_lib"],
++)
+diff --git a/devtools/projects/ng-devtools-backend/src/lib/component-tree.spec.ts b/devtools/projects/ng-devtools-backend/src/lib/component-tree.spec.ts
+new file mode 100644
+index 00000000000..975c54675b8
+--- /dev/null
++++ b/devtools/projects/ng-devtools-backend/src/lib/component-tree.spec.ts
+@@ -0,0 +1,42 @@
++/**
++ * @license
++ * Copyright Google LLC All Rights Reserved.
++ *
++ * Use of this source code is governed by an MIT-style license that can be
++ * found in the LICENSE file at https://angular.dev/license
++ */
++
++import {Injector, ɵGlobalDevModeUtils} from '@angular/core';
++import {getInjectorFromElementNode} from './component-tree';
++
++type Ng = ɵGlobalDevModeUtils['ng'];
++
++describe('component-tree', () => {
++  afterEach(() => {
++    delete (globalThis as any).ng;
++  });
++
++  describe('getInjectorFromElementNode', () => {
++    it('returns injector', () => {
++      const injector = Injector.create({
++        providers: [],
++      });
++
++      const ng: Partial<Ng> = {
++        getInjector: jasmine.createSpy('getInjector').and.returnValue(injector),
++      };
++      (globalThis as any).ng = ng;
++
++      const el = document.createElement('div');
++      expect(getInjectorFromElementNode(el)).toBe(injector);
++      expect(ng.getInjector).toHaveBeenCalledOnceWith(el);
++    });
++
++    it('returns `null` when `getInjector` is not supported', () => {
++      (globalThis as any).ng = {};
++
++      const el = document.createElement('div');
++      expect(getInjectorFromElementNode(el)).toBeNull();
++    });
++  });
++});
+diff --git a/devtools/projects/ng-devtools-backend/src/lib/component-tree.ts b/devtools/projects/ng-devtools-backend/src/lib/component-tree.ts
+index 2e7da3c3bbd..f7f72a4ba1c 100644
+--- a/devtools/projects/ng-devtools-backend/src/lib/component-tree.ts
++++ b/devtools/projects/ng-devtools-backend/src/lib/component-tree.ts
+@@ -76,7 +76,7 @@ export function getInjectorResolutionPath(injector: Injector): Injector[] {
+ }
+ 
+ export function getInjectorFromElementNode(element: Node): Injector | null {
+-  return ngDebugClient().getInjector(element);
++  return ngDebugClient().getInjector?.(element) ?? null;
+ }
+ 
+ function getDirectivesFromElement(element: HTMLElement): {
+@@ -108,9 +108,9 @@ export const getLatestComponentState = (
+ 
+   const directiveProperties: DirectivesProperties = {};
+ 
+-  const injector = ngDebugClient().getInjector(node.nativeElement!);
++  const injector = getInjectorFromElementNode(node.nativeElement!);
+ 
+-  const injectors = getInjectorResolutionPath(injector);
++  const injectors = injector ? getInjectorResolutionPath(injector) : [];
+   const resolutionPathWithProviders = !ngDebugDependencyInjectionApiIsSupported()
+     ? []
+     : injectors.map((injector) => ({
+@@ -120,11 +120,13 @@ export const getLatestComponentState = (
+   const populateResultSet = (dir: DirectiveInstanceType | ComponentInstanceType) => {
+     const {instance, name} = dir;
+     const metadata = getDirectiveMetadata(instance);
+-    metadata.dependencies = getDependenciesForDirective(
+-      injector,
+-      resolutionPathWithProviders,
+-      instance.constructor,
+-    );
++    if (injector) {
++      metadata.dependencies = getDependenciesForDirective(
++        injector,
++        resolutionPathWithProviders,
++        instance.constructor,
++      );
++    }
+ 
+     if (query.propertyQuery.type === PropertyQueryTypes.All) {
+       directiveProperties[dir.name] = {
+diff --git a/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/BUILD.bazel b/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/BUILD.bazel
+index 2098079957b..f8e3b727241 100644
+--- a/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/BUILD.bazel
++++ b/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/BUILD.bazel
+@@ -1,5 +1,6 @@
+-# load("//devtools/tools:typescript.bzl", "ts_library")
++load("//devtools/tools:defaults.bzl", "karma_web_test_suite")
+ load("//devtools/tools:ng_module.bzl", "ng_module")
++load("//devtools/tools:typescript.bzl", "ts_test_library")
+ 
+ package(default_visibility = ["//visibility:public"])
+ 
+@@ -13,3 +14,18 @@ ng_module(
+         "//packages/core",
+     ],
+ )
++
++ts_test_library(
++    name = "ng-debug-api_test_lib",
++    srcs = ["ng-debug-api.spec.ts"],
++    deps = [
++        ":ng-debug-api",
++        "//packages/core",
++        "@npm//jasmine",
++    ],
++)
++
++karma_web_test_suite(
++    name = "ng-debug-api_test",
++    deps = [":ng-debug-api_test_lib"],
++)
+diff --git a/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/ng-debug-api.spec.ts b/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/ng-debug-api.spec.ts
+new file mode 100644
+index 00000000000..4ad4a92ca22
+--- /dev/null
++++ b/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/ng-debug-api.spec.ts
+@@ -0,0 +1,51 @@
++/**
++ * @license
++ * Copyright Google LLC All Rights Reserved.
++ *
++ * Use of this source code is governed by an MIT-style license that can be
++ * found in the LICENSE file at https://angular.dev/license
++ */
++
++import {ɵGlobalDevModeUtils} from '@angular/core';
++import {ngDebugDependencyInjectionApiIsSupported} from './ng-debug-api';
++
++type Ng = ɵGlobalDevModeUtils['ng'];
++
++describe('ng-debug-api', () => {
++  afterEach(() => {
++    delete (globalThis as any).ng;
++  });
++
++  describe('ngDebugDependencyInjectionApiIsSupported', () => {
++    const goldenNg: Partial<Record<keyof Ng, () => void>> = {
++      getInjector() {},
++      ɵgetInjectorResolutionPath() {},
++      ɵgetDependenciesFromInjectable() {},
++      ɵgetInjectorProviders() {},
++      ɵgetInjectorMetadata() {},
++    };
++
++    it('returns true when required APIs are supported', () => {
++      (globalThis as any).ng = goldenNg;
++
++      expect(ngDebugDependencyInjectionApiIsSupported()).toBeTrue();
++    });
++
++    it('returns false when any required API is missing', () => {
++      (globalThis as any).ng = {...goldenNg, getInjector: undefined};
++      expect(ngDebugDependencyInjectionApiIsSupported()).toBeFalse();
++
++      (globalThis as any).ng = {...goldenNg, ɵgetInjectorResolutionPath: undefined};
++      expect(ngDebugDependencyInjectionApiIsSupported()).toBeFalse();
++
++      (globalThis as any).ng = {...goldenNg, ɵgetDependenciesFromInjectable: undefined};
++      expect(ngDebugDependencyInjectionApiIsSupported()).toBeFalse();
++
++      (globalThis as any).ng = {...goldenNg, ɵgetInjectorProviders: undefined};
++      expect(ngDebugDependencyInjectionApiIsSupported()).toBeFalse();
++
++      (globalThis as any).ng = {...goldenNg, ɵgetInjectorMetadata: undefined};
++      expect(ngDebugDependencyInjectionApiIsSupported()).toBeFalse();
++    });
++  });
++});
+diff --git a/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/ng-debug-api.ts b/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/ng-debug-api.ts
+index 523352e3a4d..a5667332b50 100644
+--- a/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/ng-debug-api.ts
++++ b/devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/ng-debug-api.ts
+@@ -31,6 +31,9 @@ export function ngDebugApiIsSupported(api: keyof GlobalDevModeUtils['ng']): bool
+  * @returns boolean
+  */
+ export function ngDebugDependencyInjectionApiIsSupported(): boolean {
++  if (!ngDebugApiIsSupported('getInjector')) {
++    return false;
++  }
+   if (!ngDebugApiIsSupported('ɵgetInjectorResolutionPath')) {
+     return false;
+   }

@@ -1,0 +1,7 @@
+fix(core): guard the jasmine hooks (#51394)
+
+This commit fixes a regression introduced in #50063
+
+Fixes #51382
+
+PR Close #51394

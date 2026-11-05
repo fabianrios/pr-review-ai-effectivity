@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-65ab92f6a8",
+  "pr_url": "https://github.com/django/django/pull/19684",
+  "kind": "bug",
+  "ground_truth": "In `django/contrib/admindocs/utils.py`, `parse_rst()` was changed to call `docutils.core.publish_parts(..., writer=\"html\", ...)` instead of `writer_name=\"html\"`, to silence a deprecation warning in docutils 0.22+. Passing a string writer name through the `writer` parameter only works in docutils 0.22+. In docutils 0.19–0.21, `writer` must be a writer instance. With an older docutils installed, every admindocs reStructuredText rendering (docstrings for views, models, template tags, filters) therefore fails, typically with an AttributeError when docutils treats the string \"html\" as a writer object. The fix creates an instance with `docutils.writers.get_writer_class(\"html\")()` and passes that as `writer`, which works across docutils 0.19 through 0.22.",
+  "bug_files": [
+    "django/contrib/admindocs/utils.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "9cec8d9f55d90fbc162fde23d6ea7a34e322fcae",
+  "issue": null,
+  "fix_tickets": [
+    36535
+  ],
+  "evidence_url": null
+}

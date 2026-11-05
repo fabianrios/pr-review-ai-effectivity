@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-4cecf30395",
+  "pr_url": "https://github.com/django/django/pull/20538",
+  "kind": "bug",
+  "ground_truth": "The change rewrote `ModelAdmin.get_search_results` so that, for non-text `__exact` search fields, each search term is validated with `validate_field.formfield().to_python(bit)`. Lookups whose term raises `ValidationError` are skipped; all others are passed to the ORM with the converted value. This validation does not reject invalid terms for two kinds of fields. First, fields with `choices` produce a `TypedChoiceField`, whose `to_python()` returns the raw string unchanged. So searching \"john\" against an `IntegerField(choices=...)` with `field__exact` sends \"john\" to the ORM, which raises `ValueError` and makes the changelist return HTTP 500. Second, `forms.BooleanField.to_python()` maps almost any non-false string to True, so an arbitrary term like \"xyz\" against `bool__exact` matches every row where the field is True instead of matching nothing. The fix uses `formfield.clean()` for Typed(Multiple)ChoiceField so values are coerced and validated, and uses strict boolean and null-boolean parsers that raise `ValidationError` for unrecognized strings.",
+  "bug_files": [
+    "django/contrib/admin/options.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "fe81969e83d03b61e587a28ddebb92b9fca2b441",
+  "issue": null,
+  "fix_tickets": [
+    37263
+  ],
+  "evidence_url": null
+}

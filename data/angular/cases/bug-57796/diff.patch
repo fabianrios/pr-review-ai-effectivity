@@ -1,0 +1,551 @@
+diff --git a/packages/compiler/src/shadow_css.ts b/packages/compiler/src/shadow_css.ts
+index d565e97f1c3..1d7988568fb 100644
+--- a/packages/compiler/src/shadow_css.ts
++++ b/packages/compiler/src/shadow_css.ts
+@@ -340,7 +340,7 @@ export class ShadowCss {
+    *    captures how many (if any) leading whitespaces are present or a comma
+    *  - (?:(?:(['"])((?:\\\\|\\\2|(?!\2).)+)\2)|(-?[A-Za-z][\w\-]*))
+    *    captures two different possible keyframes, ones which are quoted or ones which are valid css
+-   * idents (custom properties excluded)
++   * indents (custom properties excluded)
+    *  - (?=[,\s;]|$)
+    *    simply matches the end of the possible keyframe, valid endings are: a comma, a space, a
+    * semicolon or the end of the string
+@@ -461,7 +461,7 @@ export class ShadowCss {
+    */
+   private _scopeCssText(cssText: string, scopeSelector: string, hostSelector: string): string {
+     const unscopedRules = this._extractUnscopedRulesFromCssText(cssText);
+-    // replace :host and :host-context -shadowcsshost and -shadowcsshost respectively
++    // replace :host and :host-context with -shadowcsshost and -shadowcsshostcontext respectively
+     cssText = this._insertPolyfillHostInCssText(cssText);
+     cssText = this._convertColonHost(cssText);
+     cssText = this._convertColonHostContext(cssText);
+@@ -541,7 +541,7 @@ export class ShadowCss {
+    * .foo<scopeName> .bar { ... }
+    */
+   private _convertColonHostContext(cssText: string): string {
+-    return cssText.replace(_cssColonHostContextReGlobal, (selectorText) => {
++    return cssText.replace(_cssColonHostContextReGlobal, (selectorText, pseudoPrefix) => {
+       // We have captured a selector that contains a `:host-context` rule.
+ 
+       // For backward compatibility `:host-context` may contain a comma separated list of selectors.
+@@ -596,10 +596,12 @@ export class ShadowCss {
+       }
+ 
+       // The context selectors now must be combined with each other to capture all the possible
+-      // selectors that `:host-context` can match. See `combineHostContextSelectors()` for more
++      // selectors that `:host-context` can match. See `_combineHostContextSelectors()` for more
+       // info about how this is done.
+       return contextSelectorGroups
+-        .map((contextSelectors) => combineHostContextSelectors(contextSelectors, selectorText))
++        .map((contextSelectors) =>
++          _combineHostContextSelectors(contextSelectors, selectorText, pseudoPrefix),
++        )
+         .join(', ');
+     });
+   }
+@@ -618,7 +620,12 @@ export class ShadowCss {
+       let selector = rule.selector;
+       let content = rule.content;
+       if (rule.selector[0] !== '@') {
+-        selector = this._scopeSelector(rule.selector, scopeSelector, hostSelector);
++        selector = this._scopeSelector({
++          selector,
++          scopeSelector,
++          hostSelector,
++          isParentSelector: true,
++        });
+       } else if (scopedAtRuleIdentifiers.some((atRule) => rule.selector.startsWith(atRule))) {
+         content = this._scopeSelectors(rule.content, scopeSelector, hostSelector);
+       } else if (rule.selector.startsWith('@font-face') || rule.selector.startsWith('@page')) {
+@@ -658,15 +665,44 @@ export class ShadowCss {
+     });
+   }
+ 
+-  private _scopeSelector(selector: string, scopeSelector: string, hostSelector: string): string {
++  private _safeSelector: SafeSelector | undefined;
++  private _shouldScopeIndicator: boolean | undefined;
++
++  // `isParentSelector` is used to distinguish the selectors which are coming from
++  // the initial selector string and any nested selectors, parsed recursively,
++  // for example `selector = 'a:where(.one)'` could be the parent, while recursive call
++  // would have `selector = '.one'`.
++  private _scopeSelector({
++    selector,
++    scopeSelector,
++    hostSelector,
++    isParentSelector = false,
++  }: {
++    selector: string;
++    scopeSelector: string;
++    hostSelector: string;
++    isParentSelector?: boolean;
++  }): string {
++    // Split the selector into independent parts by `,` (comma) unless
++    // comma is within parenthesis, for example `:is(.one, two)`.
++    // Negative lookup after comma allows not splitting inside nested parenthesis,
++    // up to three levels (((,))).
++    const selectorSplitRe =
++      / ?,(?!(?:[^)(]*(?:\([^)(]*(?:\([^)(]*(?:\([^)(]*\)[^)(]*)*\)[^)(]*)*\)[^)(]*)*\))) ?/;
++
+     return selector
+-      .split(/ ?, ?/)
++      .split(selectorSplitRe)
+       .map((part) => part.split(_shadowDeepSelectors))
+       .map((deepParts) => {
+         const [shallowPart, ...otherParts] = deepParts;
+         const applyScope = (shallowPart: string) => {
+           if (this._selectorNeedsScoping(shallowPart, scopeSelector)) {
+-            return this._applySelectorScope(shallowPart, scopeSelector, hostSelector);
++            return this._applySelectorScope({
++              selector: shallowPart,
++              scopeSelector,
++              hostSelector,
++              isParentSelector,
++            });
+           } else {
+             return shallowPart;
+           }
+@@ -699,9 +735,9 @@ export class ShadowCss {
+     if (_polyfillHostRe.test(selector)) {
+       const replaceBy = `[${hostSelector}]`;
+       return selector
+-        .replace(_polyfillHostNoCombinatorRe, (hnc, selector) => {
++        .replace(_polyfillHostNoCombinatorReGlobal, (_hnc, selector) => {
+           return selector.replace(
+-            /([^:]*)(:*)(.*)/,
++            /([^:\)]*)(:*)(.*)/,
+             (_: string, before: string, colon: string, after: string) => {
+               return before + replaceBy + colon + after;
+             },
+@@ -715,11 +751,17 @@ export class ShadowCss {
+ 
+   // return a selector with [name] suffix on each simple selector
+   // e.g. .foo.bar > .zot becomes .foo[name].bar[name] > .zot[name]  /** @internal */
+-  private _applySelectorScope(
+-    selector: string,
+-    scopeSelector: string,
+-    hostSelector: string,
+-  ): string {
++  private _applySelectorScope({
++    selector,
++    scopeSelector,
++    hostSelector,
++    isParentSelector,
++  }: {
++    selector: string;
++    scopeSelector: string;
++    hostSelector: string;
++    isParentSelector?: boolean;
++  }): string {
+     const isRe = /\[is=([^\]]*)\]/g;
+     scopeSelector = scopeSelector.replace(isRe, (_: string, ...parts: string[]) => parts[0]);
+ 
+@@ -734,6 +776,10 @@ export class ShadowCss {
+ 
+       if (p.includes(_polyfillHostNoCombinator)) {
+         scopedP = this._applySimpleSelectorScope(p, scopeSelector, hostSelector);
++        if (_polyfillHostNoCombinatorWithinPseudoFunction.test(p)) {
++          const [_, before, colon, after] = scopedP.match(/([^:]*)(:*)(.*)/)!;
++          scopedP = before + attrName + colon + after;
++        }
+       } else {
+         // remove :host since it should be unnecessary
+         const t = p.replace(_polyfillHostRe, '');
+@@ -748,13 +794,60 @@ export class ShadowCss {
+       return scopedP;
+     };
+ 
+-    const safeContent = new SafeSelector(selector);
+-    selector = safeContent.content();
++    // Wraps `_scopeSelectorPart()` to not use it directly on selectors with
++    // pseudo selector functions like `:where()`. Selectors within pseudo selector
++    // functions are recursively sent to `_scopeSelector()`.
++    const _pseudoFunctionAwareScopeSelectorPart = (selectorPart: string) => {
++      let scopedPart = '';
++
++      const cssPrefixWithPseudoSelectorFunctionMatch = selectorPart.match(
++        _cssPrefixWithPseudoSelectorFunction,
++      );
++      if (cssPrefixWithPseudoSelectorFunctionMatch) {
++        const [cssPseudoSelectorFunction] = cssPrefixWithPseudoSelectorFunctionMatch;
++
++        // Unwrap the pseudo selector to scope its contents.
++        // For example,
++        // - `:where(selectorToScope)` -> `selectorToScope`;
++        // - `:is(.foo, .bar)` -> `.foo, .bar`.
++        const selectorToScope = selectorPart.slice(cssPseudoSelectorFunction.length, -1);
++
++        if (selectorToScope.includes(_polyfillHostNoCombinator)) {
++          this._shouldScopeIndicator = true;
++        }
++
++        const scopedInnerPart = this._scopeSelector({
++          selector: selectorToScope,
++          scopeSelector,
++          hostSelector,
++        });
++
++        // Put the result back into the pseudo selector function.
++        scopedPart = `${cssPseudoSelectorFunction}${scopedInnerPart})`;
++      } else {
++        this._shouldScopeIndicator =
++          this._shouldScopeIndicator || selectorPart.includes(_polyfillHostNoCombinator);
++        scopedPart = this._shouldScopeIndicator ? _scopeSelectorPart(selectorPart) : selectorPart;
++      }
++
++      return scopedPart;
++    };
++
++    if (isParentSelector) {
++      this._safeSelector = new SafeSelector(selector);
++      selector = this._safeSelector.content();
++    }
+ 
+     let scopedSelector = '';
+     let startIndex = 0;
+     let res: RegExpExecArray | null;
+-    const sep = /( |>|\+|~(?!=))\s*/g;
++    // Combinators aren't used as a delimiter if they are within parenthesis,
++    // for example `:where(.one .two)` stays intact.
++    // Similarly to selector separation by comma initially, negative lookahead
++    // is used here to not break selectors within nested parenthesis up to three
++    // nested layers.
++    const sep =
++      /( |>|\+|~(?!=))(?!([^)(]*(?:\([^)(]*(?:\([^)(]*(?:\([^)(]*\)[^)(]*)*\)[^)(]*)*\)[^)(]*)*\)))\s*/g;
+ 
+     // If a selector appears before :host it should not be shimmed as it
+     // matches on ancestor elements and not on elements in the host's shadow
+@@ -768,8 +861,13 @@ export class ShadowCss {
+     // - `tag :host` -> `tag [h]` (`tag` is not scoped because it's considered part of a
+     //   `:host-context(tag)`)
+     const hasHost = selector.includes(_polyfillHostNoCombinator);
+-    // Only scope parts after the first `-shadowcsshost-no-combinator` when it is present
+-    let shouldScope = !hasHost;
++    // Only scope parts after or on the same level as the first `-shadowcsshost-no-combinator`
++    // when it is present. The selector has the same level when it is a part of a pseudo
++    // selector, like `:where()`, for example `:where(:host, .foo)` would result in `.foo`
++    // being scoped.
++    if (isParentSelector || this._shouldScopeIndicator) {
++      this._shouldScopeIndicator = !hasHost;
++    }
+ 
+     while ((res = sep.exec(selector)) !== null) {
+       const separator = res[1];
+@@ -788,18 +886,17 @@ export class ShadowCss {
+         continue;
+       }
+ 
+-      shouldScope = shouldScope || part.includes(_polyfillHostNoCombinator);
+-      const scopedPart = shouldScope ? _scopeSelectorPart(part) : part;
++      const scopedPart = _pseudoFunctionAwareScopeSelectorPart(part);
+       scopedSelector += `${scopedPart} ${separator} `;
+       startIndex = sep.lastIndex;
+     }
+ 
+     const part = selector.substring(startIndex);
+-    shouldScope = shouldScope || part.includes(_polyfillHostNoCombinator);
+-    scopedSelector += shouldScope ? _scopeSelectorPart(part) : part;
++    scopedSelector += _pseudoFunctionAwareScopeSelectorPart(part);
+ 
+     // replace the placeholders with their original values
+-    return safeContent.restore(scopedSelector);
++    // using values stored inside the `safeSelector` instance.
++    return this._safeSelector!.restore(scopedSelector);
+   }
+ 
+   private _insertPolyfillHostInCssText(selector: string): string {
+@@ -864,6 +961,8 @@ class SafeSelector {
+   }
+ }
+ 
++const _cssScopedPseudoFunctionPrefix = '(:(where|is)\\()?';
++const _cssPrefixWithPseudoSelectorFunction = /^:(where|is)\(/i;
+ const _cssContentNextSelectorRe =
+   /polyfill-next-selector[^}]*content:[\s]*?(['"])(.*?)\1[;\s]*}([^{]*?){/gim;
+ const _cssContentRuleRe = /(polyfill-rule)[^}]*(content:[\s]*(['"])(.*?)\3)[;\s]*[^}]*}/gim;
+@@ -874,10 +973,17 @@ const _polyfillHost = '-shadowcsshost';
+ const _polyfillHostContext = '-shadowcsscontext';
+ const _parenSuffix = '(?:\\((' + '(?:\\([^)(]*\\)|[^)(]*)+?' + ')\\))?([^,{]*)';
+ const _cssColonHostRe = new RegExp(_polyfillHost + _parenSuffix, 'gim');
+-const _cssColonHostContextReGlobal = new RegExp(_polyfillHostContext + _parenSuffix, 'gim');
++const _cssColonHostContextReGlobal = new RegExp(
++  _cssScopedPseudoFunctionPrefix + '(' + _polyfillHostContext + _parenSuffix + ')',
++  'gim',
++);
+ const _cssColonHostContextRe = new RegExp(_polyfillHostContext + _parenSuffix, 'im');
+ const _polyfillHostNoCombinator = _polyfillHost + '-no-combinator';
++const _polyfillHostNoCombinatorWithinPseudoFunction = new RegExp(
++  `:.*\\(.*${_polyfillHostNoCombinator}.*\\)`,
++);
+ const _polyfillHostNoCombinatorRe = /-shadowcsshost-no-combinator([^\s]*)/;
++const _polyfillHostNoCombinatorReGlobal = new RegExp(_polyfillHostNoCombinatorRe, 'g');
+ const _shadowDOMSelectorsRe = [
+   /::shadow/g,
+   /::content/g,
+@@ -1128,7 +1234,11 @@ function unescapeQuotes(str: string, isQuoted: boolean): string {
+  * @param contextSelectors an array of context selectors that will be combined.
+  * @param otherSelectors the rest of the selectors that are not context selectors.
+  */
+-function combineHostContextSelectors(contextSelectors: string[], otherSelectors: string): string {
++function _combineHostContextSelectors(
++  contextSelectors: string[],
++  otherSelectors: string,
++  pseudoPrefix = '',
++): string {
+   const hostMarker = _polyfillHostNoCombinator;
+   _polyfillHostRe.lastIndex = 0; // reset the regex to ensure we get an accurate test
+   const otherSelectorsHasHost = _polyfillHostRe.test(otherSelectors);
+@@ -1157,8 +1267,8 @@ function combineHostContextSelectors(contextSelectors: string[], otherSelectors:
+   return combined
+     .map((s) =>
+       otherSelectorsHasHost
+-        ? `${s}${otherSelectors}`
+-        : `${s}${hostMarker}${otherSelectors}, ${s} ${hostMarker}${otherSelectors}`,
++        ? `${pseudoPrefix}${s}${otherSelectors}`
++        : `${pseudoPrefix}${s}${hostMarker}${otherSelectors}, ${pseudoPrefix}${s} ${hostMarker}${otherSelectors}`,
+     )
+     .join(',');
+ }
+diff --git a/packages/compiler/test/shadow_css/host_and_host_context_spec.ts b/packages/compiler/test/shadow_css/host_and_host_context_spec.ts
+index c4dc29c372b..5b5689feb2b 100644
+--- a/packages/compiler/test/shadow_css/host_and_host_context_spec.ts
++++ b/packages/compiler/test/shadow_css/host_and_host_context_spec.ts
+@@ -107,6 +107,42 @@ describe('ShadowCss, :host and :host-context', () => {
+   });
+ 
+   describe(':host-context', () => {
++    it('should transform :host-context with pseudo selectors', () => {
++      expect(
++        shim(':host-context(backdrop:not(.borderless)) .backdrop {}', 'contenta', 'hosta'),
++      ).toEqualCss(
++        'backdrop:not(.borderless)[hosta] .backdrop[contenta], backdrop:not(.borderless) [hosta] .backdrop[contenta] {}',
++      );
++      expect(shim(':where(:host-context(backdrop)) {}', 'contenta', 'hosta')).toEqualCss(
++        ':where(backdrop[hosta]), :where(backdrop [hosta]) {}',
++      );
++      expect(shim(':where(:host-context(outer1)) :host(bar) {}', 'contenta', 'hosta')).toEqualCss(
++        ':where(outer1) bar[hosta] {}',
++      );
++      expect(
++        shim(':where(:host-context(.one)) :where(:host-context(.two)) {}', 'contenta', 'a-host'),
++      ).toEqualCss(
++        ':where(.one.two[a-host]), ' + // `one` and `two` both on the host
++          ':where(.one.two [a-host]), ' + // `one` and `two` are both on the same ancestor
++          ':where(.one .two[a-host]), ' + // `one` is an ancestor and `two` is on the host
++          ':where(.one .two [a-host]), ' + // `one` and `two` are both ancestors (in that order)
++          ':where(.two .one[a-host]), ' + // `two` is an ancestor and `one` is on the host
++          ':where(.two .one [a-host])' + // `two` and `one` are both ancestors (in that order)
++          ' {}',
++      );
++      expect(
++        shim(':where(:host-context(backdrop)) .foo ~ .bar {}', 'contenta', 'hosta'),
++      ).toEqualCss(
++        ':where(backdrop[hosta]) .foo[contenta] ~ .bar[contenta], :where(backdrop [hosta]) .foo[contenta] ~ .bar[contenta] {}',
++      );
++      expect(shim(':where(:host-context(backdrop)) :host {}', 'contenta', 'hosta')).toEqualCss(
++        ':where(backdrop) [hosta] {}',
++      );
++      expect(shim('div:where(:host-context(backdrop)) :host {}', 'contenta', 'hosta')).toEqualCss(
++        'div:where(backdrop) [hosta] {}',
++      );
++    });
++
+     it('should handle tag selector', () => {
+       expect(shim(':host-context(div) {}', 'contenta', 'a-host')).toEqualCss(
+         'div[a-host], div [a-host] {}',
+diff --git a/packages/compiler/test/shadow_css/shadow_css_spec.ts b/packages/compiler/test/shadow_css/shadow_css_spec.ts
+index e7e038d1b52..77a0a361a31 100644
+--- a/packages/compiler/test/shadow_css/shadow_css_spec.ts
++++ b/packages/compiler/test/shadow_css/shadow_css_spec.ts
+@@ -66,6 +66,18 @@ describe('ShadowCss', () => {
+     expect(shim('one[attr="va lue"] {}', 'contenta')).toEqualCss('one[attr="va lue"][contenta] {}');
+     expect(shim('one[attr] {}', 'contenta')).toEqualCss('one[attr][contenta] {}');
+     expect(shim('[is="one"] {}', 'contenta')).toEqualCss('[is="one"][contenta] {}');
++    expect(shim('[attr] {}', 'contenta')).toEqualCss('[attr][contenta] {}');
++  });
++
++  it('should transform :host with attributes', () => {
++    expect(shim(':host [attr] {}', 'contenta', 'hosta')).toEqualCss('[hosta] [attr][contenta] {}');
++    expect(shim(':host(create-first-project) {}', 'contenta', 'hosta')).toEqualCss(
++      'create-first-project[hosta] {}',
++    );
++    expect(shim(':host[attr] {}', 'contenta', 'hosta')).toEqualCss('[attr][hosta] {}');
++    expect(shim(':host[attr]:where(:not(.cm-button)) {}', 'contenta', 'hosta')).toEqualCss(
++      '[attr][hosta]:where(:not(.cm-button)) {}',
++    );
+   });
+ 
+   it('should handle escaped sequences in selectors', () => {
+@@ -77,6 +89,171 @@ describe('ShadowCss', () => {
+     expect(shim('.one\\:two .three\\:four {}', 'contenta')).toEqualCss(
+       '.one\\:two[contenta] .three\\:four[contenta] {}',
+     );
++    expect(shim('div:where(.one) {}', 'contenta', 'hosta')).toEqualCss(
++      'div[contenta]:where(.one) {}',
++    );
++    expect(shim('div:where() {}', 'contenta', 'hosta')).toEqualCss('div[contenta]:where() {}');
++    // See `xit('should parse concatenated pseudo selectors'`
++    expect(shim(':where(a):where(b) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(a)[contenta]:where(b) {}',
++    );
++    expect(shim('*:where(.one) {}', 'contenta', 'hosta')).toEqualCss('*[contenta]:where(.one) {}');
++    expect(shim('*:where(.one) ::ng-deep .foo {}', 'contenta', 'hosta')).toEqualCss(
++      '*[contenta]:where(.one) .foo {}',
++    );
++  });
++
++  xit('should parse concatenated pseudo selectors', () => {
++    // Current logic leads to a result with an outer scope
++    // It could be changed, to not increase specificity
++    // Requires a more complex parsing
++    expect(shim(':where(a):where(b) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(a[contenta]):where(b[contenta]) {}',
++    );
++  });
++
++  it('should handle pseudo functions correctly', () => {
++    // :where()
++    expect(shim(':where(.one) {}', 'contenta', 'hosta')).toEqualCss(':where(.one[contenta]) {}');
++    expect(shim(':where(div.one span.two) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(div.one[contenta] span.two[contenta]) {}',
++    );
++    expect(shim(':where(.one) .two {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(.one[contenta]) .two[contenta] {}',
++    );
++    expect(shim(':where(:host) {}', 'contenta', 'hosta')).toEqualCss(':where([hosta]) {}');
++    expect(shim(':where(:host) .one {}', 'contenta', 'hosta')).toEqualCss(
++      ':where([hosta]) .one[contenta] {}',
++    );
++    expect(shim(':where(.one) :where(:host) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(.one) :where([hosta]) {}',
++    );
++    expect(shim(':where(.one :host) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(.one [hosta]) {}',
++    );
++    expect(shim('div :where(.one) {}', 'contenta', 'hosta')).toEqualCss(
++      'div[contenta] :where(.one[contenta]) {}',
++    );
++    expect(shim(':host :where(.one .two) {}', 'contenta', 'hosta')).toEqualCss(
++      '[hosta] :where(.one[contenta] .two[contenta]) {}',
++    );
++    expect(shim(':where(.one, .two) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(.one[contenta], .two[contenta]) {}',
++    );
++    expect(shim(':where(.one > .two) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(.one[contenta] > .two[contenta]) {}',
++    );
++    expect(shim(':where(> .one) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where( > .one[contenta]) {}',
++    );
++    expect(shim(':where(:not(.one) ~ .two) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where([contenta]:not(.one) ~ .two[contenta]) {}',
++    );
++    expect(shim(':where([foo]) {}', 'contenta', 'hosta')).toEqualCss(':where([foo][contenta]) {}');
++
++    // :is()
++    expect(shim('div:is(.foo) {}', 'contenta', 'a-host')).toEqualCss('div[contenta]:is(.foo) {}');
++    expect(shim(':is(.dark :host) {}', 'contenta', 'a-host')).toEqualCss(':is(.dark [a-host]) {}');
++    expect(shim(':is(.dark) :is(:host) {}', 'contenta', 'a-host')).toEqualCss(
++      ':is(.dark) :is([a-host]) {}',
++    );
++    expect(shim(':host:is(.foo) {}', 'contenta', 'a-host')).toEqualCss('[a-host]:is(.foo) {}');
++    expect(shim(':is(.foo) {}', 'contenta', 'a-host')).toEqualCss(':is(.foo[contenta]) {}');
++    expect(shim(':is(.foo, .bar, .baz) {}', 'contenta', 'a-host')).toEqualCss(
++      ':is(.foo[contenta], .bar[contenta], .baz[contenta]) {}',
++    );
++    expect(shim(':is(.foo, .bar) :host {}', 'contenta', 'a-host')).toEqualCss(
++      ':is(.foo, .bar) [a-host] {}',
++    );
++
++    // :is() and :where()
++    expect(
++      shim(
++        ':is(.foo, .bar) :is(.baz) :where(.one, .two) :host :where(.three:first-child) {}',
++        'contenta',
++        'a-host',
++      ),
++    ).toEqualCss(
++      ':is(.foo, .bar) :is(.baz) :where(.one, .two) [a-host] :where(.three[contenta]:first-child) {}',
++    );
++    expect(shim(':where(:is(a)) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(:is(a[contenta])) {}',
++    );
++    expect(shim(':where(:is(a, b)) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(:is(a[contenta], b[contenta])) {}',
++    );
++    expect(shim(':where(:host:is(.one, .two)) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where([hosta]:is(.one, .two)) {}',
++    );
++    expect(shim(':where(:host :is(.one, .two)) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where([hosta] :is(.one[contenta], .two[contenta])) {}',
++    );
++    expect(shim(':where(:is(a, b) :is(.one, .two)) {}', 'contenta', 'hosta')).toEqualCss(
++      ':where(:is(a[contenta], b[contenta]) :is(.one[contenta], .two[contenta])) {}',
++    );
++    expect(
++      shim(
++        ':where(:where(a:has(.foo), b) :is(.one, .two:where(.foo > .bar))) {}',
++        'contenta',
++        'hosta',
++      ),
++    ).toEqualCss(
++      ':where(:where(a[contenta]:has(.foo), b[contenta]) :is(.one[contenta], .two[contenta]:where(.foo > .bar))) {}',
++    );
++
++    // complex selectors
++    expect(shim(':host:is([foo],[foo-2])>div.example-2 {}', 'contenta', 'a-host')).toEqualCss(
++      '[a-host]:is([foo],[foo-2]) > div.example-2[contenta] {}',
++    );
++    expect(shim(':host:is([foo], [foo-2]) > div.example-2 {}', 'contenta', 'a-host')).toEqualCss(
++      '[a-host]:is([foo], [foo-2]) > div.example-2[contenta] {}',
++    );
++    expect(shim(':host:has([foo],[foo-2])>div.example-2 {}', 'contenta', 'a-host')).toEqualCss(
++      '[a-host]:has([foo],[foo-2]) > div.example-2[contenta] {}',
++    );
++
++    // :has()
++    expect(shim('div:has(a) {}', 'contenta', 'hosta')).toEqualCss('div[contenta]:has(a) {}');
++    expect(shim('div:has(a) :host {}', 'contenta', 'hosta')).toEqualCss('div:has(a) [hosta] {}');
++    expect(shim(':has(a) :host :has(b) {}', 'contenta', 'hosta')).toEqualCss(
++      ':has(a) [hosta] [contenta]:has(b) {}',
++    );
++    expect(shim('div:has(~ .one) {}', 'contenta', 'hosta')).toEqualCss(
++      'div[contenta]:has(~ .one) {}',
++    );
++    // Unlike `:is()` or `:where()` the attribute selector isn't placed inside
++    // of `:has()`. That is deliberate, `[contenta]:has(a)` would select all
++    // `[contenta]` with `a` inside, while `:has(a[contenta])` would select
++    // everything that contains `a[contenta]`, targeting elements outside of
++    // encapsulated scope.
++    expect(shim(':has(a) :has(b) {}', 'contenta', 'hosta')).toEqualCss(
++      '[contenta]:has(a) [contenta]:has(b) {}',
++    );
++  });
++
++  it('should handle :host inclusions inside pseudo-selectors selectors', () => {
++    expect(shim('.header:not(.admin) {}', 'contenta', 'hosta')).toEqualCss(
++      '.header[contenta]:not(.admin) {}',
++    );
++    expect(shim('.header:is(:host > .toolbar, :host ~ .panel) {}', 'contenta', 'hosta')).toEqualCss(
++      '.header[contenta]:is([hosta] > .toolbar, [hosta] ~ .panel) {}',
++    );
++    expect(
++      shim('.header:where(:host > .toolbar, :host ~ .panel) {}', 'contenta', 'hosta'),
++    ).toEqualCss('.header[contenta]:where([hosta] > .toolbar, [hosta] ~ .panel) {}');
++    expect(shim('.header:not(.admin, :host.super .header) {}', 'contenta', 'hosta')).toEqualCss(
++      '.header[contenta]:not(.admin, .super[hosta] .header) {}',
++    );
++    expect(
++      shim('.header:not(.admin, :host.super .header, :host.mega .header) {}', 'contenta', 'hosta'),
++    ).toEqualCss('.header[contenta]:not(.admin, .super[hosta] .header, .mega[hosta] .header) {}');
++
++    expect(shim('.one :where(.two, :host) {}', 'contenta', 'hosta')).toEqualCss(
++      '.one :where(.two[contenta], [hosta]) {}',
++    );
++    expect(shim('.one :where(:host, .two) {}', 'contenta', 'hosta')).toEqualCss(
++      '.one :where([hosta], .two[contenta]) {}',
++    );
+   });
+ 
+   it('should handle escaped selector with space (if followed by a hex char)', () => {

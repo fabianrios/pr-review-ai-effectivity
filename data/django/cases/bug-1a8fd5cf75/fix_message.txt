@@ -1,0 +1,17 @@
+Fixed #37322 -- Avoided transforms on spatial fields with srid=None.
+
+After adjusting spatial queries to no longer interpolate the SRID param
+into the SQL template, an "srid=None" attribute on a spatial field became
+a valid input to the ST_Transform() function on PostGIS & SpatiaLite,
+returning NULL for the entire value. (Before, the string "None" was
+interpolated into the SQL, which crashed.)
+
+srid=-1 is the documented way to express an undefined SRID, but it's
+possible that users could experiment with unmanaged models with srid=None:
+those uses should raise errors instead of silently persisting NULL.
+
+Thanks Natalia Bidart for advice.
+
+Regression in 1a8fd5cf75bf855852f6bc2f75c3da9f7b145669.
+
+Co-authored-by: Jacob Walls <jacobtylerwalls@gmail.com>

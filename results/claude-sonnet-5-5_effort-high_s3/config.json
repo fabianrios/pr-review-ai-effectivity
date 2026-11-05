@@ -1,0 +1,19 @@
+{
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "judge_model": "claude-opus-5-5",
+  "judge_effort": "high",
+  "conditions": [
+    "A",
+    "B"
+  ],
+  "repos": [
+    "angular"
+  ],
+  "pilot": false,
+  "review_max_tokens": 16000,
+  "sample": 3,
+  "kinds": [
+    "bug"
+  ]
+}

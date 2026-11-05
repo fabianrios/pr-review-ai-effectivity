@@ -1,0 +1,7 @@
+fix(compiler): apply style on :host attributes in prod builds. (#49118)
+
+In prod builds, selectors are optimized and spaces a removed. #48558 introduced a regression on selectors without spaces. This commit fixes tihs.
+
+Fixes #49100
+
+PR Close #49118

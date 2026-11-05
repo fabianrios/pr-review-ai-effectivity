@@ -1,0 +1,159 @@
+diff --git a/AUTHORS b/AUTHORS
+index 7beafefd6f..996928f444 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -903,6 +903,7 @@ answer newbie questions, and generally made Django that much better:
+     Rob Nguyen <tienrobertnguyenn@gmail.com>
+     Robin Munn <http://www.geekforgod.com/>
+     Rodrigo Pinheiro Marques de Araújo <fenrrir@gmail.com>
++    Roel Delos Reyes <https://roelzkie.dev>
+     Rohith P R <https://rohithpr.com>
+     Romain Garrigues <romain.garrigues.cs@gmail.com>
+     Ronnie van den Crommenacker
+diff --git a/django/contrib/auth/hashers.py b/django/contrib/auth/hashers.py
+index 3c88692845..aa183c3904 100644
+--- a/django/contrib/auth/hashers.py
++++ b/django/contrib/auth/hashers.py
+@@ -16,6 +16,7 @@ from django.utils.crypto import (
+     get_random_string,
+     pbkdf2,
+ )
++from django.utils.encoding import force_bytes, force_str
+ from django.utils.module_loading import import_string
+ from django.utils.translation import gettext_noop as _
+ 
+@@ -252,7 +253,7 @@ class BasePasswordHasher:
+     def _check_encode_args(self, password, salt):
+         if password is None:
+             raise TypeError("password must be provided.")
+-        if not salt or "$" in salt:
++        if not salt or "$" in force_str(salt):  # salt can be str or bytes.
+             raise ValueError("salt must be provided and cannot contain $.")
+ 
+     def encode(self, password, salt):
+@@ -324,6 +325,8 @@ class PBKDF2PasswordHasher(BasePasswordHasher):
+     def encode(self, password, salt, iterations=None):
+         self._check_encode_args(password, salt)
+         iterations = iterations or self.iterations
++        password = force_str(password)
++        salt = force_str(salt)
+         hash = pbkdf2(password, salt, iterations, digest=self.digest)
+         hash = base64.b64encode(hash).decode("ascii").strip()
+         return "%s$%d$%s$%s" % (self.algorithm, iterations, salt, hash)
+@@ -396,8 +399,8 @@ class Argon2PasswordHasher(BasePasswordHasher):
+         argon2 = self._load_library()
+         params = self.params()
+         data = argon2.low_level.hash_secret(
+-            password.encode(),
+-            salt.encode(),
++            force_bytes(password),
++            force_bytes(salt),
+             time_cost=params.time_cost,
+             memory_cost=params.memory_cost,
+             parallelism=params.parallelism,
+@@ -499,7 +502,8 @@ class BCryptSHA256PasswordHasher(BasePasswordHasher):
+ 
+     def encode(self, password, salt):
+         bcrypt = self._load_library()
+-        password = password.encode()
++        password = force_bytes(password)
++        salt = force_bytes(salt)
+         # Hash the password prior to using bcrypt to prevent password
+         # truncation as described in #20138.
+         if self.digest is not None:
+@@ -585,8 +589,8 @@ class ScryptPasswordHasher(BasePasswordHasher):
+         r = r or self.block_size
+         p = p or self.parallelism
+         hash_ = hashlib.scrypt(
+-            password.encode(),
+-            salt=salt.encode(),
++            password=force_bytes(password),
++            salt=force_bytes(salt),
+             n=n,
+             r=r,
+             p=p,
+@@ -594,7 +598,7 @@ class ScryptPasswordHasher(BasePasswordHasher):
+             dklen=64,
+         )
+         hash_ = base64.b64encode(hash_).decode("ascii").strip()
+-        return "%s$%d$%s$%d$%d$%s" % (self.algorithm, n, salt, r, p, hash_)
++        return "%s$%d$%s$%d$%d$%s" % (self.algorithm, n, force_str(salt), r, p, hash_)
+ 
+     def decode(self, encoded):
+         algorithm, work_factor, salt, block_size, parallelism, hash_ = encoded.split(
+@@ -655,6 +659,8 @@ class MD5PasswordHasher(BasePasswordHasher):
+ 
+     def encode(self, password, salt):
+         self._check_encode_args(password, salt)
++        password = force_str(password)
++        salt = force_str(salt)
+         hash = hashlib.md5((salt + password).encode()).hexdigest()
+         return "%s$%s$%s" % (self.algorithm, salt, hash)
+ 
+diff --git a/tests/auth_tests/test_hashers.py b/tests/auth_tests/test_hashers.py
+index 8c00a8e644..ba7131406b 100644
+--- a/tests/auth_tests/test_hashers.py
++++ b/tests/auth_tests/test_hashers.py
+@@ -5,6 +5,7 @@ from django.conf.global_settings import PASSWORD_HASHERS
+ from django.contrib.auth.hashers import (
+     UNUSABLE_PASSWORD_PREFIX,
+     UNUSABLE_PASSWORD_SUFFIX_LENGTH,
++    Argon2PasswordHasher,
+     BasePasswordHasher,
+     BCryptPasswordHasher,
+     BCryptSHA256PasswordHasher,
+@@ -520,6 +521,54 @@ class TestUtilsHashPass(SimpleTestCase):
+                     with self.assertRaisesMessage(ValueError, msg):
+                         hasher.encode("password", salt)
+ 
++    def test_password_and_salt_in_str_and_bytes(self):
++        hasher_classes = [
++            MD5PasswordHasher,
++            PBKDF2PasswordHasher,
++            PBKDF2SHA1PasswordHasher,
++            ScryptPasswordHasher,
++        ]
++        for hasher_class in hasher_classes:
++            hasher = hasher_class()
++            with self.subTest(hasher_class.__name__):
++                passwords = ["password", b"password"]
++                for password in passwords:
++                    for salt in [hasher.salt(), hasher.salt().encode()]:
++                        encoded = hasher.encode(password, salt)
++                        for password_to_verify in passwords:
++                            self.assertIs(
++                                hasher.verify(password_to_verify, encoded), True
++                            )
++
++    @skipUnless(argon2, "argon2-cffi not installed")
++    def test_password_and_salt_in_str_and_bytes_argon2(self):
++        hasher = Argon2PasswordHasher()
++        passwords = ["password", b"password"]
++        for password in passwords:
++            for salt in [hasher.salt(), hasher.salt().encode()]:
++                encoded = hasher.encode(password, salt)
++                for password_to_verify in passwords:
++                    self.assertIs(hasher.verify(password_to_verify, encoded), True)
++
++    @skipUnless(bcrypt, "bcrypt not installed")
++    def test_password_and_salt_in_str_and_bytes_bcrypt(self):
++        hasher_classes = [
++            BCryptPasswordHasher,
++            BCryptSHA256PasswordHasher,
++        ]
++        for hasher_class in hasher_classes:
++            hasher = hasher_class()
++            with self.subTest(hasher_class.__name__):
++                passwords = ["password", b"password"]
++                for password in passwords:
++                    salts = [hasher.salt().decode(), hasher.salt()]
++                    for salt in salts:
++                        encoded = hasher.encode(password, salt)
++                        for password_to_verify in passwords:
++                            self.assertIs(
++                                hasher.verify(password_to_verify, encoded), True
++                            )
++
+     def test_encode_password_required(self):
+         hasher_classes = [
+             MD5PasswordHasher,

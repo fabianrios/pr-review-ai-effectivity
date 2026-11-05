@@ -1,0 +1,11 @@
+Fixed #36341 -- Preserved whitespaces in wordwrap template filter.
+
+Regression in 55d89e25f4115c5674cdd9b9bcba2bb2bb6d820b.
+
+This work improves the django.utils.text.wrap() function to ensure that
+empty lines and lines with whitespace only are kept instead of being
+dropped.
+
+Thanks Matti Pohjanvirta for the report and fix.
+
+Co-authored-by: Natalia <124304+nessita@users.noreply.github.com>

@@ -1,0 +1,56 @@
+{
+  "repo": "angular/angular",
+  "number": 60206,
+  "url": "https://github.com/angular/angular/pull/60206",
+  "title": "refactor(devtools): ignore `getInjector` when it is not supported",
+  "description": "Previously Angular DevTools would throw when run on an application which does not support `getInjector`, now it safely ignores it and assumes dependency injection is not supported.",
+  "labels": [
+    "action: merge",
+    "target: patch",
+    "area: devtools"
+  ],
+  "author": "dgp1130",
+  "merged_at": "2025-03-05T20:05:48Z",
+  "base_commit": "286e4da52be17fac09cc67ab62e85a0efac52dc4",
+  "head_commit": "94520a60666b734336c7abb440f845018f9b411b",
+  "changed_lines": 147,
+  "files": [
+    {
+      "path": "devtools/projects/ng-devtools-backend/src/lib/BUILD.bazel",
+      "added": 15,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/ng-devtools-backend/src/lib/component-tree.spec.ts",
+      "added": 42,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/ng-devtools-backend/src/lib/component-tree.ts",
+      "added": 10,
+      "deleted": 8,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/BUILD.bazel",
+      "added": 17,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/ng-debug-api.spec.ts",
+      "added": 51,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "devtools/projects/ng-devtools-backend/src/lib/ng-debug-api/ng-debug-api.ts",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

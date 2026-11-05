@@ -1,0 +1,3 @@
+Fixed #37450 -- Fixed parsing of comment and verbatim tags without spaces.
+
+Regression in 1a9fba7a6c2a0acead19bbb45c25ceb0fdcca7c8.

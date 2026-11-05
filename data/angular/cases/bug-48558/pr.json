@@ -1,0 +1,32 @@
+{
+  "repo": "angular/angular",
+  "number": 48558,
+  "url": "https://github.com/angular/angular/pull/48558",
+  "title": "fix(compiler): handle css selectors with space after an escaped character",
+  "description": "In Css, selectors with escaped characters require a space after if the following character is a hex character. ie: .\\fc ber which match class=\"über\"\r\nThese escaped selectors happen for example when esbuild run with `optimization.minify`\r\n\r\nfixes #48524\r\n\r\n## PR Type\r\nWhat kind of change does this PR introduce?\r\n\r\n- [x] Bugfix\r\n\r\n## Does this PR introduce a breaking change?\r\n\r\n- [x] No",
+  "labels": [
+    "action: merge",
+    "target: patch",
+    "area: compiler"
+  ],
+  "author": "JeanMeche",
+  "merged_at": "2023-01-24T17:47:03Z",
+  "base_commit": "f54448c0e94deb29256f801eb4c0c9c91a883de5",
+  "head_commit": "1ba1105b78ab6ae0768040c9f77f08fa3769520c",
+  "changed_lines": 23,
+  "files": [
+    {
+      "path": "packages/compiler/src/shadow_css.ts",
+      "added": 13,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/test/shadow_css/shadow_css_spec.ts",
+      "added": 9,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

@@ -1,0 +1,71 @@
+{
+  "repo": "django/django",
+  "number": 19214,
+  "url": "https://github.com/django/django/pull/19214",
+  "commit_url": "https://github.com/django/django/commit/c09bceef68e5abb79accedd12dade16aa6577a09",
+  "title": "Fixed #36217 -- Used LogEntry.save() for single object deletion in admin.",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\nticket-36217\r\n\r\n#### Branch description\r\nI fixed the issue where the signals set in `LogEntry` were not being called when an object was deleted in the admin.\r\nThank you for @sarahboyce for providing the solution this ticket.\r\n\r\n#### Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [x] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #36217 -- Restored pre_save/post_save signal emission via LogEntry.save() for single-object deletion in the admin.\n\nRegression in 40b3975e7d3e1464a733c69171ad7d38f8814280.\n\nThanks smiling-watermelon for the report.\n\nCo-authored-by: Sarah Boyce <42296566+sarahboyce@users.noreply.github.com>",
+  "labels": [
+    "selenium"
+  ],
+  "author": "antoliny0919",
+  "merged_at": "2025-02-28T20:17:17+09:00",
+  "tickets": [
+    36217
+  ],
+  "base_commit": "1759c1dbd1e3cd4c9fcd345269e0d25796468f7f",
+  "head_commit": "c09bceef68e5abb79accedd12dade16aa6577a09",
+  "changed_lines": 55,
+  "files": [
+    {
+      "path": "django/contrib/admin/models.py",
+      "added": 2,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "django/contrib/admin/options.py",
+      "added": 0,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.1.7.txt",
+      "added": 4,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.1.txt",
+      "added": 5,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_changelist/tests.py",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_utils/test_logentry.py",
+      "added": 29,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_views/test_history_view.py",
+      "added": 0,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/admin_views/tests.py",
+      "added": 0,
+      "deleted": 3,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

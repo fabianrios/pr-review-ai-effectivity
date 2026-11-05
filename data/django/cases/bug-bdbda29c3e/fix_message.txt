@@ -1,0 +1,5 @@
+Fixed #37382, Refs #29303 -- Made @non_atomic_requests recognize async views.
+
+Regression in bdbda29c3e126754c3ae04ceb5c5d35d49aae01c.
+
+Co-authored-by: Jacob Walls <jacobtylerwalls@gmail.com>

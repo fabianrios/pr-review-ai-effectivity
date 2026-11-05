@@ -1,0 +1,52 @@
+diff --git a/packages/compiler/src/shadow_css.ts b/packages/compiler/src/shadow_css.ts
+index 4671acd243..0145e73def 100644
+--- a/packages/compiler/src/shadow_css.ts
++++ b/packages/compiler/src/shadow_css.ts
+@@ -560,7 +560,7 @@ export class ShadowCss {
+       } else if (
+           rule.selector.startsWith('@media') || rule.selector.startsWith('@supports') ||
+           rule.selector.startsWith('@document') || rule.selector.startsWith('@layer') ||
+-          rule.selector.startsWith('@container')) {
++          rule.selector.startsWith('@container') || rule.selector.startsWith('@scope')) {
+         content = this._scopeSelectors(rule.content, scopeSelector, hostSelector);
+       } else if (rule.selector.startsWith('@font-face') || rule.selector.startsWith('@page')) {
+         content = this._stripScopingSelectors(rule.content);
+diff --git a/packages/compiler/test/shadow_css/at_rules_spec.ts b/packages/compiler/test/shadow_css/at_rules_spec.ts
+index 882e5e33c7..2af172a011 100644
+--- a/packages/compiler/test/shadow_css/at_rules_spec.ts
++++ b/packages/compiler/test/shadow_css/at_rules_spec.ts
+@@ -173,6 +173,34 @@ describe('ShadowCss, at-rules', () => {
+     });
+   });
+ 
++  describe('@scope', () => {
++    it('should scope normal selectors inside a scope rule with scoping limits', () => {
++      const css = `
++          @scope (.media-object) to (.content > *) {
++              img { border-radius: 50%; }
++              .content { padding: 1em; }
++          }`;
++      const result = shim(css, 'host-a');
++      expect(result).toEqualCss(`
++        @scope (.media-object) to (.content > *) {
++          img[host-a] { border-radius: 50%; }
++          .content[host-a] { padding: 1em; }
++        }`);
++    });
++
++    it('should scope normal selectors inside a scope rule', () => {
++      const css = `
++          @scope (.light-scheme) {
++              a { color: darkmagenta; }
++          }`;
++      const result = shim(css, 'host-a');
++      expect(result).toEqualCss(`
++        @scope (.light-scheme) {
++          a[host-a] { color: darkmagenta; }
++        }`);
++    });
++  });
++
+   describe('@document', () => {
+     it('should handle document rules', () => {
+       const css = '@document url(http://www.w3.org/) {div {font-size:50px;}}';

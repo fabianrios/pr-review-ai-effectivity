@@ -1,0 +1,36 @@
+fix(zone.js): preserve accessor and non-enumerable event listener options
+
+`copyEventListenerOptions` copied the caller's options with `{...options}`
+before forwarding to the native `addEventListener`. Object spread only
+copies own enumerable data properties, whereas the native call reads
+each dictionary member via WebIDL — a plain `[[Get]]` per member, which
+invokes accessors and ignores enumerability. The copy was therefore
+lossy in a way the native call is not:
+
+- `Object.defineProperty(opts, 'passive', { get })` (the shape used by
+  MDN's passive-listener feature test) — the getter was never invoked,
+  so libraries that use the feature test fall back to the legacy boolean
+  and register every listener as non-passive.
+- `Object.defineProperty(opts, 'capture', { get: () => true })` — the
+  listener was silently registered on the bubbling phase.
+- `Object.defineProperty(opts, 'once', { get: () => true })` — the
+  listener fired on every dispatch.
+
+`signal` was already special-cased for `AbortController.prototype.signal`
+after #54142; that patch generalises the workaround to every recognised
+member.
+
+The copy itself was the correct fix for #54142 (frozen/readonly options)
+and is preserved. The fix reads each recognised member from the source
+via `[[Get]]` when the spread did not, which recovers accessors and
+non-enumerable properties without double-invoking any getter. The list
+of recognised members is hoisted to module scope so it isn't allocated
+on every `patchEventTarget` invocation.
+
+The call site is reordered to `buildEventListenerOptions(
+copyEventListenerOptions(...))` so the passive-events code path also
+spreads a normalised data object rather than the caller's raw input.
+
+Fixes #70431
+
+Co-authored-by: Matthieu Riegler <kyro38@gmail.com>

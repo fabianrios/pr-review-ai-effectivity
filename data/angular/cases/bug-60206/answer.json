@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-60206",
+  "pr_url": "https://github.com/angular/angular/pull/60206",
+  "kind": "bug",
+  "ground_truth": "In `getLatestComponentState` (component-tree.ts), the change wraps `metadata.dependencies = getDependenciesForDirective(...)` in `if (injector)`. Previously `dependencies` was always assigned on the directive metadata. Now `getInjectorFromElementNode` returns null whenever `ng.getInjector` is not supported (or returns nothing), and in that case `dependencies` is left `undefined`. The DevTools property view template evaluates `controller().directiveMetadata?.dependencies.length > 0`. The optional chain only guards `directiveMetadata`, not `dependencies`. So when an app's global `ng` lacks `getInjector`, selecting a component throws a TypeError reading `length` of undefined and the property panel breaks. The fix guards the template by first checking that `dependencies` exists before reading its `length`.",
+  "bug_files": [
+    "devtools/projects/ng-devtools-backend/src/lib/component-tree.ts"
+  ],
+  "fix_pr": null,
+  "fix_commit": "7f85d184b04530aad90f1465b5eb9b47abcc1b2b",
+  "issue": null,
+  "fix_tickets": [],
+  "evidence_url": null
+}

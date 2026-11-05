@@ -1,0 +1,98 @@
+{
+  "repo": "angular/angular",
+  "number": 53812,
+  "url": "https://github.com/angular/angular/pull/53812",
+  "title": "refactor(core): node removal should notify the scheduler",
+  "description": "This commit ensures that change detection runs when an `LView` is removed. Change detection is required because DOM nodes aren't actually removed until the animation engine flushes and this doesn't happen until the end of `detectChangesInternal` (`rendererFactory.end`).",
+  "labels": [
+    "action: merge",
+    "area: core",
+    "target: patch"
+  ],
+  "author": "atscott",
+  "merged_at": "2024-01-09T16:51:39Z",
+  "base_commit": "f4bd5a33d2ccfc4e72a17e5414e20ca1e9bb1157",
+  "head_commit": "09ae001c90fff1ddb537f601d5e42b2ab36f27fe",
+  "changed_lines": 102,
+  "files": [
+    {
+      "path": "packages/core/src/render3/node_manipulation.ts",
+      "added": 5,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/animations/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/cyclic_import/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/defer/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/hello_world/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/hydration/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/router/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/todo/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/change_detection_scheduler_spec.ts",
+      "added": 54,
+      "deleted": 7,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

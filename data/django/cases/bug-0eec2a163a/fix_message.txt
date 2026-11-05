@@ -1,0 +1,3 @@
+Fixed #37463 -- Fixed attrs mutation in legend_tag().
+
+Regression in 0eec2a163a4b2ea4e82c53ae1d7b71bf43ac911d.

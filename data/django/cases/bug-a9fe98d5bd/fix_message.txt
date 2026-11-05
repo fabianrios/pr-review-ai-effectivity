@@ -1,0 +1,5 @@
+Fixed #36710 -- Fixed a regression in urlize for multipart domain names.
+
+Thanks Mehraz Hossain Rumman for the report and Bruno Alla for the triage.
+
+Regression in a9fe98d5bd4212d069afe8316101984aadecfbb2.

@@ -1,0 +1,15 @@
+{
+  "case_id": "bug-61241",
+  "pr_url": "https://github.com/angular/angular/pull/61241",
+  "kind": "bug",
+  "ground_truth": "This change rewrites `InjectorTreeComponent` to render from an `afterRenderEffect` that runs whenever the `componentExplorerView` input changes. The effect calls `init()` and `updateInjectorTreeVisualization(view.forest)` without checking whether the tab is visible. The change also hides the deferred `ng-injector-tree` with `[hidden]` (display:none) and removes the old `ng-injector- tree.hidden` CSS, which had kept the element laid out with `visibility: hidden`. So once the Injector Tree tab has been opened and the user switches to another tab, every new component explorer view re-runs the effect. D3 then tries to lay out, translate and snap SVG trees inside an element with no layout, which throws errors. `init()` also runs on every effect execution, re-registering the `highlightComponent` listener and recreating the visualizers each time. The fix adds a `hidden` input bound to the host's `[hidden]`, returns early from the effect when it is true (read untracked), and calls `init()` only once, when the visualizers do not exist yet.",
+  "bug_files": [
+    "devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.ts",
+    "devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.html"
+  ],
+  "fix_pr": null,
+  "fix_commit": "be2747eb262adb4b10501a37538baf3e1458b56b",
+  "issue": null,
+  "fix_tickets": [],
+  "evidence_url": null
+}

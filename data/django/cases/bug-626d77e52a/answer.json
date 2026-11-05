@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-626d77e52a",
+  "pr_url": "https://github.com/django/django/pull/19072",
+  "kind": "bug",
+  "ground_truth": "`ForwardManyToOneDescriptor.get_prefetch_querysets()` now filters with `TupleIn(ColPairs(queryset.model._meta.db_table, related_fields, related_fields, self.field), ...)`, where `related_fields = self.field.foreign_related_fields`. Those are fields of the FK's target model, but the table alias comes from the prefetch queryset's model. With a custom prefetch queryset on a multi-table- inheritance subclass of the target, the two do not match. Example: a FK to `Place` prefetched with `Prefetch(\"place\", queryset=Restaurant.objects.all())`. The generated SQL references the parent's column (e.g. `id`) on the child's table, which has no such column, so `prefetch_related` crashes with a database error. The old `field__in` kwarg filter resolved the field names through the ORM and did not have this problem. The fix resolves each field by name against the prefetch queryset (`queryset.query.resolve_ref(field.name).target`), so the columns match the queryset's model.",
+  "bug_files": [
+    "django/db/models/fields/related_descriptors.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "08187c94ed02c45ad40a32244dedeaa7ac71ca87",
+  "issue": null,
+  "fix_tickets": [
+    36432
+  ],
+  "evidence_url": null
+}

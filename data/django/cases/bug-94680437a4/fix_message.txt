@@ -1,0 +1,9 @@
+Refs #27222 -- Restored Model.save()'s refreshing of db_returning fields even if a value is set.
+
+The logic could likely be adjusted to assign the pre_save value in most cases
+to avoid the database transit but it could break in subtle ways so it's not
+worth the complexity it would require.
+
+Regression in 94680437a45a71c70ca8bd2e68b72aa1e2eff337.
+
+Co-authored-by: Tim Graham <timograham@gmail.com>

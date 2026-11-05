@@ -1,0 +1,14 @@
+Fixed #36423 -- Prevented filter_horizontal buttons from intercepting form submission.
+
+In the admin's filter_horizontal widget, optional action buttons like
+"Choose all", "Remove all", etc. were changed from `<a>` to `<button>`
+elements in #34619, but without specifying `type="button"`. As a result,
+when pressing Enter while focused on a form input, these buttons could
+be triggered and intercept form submission.
+
+Explicitly set `type="button"` on these control buttons to prevent them
+from acting as submit buttons.
+
+Thanks Antoliny Lee for the quick triage and review.
+
+Regression in 857b1048d53ebf5fc5581c110e85c212b81ca83a.

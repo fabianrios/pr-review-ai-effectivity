@@ -1,0 +1,110 @@
+diff --git a/django/utils/text.py b/django/utils/text.py
+index bad8f2f2da..05b781b011 100644
+--- a/django/utils/text.py
++++ b/django/utils/text.py
+@@ -1,6 +1,7 @@
+ import gzip
+ import re
+ import secrets
++import textwrap
+ import unicodedata
+ from collections import deque
+ from gzip import GzipFile
+@@ -49,24 +50,15 @@ def wrap(text, width):
+     ``width``.
+     """
+ 
+-    def _generator():
+-        for line in text.splitlines(True):  # True keeps trailing linebreaks
+-            max_width = min((line.endswith("\n") and width + 1 or width), width)
+-            while len(line) > max_width:
+-                space = line[: max_width + 1].rfind(" ") + 1
+-                if space == 0:
+-                    space = line.find(" ") + 1
+-                    if space == 0:
+-                        yield line
+-                        line = ""
+-                        break
+-                yield "%s\n" % line[: space - 1]
+-                line = line[space:]
+-                max_width = min((line.endswith("\n") and width + 1 or width), width)
+-            if line:
+-                yield line
+-
+-    return "".join(_generator())
++    wrapper = textwrap.TextWrapper(
++        width=width,
++        break_long_words=False,
++        break_on_hyphens=False,
++    )
++    result = []
++    for line in text.splitlines(True):
++        result.extend(wrapper.wrap(line))
++    return "\n".join(result)
+ 
+ 
+ def add_truncation_text(text, truncate=None):
+diff --git a/docs/releases/4.2.20.txt b/docs/releases/4.2.20.txt
+index c71fa05f43..5849fe2a42 100644
+--- a/docs/releases/4.2.20.txt
++++ b/docs/releases/4.2.20.txt
+@@ -5,3 +5,9 @@ Django 4.2.20 release notes
+ *March 6, 2025*
+ 
+ Django 4.2.20 fixes a security issue with severity "moderate" in 4.2.19.
++
++CVE-2025-26699: Potential denial-of-service vulnerability in ``django.utils.text.wrap()``
++=========================================================================================
++
++The ``wrap()`` and :tfilter:`wordwrap` template filter were subject to a
++potential denial-of-service attack when used with very long strings.
+diff --git a/docs/releases/5.0.13.txt b/docs/releases/5.0.13.txt
+index 27dc3c2f60..ebb0de252a 100644
+--- a/docs/releases/5.0.13.txt
++++ b/docs/releases/5.0.13.txt
+@@ -5,3 +5,9 @@ Django 5.0.13 release notes
+ *March 6, 2025*
+ 
+ Django 5.0.13 fixes a security issue with severity "moderate" in 5.0.12.
++
++CVE-2025-26699: Potential denial-of-service vulnerability in ``django.utils.text.wrap()``
++=========================================================================================
++
++The ``wrap()`` and :tfilter:`wordwrap` template filter were subject to a
++potential denial-of-service attack when used with very long strings.
+diff --git a/docs/releases/5.1.7.txt b/docs/releases/5.1.7.txt
+index 77e89d9c27..164bc08de2 100644
+--- a/docs/releases/5.1.7.txt
++++ b/docs/releases/5.1.7.txt
+@@ -7,6 +7,12 @@ Django 5.1.7 release notes
+ Django 5.1.7 fixes a security issue with severity "moderate" and several bugs
+ in 5.1.6.
+ 
++CVE-2025-26699: Potential denial-of-service vulnerability in ``django.utils.text.wrap()``
++=========================================================================================
++
++The ``wrap()`` and :tfilter:`wordwrap` template filter were subject to a
++potential denial-of-service attack when used with very long strings.
++
+ Bugfixes
+ ========
+ 
+diff --git a/tests/template_tests/filter_tests/test_wordwrap.py b/tests/template_tests/filter_tests/test_wordwrap.py
+index 88fbd274da..4afa1dd234 100644
+--- a/tests/template_tests/filter_tests/test_wordwrap.py
++++ b/tests/template_tests/filter_tests/test_wordwrap.py
+@@ -78,3 +78,14 @@ class FunctionTests(SimpleTestCase):
+             "this is a long\nparagraph of\ntext that\nreally needs\nto be wrapped\n"
+             "I'm afraid",
+         )
++
++    def test_wrap_long_text(self):
++        long_text = (
++            "this is a long paragraph of text that really needs"
++            " to be wrapped I'm afraid " * 20_000
++        )
++        self.assertIn(
++            "this is a\nlong\nparagraph\nof text\nthat\nreally\nneeds to\nbe wrapped\n"
++            "I'm afraid",
++            wordwrap(long_text, 10),
++        )

@@ -1,0 +1,60 @@
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/signals-view/signals-details/signals-details.component.scss b/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/signals-view/signals-details/signals-details.component.scss
+index 24652a237d..4d056181df 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/signals-view/signals-details/signals-details.component.scss
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/signals-view/signals-details/signals-details.component.scss
+@@ -91,7 +91,7 @@
+     border-radius: 0.25rem;
+     margin-top: 0.75rem;
+     background: var(--nonary-contrast);
+-    padding-block: 0.25rem;
++    padding: 0.25rem;
+   }
+ 
+   ng-signals-value-tree {
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/signals-view/signals-details/signals-value-tree/signals-value-tree.component.scss b/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/signals-view/signals-details/signals-value-tree/signals-value-tree.component.scss
+index 43f3dba2f5..e8c0221c26 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/signals-view/signals-details/signals-value-tree/signals-value-tree.component.scss
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/directive-explorer/signals-view/signals-details/signals-value-tree/signals-value-tree.component.scss
+@@ -5,9 +5,10 @@
+   display: block;
+   overflow-x: auto;
+ 
+-  /* FRAGILE */
+-  ::ng-deep {
+-    .mat-tree-node {
++  mat-tree {
++    margin-left: 0.625rem;
++
++    mat-tree-node {
+       min-height: 20px !important;
+     }
+   }
+@@ -21,6 +22,7 @@
+ 
+   .expandable-node,
+   .non-expandable-node {
++    position: relative;
+     display: flex;
+     align-items: center;
+     gap: 0.25rem;
+@@ -33,15 +35,16 @@
+     cursor: pointer;
+ 
+     mat-icon {
+-      width: 16px;
+-      height: 16px;
+-      font-size: 16px;
++      position: absolute;
++      left: -0.75rem;
++      width: 12px;
++      height: 12px;
++      font-size: 12px;
+     }
+   }
+ 
+   .non-expandable-node {
+     margin: 0;
+-    margin-left: 3px;
+   }
+ 
+   .name {

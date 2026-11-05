@@ -1,0 +1,45 @@
+{
+  "repo": "django/django",
+  "number": 21023,
+  "url": "https://github.com/django/django/pull/21023",
+  "commit_url": "https://github.com/django/django/commit/3f912ee4189602b4df121c0dc0428673fda5c253",
+  "title": "Fixed #16429 -- Extracted set_choices() method from FilePathField init",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number. -->\r\n<!-- Or delete the line and write \"N/A - typo\" for typo fixes. -->\r\n\r\nticket-16429\r\n\r\n#### Branch description\r\nThis change extracts the directory scanning logic from `FilePathField.__init__()` into a public `set_choices()` method, allowing users to refresh choices on a per-request basis by calling it in their form's `__init__()`. Implements the approach agreed upon in PR [#17416](https://github.com/django/django/pull/17416#pullrequestreview-1779132698).\r\n\r\n#### AI Assistance Disclosure (REQUIRED)\r\n<!-- Please select exactly ONE of the following: -->\r\n- [x] **No AI tools were used** in preparing this PR.\r\n- [ ] **If AI tools were used**, I have disclosed which ones, and fully reviewed and verified their output.\r\n\r\n#### Checklist\r\n- [x] This PR follows the [contribution guidelines](https://docs.djangoproject.com/en/stable/internals/contributing/writing-code/submitting-patches/).\r\n- [x] This PR **does not** disclose a security vulnerability (see [vulnerability reporting](https://docs.djangoproject.com/en/stable/internals/security/)).\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period (see [guidelines](https://docs.djangoproject.com/en/dev/internals/contributing/committing-code/#committing-guidelines)).\r\n- [x] I have not requested, and will not request, an automated AI review for this PR. <!-- You are welcome to do so in your own fork. -->\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [x] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #16429 -- Extracted set_choices() method from FilePathField.__init__().",
+  "labels": [],
+  "author": "TildaDares",
+  "merged_at": "2026-03-29T22:02:10+01:00",
+  "tickets": [
+    16429
+  ],
+  "base_commit": "60a9c70496e5d7b971928ce3da5b47c8836a4def",
+  "head_commit": "3f912ee4189602b4df121c0dc0428673fda5c253",
+  "changed_lines": 45,
+  "files": [
+    {
+      "path": "django/forms/fields.py",
+      "added": 5,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "docs/ref/forms/fields.txt",
+      "added": 20,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/6.1.txt",
+      "added": 6,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/forms_tests/field_tests/test_filepathfield.py",
+      "added": 11,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

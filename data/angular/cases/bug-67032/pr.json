@@ -1,0 +1,104 @@
+{
+  "repo": "angular/angular",
+  "number": 67032,
+  "url": "https://github.com/angular/angular/pull/67032",
+  "title": "fix(core): prevent animated element duplication with dynamic components in zoneless mode",
+  "description": "> [!IMPORTANT]  \r\n> This was a fully vibe coded solution by Claude. Maybe there is a simpler way to solve this? At the very least, the test case reproduces the bug (I patched this into our application and verified it does fix the issue)\r\n\r\n## PR Checklist\r\n\r\nPlease check if your PR fulfills the following requirements:\r\n\r\n- [x] The commit message follows our guidelines: https://github.com/angular/angular/blob/main/contributing-docs/commit-message-guidelines.md\r\n- [x] Tests for the changes have been added (for bug fixes / features)\r\n- [ ] Docs have been added / updated (for bug fixes / features)\r\n\r\n## PR Type\r\n\r\nWhat kind of change does this PR introduce?\r\n\r\n<!-- Please check the one that applies to this PR using \"x\". -->\r\n\r\n- [x] Bugfix\r\n- [ ] Feature\r\n- [ ] Code style update (formatting, local variables)\r\n- [ ] Refactoring (no functional changes, no api changes)\r\n- [ ] Build related changes\r\n- [ ] CI related changes\r\n- [ ] Documentation content changes\r\n- [ ] angular.dev application / infrastructure changes\r\n- [ ] Other... Please describe:\r\n\r\n## What is the current behavior?\r\n\r\n<!-- Please describe the current behavior that you are modifying, or link to a relevant issue. -->\r\n\r\nIssue Number: #66794\r\n\r\n## What is the new behavior?\r\n\r\nFast clicking an animated menu to open and close it repeatedly in zoneless mode doesn't leave orphaned DOM nodes\r\n\r\n## Does this PR introduce a breaking change?\r\n\r\n- [ ] Yes\r\n- [x] No\r\n\r\n<!-- If this PR contains a breaking change, please describe the impact and migration path for existing applications below. -->\r\n\r\n## Other information\r\n",
+  "labels": [
+    "action: merge",
+    "area: core",
+    "target: minor"
+  ],
+  "author": "mattlewis92",
+  "merged_at": "2026-02-13T17:35:09Z",
+  "base_commit": "097208454bb0d5ebaad701a991125d2a33d1f79b",
+  "head_commit": "b6f00f7bf25833b25950f5674bf49d211365a9dc",
+  "changed_lines": 175,
+  "files": [
+    {
+      "path": "packages/core/src/animation/queue.ts",
+      "added": 0,
+      "deleted": 14,
+      "binary": false
+    },
+    {
+      "path": "packages/core/src/animation/utils.ts",
+      "added": 38,
+      "deleted": 22,
+      "binary": false
+    },
+    {
+      "path": "packages/core/src/render3/instructions/animation.ts",
+      "added": 0,
+      "deleted": 5,
+      "binary": false
+    },
+    {
+      "path": "packages/core/src/render3/node_animations.ts",
+      "added": 1,
+      "deleted": 10,
+      "binary": false
+    },
+    {
+      "path": "packages/core/src/render3/node_manipulation.ts",
+      "added": 5,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/acceptance/animation_spec.ts",
+      "added": 37,
+      "deleted": 11,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/animations-standalone/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/create_component/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/defer/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/forms_reactive/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/forms_template_driven/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/hydration/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/router/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/core/test/bundling/standalone_bootstrap/bundle.golden_symbols.json",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

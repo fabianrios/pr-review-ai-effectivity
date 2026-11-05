@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-fd569dd45b",
+  "pr_url": "https://github.com/django/django/pull/19459",
+  "kind": "bug",
+  "ground_truth": "The new `Subquery.resolve_expression()` is meant to drop the Subquery shim and return the bare resolved `Query`. It is supposed to wrap the query in an `ExpressionWrapper` only when the user passed an `output_field` that differs from the query's own. It tests this with `self.output_field != resolved.query.output_field`, but `Field.__eq__` compares fields by `creation_counter` and model, not by kind. So a separately instantiated field such as `IntegerField()` never equals the query's model field. As a result, any `Subquery(..., output_field=X())` is always wrapped in an `ExpressionWrapper`, even when `X` is the same field type as the selected column. Lookups that introspect the right-hand side as a `Query` then no longer recognize it, defeating the purpose of the change. One example is the tuple lookups' `isinstance(self.rhs, Query)` check, which is supposed to raise `NotSupportedError` for composite-pk comparisons against subqueries. The fix compares field types (`type(self.output_field) is not type(resolved.query.output_field)`) instead of using field equality.",
+  "bug_files": [
+    "django/db/models/expressions.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "181e3bd71c0f578a1214523be1f7969393d98892",
+  "issue": null,
+  "fix_tickets": [],
+  "evidence_url": null
+}

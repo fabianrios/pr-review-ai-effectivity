@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-7142667340",
+  "pr_url": "https://github.com/django/django/pull/21055",
+  "kind": "bug",
+  "ground_truth": "The commit replaces a custom dict representer with `yaml.dump(..., Dumper=DjangoSafeDumper, sort_keys=False, **self.options)`. If the caller passes `sort_keys` as a serializer option (e.g. `serializers.serialize(\"yaml\", qs, sort_keys=True)`), the keyword is given twice and `yaml.dump()` raises `TypeError: got multiple values for keyword argument 'sort_keys'`. Fixed with `self.options.setdefault(\"sort_keys\", False)`.",
+  "bug_files": [
+    "django/core/serializers/pyyaml.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "a269574f1bcf4716502b9ba8c3492abf15dc93eb",
+  "issue": null,
+  "fix_tickets": [
+    37405
+  ],
+  "evidence_url": null
+}

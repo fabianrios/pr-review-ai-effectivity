@@ -1,0 +1,143 @@
+diff --git a/django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js b/django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js
+index bc3accea37..74d17bfc3e 100644
+--- a/django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js
++++ b/django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js
+@@ -87,7 +87,7 @@
+         }
+     }
+ 
+-    function updateRelatedSelectsOptions(currentSelect, win, objId, newRepr, newId) {
++    function updateRelatedSelectsOptions(currentSelect, win, objId, newRepr, newId, skipIds = []) {
+         // After create/edit a model from the options next to the current
+         // select (+ or :pencil:) update ForeignKey PK of the rest of selects
+         // in the page.
+@@ -100,7 +100,7 @@
+         const selectsRelated = document.querySelectorAll(`[data-model-ref="${modelName}"] [data-context="available-source"]`);
+ 
+         selectsRelated.forEach(function(select) {
+-            if (currentSelect === select) {
++            if (currentSelect === select || skipIds && skipIds.includes(select.id)) {
+                 return;
+             }
+ 
+@@ -109,6 +109,11 @@
+             if (!option) {
+                 option = new Option(newRepr, newId);
+                 select.options.add(option);
++                // Update SelectBox cache for related fields.
++                if (window.SelectBox !== undefined && !SelectBox.cache[currentSelect.id]) {
++                    SelectBox.add_to_cache(select.id, option);
++                    SelectBox.redisplay(select.id);
++                }
+                 return;
+             }
+ 
+@@ -136,9 +141,14 @@
+             $(elem).trigger('change');
+         } else {
+             const toId = name + "_to";
++            const toElem = document.getElementById(toId);
+             const o = new Option(newRepr, newId);
+             SelectBox.add_to_cache(toId, o);
+             SelectBox.redisplay(toId);
++            if (toElem && toElem.nodeName.toUpperCase() === 'SELECT') {
++                const skipIds = [name + "_from"];
++                updateRelatedSelectsOptions(toElem, win, null, newRepr, newId, skipIds);
++            }
+         }
+         const index = relatedWindows.indexOf(win);
+         if (index > -1) {
+diff --git a/tests/admin_views/test_related_object_lookups.py b/tests/admin_views/test_related_object_lookups.py
+index 761819a50f..4b2171a09f 100644
+--- a/tests/admin_views/test_related_object_lookups.py
++++ b/tests/admin_views/test_related_object_lookups.py
+@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
+ from django.test import override_settings
+ from django.urls import reverse
+ 
++from .models import CamelCaseModel
++
+ 
+ @override_settings(ROOT_URLCONF="admin_views.urls")
+ class SeleniumTests(AdminSeleniumTestCase):
+@@ -100,6 +102,8 @@ class SeleniumTests(AdminSeleniumTestCase):
+         self.wait_until(lambda d: len(d.window_handles) == 1, 1)
+         self.selenium.switch_to.window(self.selenium.window_handles[0])
+ 
++        id_value = CamelCaseModel.objects.get(interesting_name=interesting_name).id
++
+         # Check that both the "Available" m2m box and the "Fk" dropdown now
+         # include the newly added CamelCaseModel instance.
+         fk_dropdown = self.selenium.find_element(By.ID, "id_fk")
+@@ -107,7 +111,7 @@ class SeleniumTests(AdminSeleniumTestCase):
+             fk_dropdown.get_attribute("innerHTML"),
+             f"""
+             <option value="" selected="">---------</option>
+-            <option value="1" selected>{interesting_name}</option>
++            <option value="{id_value}" selected>{interesting_name}</option>
+             """,
+         )
+         # Check the newly added instance is not also added in the "to" box.
+@@ -117,6 +121,61 @@ class SeleniumTests(AdminSeleniumTestCase):
+         self.assertHTMLEqual(
+             m2m_box.get_attribute("innerHTML"),
+             f"""
+-            <option value="1">{interesting_name}</option>
++            <option title="{interesting_name}" value="{id_value}">
++            {interesting_name}</option>
++            """,
++        )
++
++    def test_related_object_add_js_actions(self):
++        from selenium.webdriver.common.by import By
++
++        add_url = reverse("admin:admin_views_camelcaserelatedmodel_add")
++        self.selenium.get(self.live_server_url + add_url)
++        m2m_to = self.selenium.find_element(By.ID, "id_m2m_to")
++        m2m_box = self.selenium.find_element(By.ID, "id_m2m_from")
++        fk_dropdown = self.selenium.find_element(By.ID, "id_fk")
++
++        # Add new related entry using +.
++        name = "Bergeron"
++        self.selenium.find_element(By.ID, "add_id_m2m").click()
++        self.wait_for_and_switch_to_popup()
++        self.selenium.find_element(By.ID, "id_interesting_name").send_keys(name)
++        self.selenium.find_element(By.NAME, "_save").click()
++        self.wait_until(lambda d: len(d.window_handles) == 1, 1)
++        self.selenium.switch_to.window(self.selenium.window_handles[0])
++
++        id_value = CamelCaseModel.objects.get(interesting_name=name).id
++
++        # Check the new value correctly appears in the "to" box.
++        self.assertHTMLEqual(
++            m2m_to.get_attribute("innerHTML"),
++            f"""<option title="{name}" value="{id_value}">{name}</option>""",
++        )
++        self.assertHTMLEqual(m2m_box.get_attribute("innerHTML"), "")
++        self.assertHTMLEqual(
++            fk_dropdown.get_attribute("innerHTML"),
++            f"""
++            <option value="" selected>---------</option>
++            <option value="{id_value}">{name}</option>
+             """,
+         )
++
++        # Move the new value to the from box.
++        self.selenium.find_element(By.XPATH, "//*[@id='id_m2m_to']/option").click()
++        self.selenium.find_element(By.XPATH, "//*[@id='id_m2m_remove_link']").click()
++
++        self.assertHTMLEqual(
++            m2m_box.get_attribute("innerHTML"),
++            f"""<option title="{name}" value="{id_value}">{name}</option>""",
++        )
++        self.assertHTMLEqual(m2m_to.get_attribute("innerHTML"), "")
++
++        # Move the new value to the to box.
++        self.selenium.find_element(By.XPATH, "//*[@id='id_m2m_from']/option").click()
++        self.selenium.find_element(By.XPATH, "//*[@id='id_m2m_add_link']").click()
++
++        self.assertHTMLEqual(m2m_box.get_attribute("innerHTML"), "")
++        self.assertHTMLEqual(
++            m2m_to.get_attribute("innerHTML"),
++            f"""<option title="{name}" value="{id_value}">{name}</option>""",
++        )

@@ -1,0 +1,39 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 0f07d235a9c3..4c7b71e8488c 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -874,13 +874,13 @@ def save(
+ 
+             update_fields = frozenset(update_fields)
+             field_names = self._meta._non_pk_concrete_field_names
+-            non_model_fields = update_fields.difference(field_names)
++            not_updatable_fields = update_fields.difference(field_names)
+ 
+-            if non_model_fields:
++            if not_updatable_fields:
+                 raise ValueError(
+                     "The following fields do not exist in this model, are m2m "
+-                    "fields, or are non-concrete fields: %s"
+-                    % ", ".join(non_model_fields)
++                    "fields, primary keys, or are non-concrete fields: %s"
++                    % ", ".join(not_updatable_fields)
+                 )
+ 
+         # If saving to the same database, and this model is deferred, then
+diff --git a/django/db/models/options.py b/django/db/models/options.py
+index 28b93ca15563..11b2742f7d10 100644
+--- a/django/db/models/options.py
++++ b/django/db/models/options.py
+@@ -1008,8 +1008,11 @@ def _non_pk_concrete_field_names(self):
+         Return a set of the non-pk concrete field names defined on the model.
+         """
+         names = []
++        all_pk_fields = set(self.pk_fields)
++        for parent in self.all_parents:
++            all_pk_fields.update(parent._meta.pk_fields)
+         for field in self.concrete_fields:
+-            if field not in self.pk_fields:
++            if field not in all_pk_fields:
+                 names.append(field.name)
+                 if field.name != field.attname:
+                     names.append(field.attname)

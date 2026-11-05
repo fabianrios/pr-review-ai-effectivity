@@ -1,0 +1,5 @@
+Fixed #36314 -- Fixed MinimumLengthValidator error message translation.
+
+Regression in ec7d69035a408b357f1803ca05a7c991cc358cfa.
+
+Thank you Gabriel Trouvé for the report and Claude Paroz for the review.

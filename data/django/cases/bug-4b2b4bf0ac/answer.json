@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-4b2b4bf0ac",
+  "pr_url": "https://github.com/django/django/pull/20718",
+  "kind": "bug",
+  "ground_truth": "The change makes `lookup_field()` in `django/contrib/admin/utils.py` call `get_fields_from_path(opts.model, name)[-1]` unconditionally whenever a `list_display` name contains `__`, so it can render boolean icons for related BooleanFields. Before this, such names were resolved only by walking attributes with `getattr`, which also works for paths whose last part is not a concrete model field, such as a method, a property or `__str__` on a related model. `get_fields_from_path` raises `FieldDoesNotExist` for those paths, and the exception is not caught. Because `lookup_field` is shared by the changelist and readonly-field rendering, entries traversing relations, including second-degree ones (e.g. `book__author__get_full_name` or `parent__parent__some_property`), now crash with an exception where they previously displayed fine. The fix removes this lookup from `lookup_field`. It instead resolves the final field only in `items_for_result` when `f` is None, wrapped in `try/except FieldDoesNotExist`.",
+  "bug_files": [
+    "django/contrib/admin/utils.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "92470ad3742524902b29769d2c822dbe791630db",
+  "issue": null,
+  "fix_tickets": [
+    37230
+  ],
+  "evidence_url": null
+}

@@ -1,0 +1,38 @@
+diff --git a/django/core/management/commands/inspectdb.py b/django/core/management/commands/inspectdb.py
+index 58594fb66f..81f0cbefea 100644
+--- a/django/core/management/commands/inspectdb.py
++++ b/django/core/management/commands/inspectdb.py
+@@ -391,7 +391,7 @@ class Command(BaseCommand):
+                 columns = [
+                     x for x in columns if x is not None and x in column_to_field_name
+                 ]
+-                if len(columns) > 1:
++                if len(columns) > 1 and not params["primary_key"]:
+                     unique_together.append(
+                         str(tuple(column_to_field_name[c] for c in columns))
+                     )
+diff --git a/docs/releases/5.2.1.txt b/docs/releases/5.2.1.txt
+index 8ec4d58a92..67244c590f 100644
+--- a/docs/releases/5.2.1.txt
++++ b/docs/releases/5.2.1.txt
+@@ -59,3 +59,7 @@ Bugfixes
+ * Fixed a bug in composite primary key introspection that caused
+   ``IntegerField`` to be wrongly identified as ``AutoField`` on SQLite
+   (:ticket:`36358`).
++
++* Fixed a bug in Django 5.2 that caused a redundant ``unique_together``
++  constraint to be generated for composite primary keys when using
++  :djadmin:`inspectdb` (:ticket:`36357`).
+diff --git a/tests/inspectdb/tests.py b/tests/inspectdb/tests.py
+index 8c544c58c3..db9e36c5f6 100644
+--- a/tests/inspectdb/tests.py
++++ b/tests/inspectdb/tests.py
+@@ -637,3 +637,8 @@ class InspectDBTransactionalTests(TransactionTestCase):
+         )
+         self.assertIn(f"column_1 = models.{field_type}()", output)
+         self.assertIn(f"column_2 = models.{field_type}()", output)
++
++    def test_composite_primary_key_not_unique_together(self):
++        out = StringIO()
++        call_command("inspectdb", "inspectdb_compositeprimarykeymodel", stdout=out)
++        self.assertNotIn("unique_together", out.getvalue())

@@ -1,0 +1,51 @@
+{
+  "repo": "django/django",
+  "number": 19445,
+  "url": "https://github.com/django/django/pull/19445",
+  "commit_url": "https://github.com/django/django/commit/e03e5c751c56db5f4cb99e142c92d7d8db3a5463",
+  "title": "Fixed #33312 -- Raised explicit exception when copying deferred model instances.",
+  "description": "#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\nticket-33312\r\n\r\n#### Branch description\r\n\r\nPreviously `save()` would crash with an attempted forced update message, and both `save(force_insert=True)` and `bulk_create()` would crash with `DoesNotExist` errors when trying to retrieve a row with `pk IS NULL`.\r\n\r\nImplementing deferred field model instance copying might be doable in certain cases (e.g. when all the deferred fields are db generated) but that's not trivial to implement in a backward compatible way.\r\n\r\nThanks @adamsol for the report and test.\r\n",
+  "commit_message": "Fixed #33312 -- Raised explicit exception when copying deferred model instances.\n\nPreviously save() would crash with an attempted forced update message, and both\nsave(force_insert=True) and bulk_create() would crash with DoesNotExist errors\ntrying to retrieve rows with an empty primary key (id IS NULL).\n\nImplementing deferred field model instance copying might be doable in certain\ncases (e.g. when all the deferred fields are db generated) but that's not\ntrivial to implement in a backward compatible way.\n\nThanks Adam Sołtysik for the report and test and Clifford for the review.",
+  "labels": [],
+  "author": "Simon Charette",
+  "merged_at": "2025-05-06T13:57:20-04:00",
+  "tickets": [
+    33312
+  ],
+  "base_commit": "0b2ed4f7c8396c8d9aa8428a40e6b25c31312889",
+  "head_commit": "e03e5c751c56db5f4cb99e142c92d7d8db3a5463",
+  "changed_lines": 45,
+  "files": [
+    {
+      "path": "django/db/models/base.py",
+      "added": 1,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "django/db/models/query_utils.py",
+      "added": 3,
+      "deleted": 2,
+      "binary": false
+    },
+    {
+      "path": "docs/topics/db/queries.txt",
+      "added": 15,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/defer_regress/tests.py",
+      "added": 22,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/model_fields/test_generatedfield.py",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

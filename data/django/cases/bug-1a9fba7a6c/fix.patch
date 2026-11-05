@@ -1,0 +1,34 @@
+diff --git a/AUTHORS b/AUTHORS
+index 440b37a089e3..4b632d96e94c 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -1139,6 +1139,7 @@ answer newbie questions, and generally made Django that much better:
+     Xia Kai <https://blog.xiaket.org/>
+     Yann Fouillat <gagaro42@gmail.com>
+     Yann Malet
++    Yarchik <spoko.dev@gmail.com>
+     Yash Jhunjhunwala
+     Yassin Bahri <https://github.com/yassinbahri>
+     Yasushi Masuda <whosaysni@gmail.com>
+diff --git a/django/template/base.py b/django/template/base.py
+index 9cef22bae493..85115fb68697 100644
+--- a/django/template/base.py
++++ b/django/template/base.py
+@@ -406,14 +406,14 @@ def split_contents(self):
+ 
+ class Lexer:
+     _raw_start_re = re.compile(
+-        r"%s\s+(?:comment|verbatim)\b" % re.escape(BLOCK_TAG_START)
++        r"%s\s*(?:comment|verbatim)\b" % re.escape(BLOCK_TAG_START)
+     )
+     _comment_end_re = re.compile(
+-        r"%s[^\S\n]+endcomment[^\S\n]*%s"
++        r"%s[^\S\n]*endcomment[^\S\n]*%s"
+         % (re.escape(BLOCK_TAG_START), re.escape(BLOCK_TAG_END))
+     )
+     _verbatim_end_re = re.compile(
+-        r"%s[^\S\n]+endverbatim[^\S\n]*%s"
++        r"%s[^\S\n]*endverbatim[^\S\n]*%s"
+         % (re.escape(BLOCK_TAG_START), re.escape(BLOCK_TAG_END))
+     )
+ 

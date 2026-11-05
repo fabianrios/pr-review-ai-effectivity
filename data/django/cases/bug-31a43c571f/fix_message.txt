@@ -1,0 +1,3 @@
+Fixed #37017 -- Fixed setting or clearing of request.user after alogin/alogout().
+
+Regression in 31a43c571f4d036827d4fd7a5f615591637dc1be.

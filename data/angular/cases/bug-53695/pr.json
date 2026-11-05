@@ -1,0 +1,74 @@
+{
+  "repo": "angular/angular",
+  "number": 53695,
+  "url": "https://github.com/angular/angular/pull/53695",
+  "title": "fix(compiler-cli): handle default imports in defer blocks",
+  "description": "Fixes that `@defer` blocks weren't recognizing default imports and generating the proper code for them. Default symbols need to be accessed through the `default` property in the `import` statement, rather than by their name.",
+  "labels": [
+    "action: merge",
+    "target: patch",
+    "area: compiler"
+  ],
+  "author": "crisbeto",
+  "merged_at": "2024-02-01T15:58:25Z",
+  "base_commit": "6ec2f07f5d8dacde727e3b944fd44e555c48e37b",
+  "head_commit": "b0d55b234c38d195c75a26ef9f6d2ea72c511a38",
+  "changed_lines": 186,
+  "files": [
+    {
+      "path": "packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts",
+      "added": 21,
+      "deleted": 8,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler-cli/src/ngtsc/annotations/component/src/metadata.ts",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler-cli/src/ngtsc/reflection/src/typescript.ts",
+      "added": 11,
+      "deleted": 5,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler-cli/test/ngtsc/ngtsc_spec.ts",
+      "added": 103,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/render3/r3_class_metadata_compiler.ts",
+      "added": 8,
+      "deleted": 3,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/render3/view/api.ts",
+      "added": 6,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/render3/view/compiler.ts",
+      "added": 6,
+      "deleted": 4,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/render3/view/template.ts",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "packages/compiler/src/template/pipeline/src/phases/create_defer_deps_fns.ts",
+      "added": 3,
+      "deleted": 1,
+      "binary": false
+    }
+  ],
+  "license": "see data/angular/LICENSE.txt"
+}

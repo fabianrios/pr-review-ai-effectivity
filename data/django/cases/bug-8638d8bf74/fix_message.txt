@@ -1,0 +1,7 @@
+Fixed #36660 -- Fixed a regression in descending Index local field checks.
+
+Regression in 8638d8bf74c1a58302c97d4436ad2eb08438145b.
+
+Refs #36273.
+
+Thanks Federico Bond for the report.

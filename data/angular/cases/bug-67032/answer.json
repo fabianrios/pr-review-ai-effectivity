@@ -1,0 +1,15 @@
+{
+  "case_id": "bug-67032",
+  "pr_url": "https://github.com/angular/angular/pull/67032",
+  "kind": "bug",
+  "ground_truth": "`cancelLeavingNodes` now force-removes any element tracked as leaving for the same TNode whenever it sits in a different DOM parent than the newly inserted element (added to de-duplicate dynamic components re-rendered into a fresh overlay pane). `leavingNodes` is keyed by TNode, which is shared by every instance of a template, so distinct sibling instances (e.g. an accordion where opening section B collapses section A in another parent) are also \"different parent\": the still-animating element is removed synchronously and its `animate.leave` animation is skipped. Fixed by tracking the declaration view of each leaving element and only doing the cross-parent removal for the same logical view.",
+  "bug_files": [
+    "packages/core/src/animation/utils.ts",
+    "packages/core/src/render3/node_manipulation.ts"
+  ],
+  "fix_pr": null,
+  "fix_commit": "6b5616b2c7745ff4777f8d2ea038ebd297aeeb38",
+  "issue": 69291,
+  "fix_tickets": [],
+  "evidence_url": null
+}

@@ -1,0 +1,220 @@
+diff --git a/integration/side-effects/snapshots/core/esm2022.js b/integration/side-effects/snapshots/core/esm2022.js
+index 13a1af3941..dbc3b5fd64 100644
+--- a/integration/side-effects/snapshots/core/esm2022.js
++++ b/integration/side-effects/snapshots/core/esm2022.js
+@@ -2,15 +2,7 @@ import "rxjs";
+ 
+ import "rxjs/operators";
+ 
+-const __globalThis = "undefined" !== typeof globalThis && globalThis;
+-
+-const __window = "undefined" !== typeof window && window;
+-
+-const __self = "undefined" !== typeof self && "undefined" !== typeof WorkerGlobalScope && self instanceof WorkerGlobalScope && self;
+-
+-const __global = "undefined" !== typeof global && global;
+-
+-const _global = __globalThis || __global || __window || __self;
++const _global = globalThis;
+ 
+ if ("undefined" !== typeof ngDevMode && ngDevMode) _global.$localize = _global.$localize || function() {
+     throw new Error("It looks like your application or one of its dependencies is using i18n.\n" + "Angular 9 introduced a global `$localize()` function that needs to be loaded.\n" + "Please run `ng add @angular/localize` from the Angular CLI.\n" + "(For non-CLI projects, add `import '@angular/localize/init';` to your `polyfills.ts` file.\n" + "For server-side rendering applications add the import to your `main.server.ts` file.)");
+diff --git a/packages/compiler/src/util.ts b/packages/compiler/src/util.ts
+index 464f82a673..714850fbee 100644
+--- a/packages/compiler/src/util.ts
++++ b/packages/compiler/src/util.ts
+@@ -128,22 +128,7 @@ export interface Console {
+   warn(message: string): void;
+ }
+ 
+-
+-declare var WorkerGlobalScope: any;
+-// CommonJS / Node have global context exposed as "global" variable.
+-// We don't want to include the whole node.d.ts this this compilation unit so we'll just fake
+-// the global "global" var for now.
+-declare var global: any;
+-
+-// Check `global` first, because in Node tests both `global` and `window` may be defined and our
+-// `_global` variable should point to the NodeJS `global` in that case. Note: Typeof/Instanceof
+-// checks are considered side-effects in Terser. We explicitly mark this as side-effect free:
+-// https://github.com/terser/terser/issues/250.
+-const _global: {[name: string]: any} = (/* @__PURE__ */ (
+-    () => (typeof global !== 'undefined' && global) || (typeof window !== 'undefined' && window) ||
+-        (typeof self !== 'undefined' && typeof WorkerGlobalScope !== 'undefined' &&
+-         self instanceof WorkerGlobalScope && self))());
+-
++const _global: {[name: string]: any} = globalThis;
+ export {_global as global};
+ 
+ export function newArray<T = any>(size: number): T[];
+diff --git a/packages/core/src/util/global.ts b/packages/core/src/util/global.ts
+index 2bc1ce2296..cb13b1681c 100644
+--- a/packages/core/src/util/global.ts
++++ b/packages/core/src/util/global.ts
+@@ -6,23 +6,7 @@
+  * found in the LICENSE file at https://angular.io/license
+  */
+ 
+-// TODO(jteplitz602): Load WorkerGlobalScope from lib.webworker.d.ts file #3492
+-declare var WorkerGlobalScope: any;
+-// CommonJS / Node have global context exposed as "global" variable.
+-// We don't want to include the whole node.d.ts this this compilation unit so we'll just fake
+-// the global "global" var for now.
+-declare var global: any;
+-
+-// Always use __globalThis if available, which is the spec-defined global variable across all
+-// environments, then fallback to __global first, because in Node tests both __global and
+-// __window may be defined and _global should be __global in that case. Note: Typeof/Instanceof
+-// checks are considered side-effects in Terser. We explicitly mark this as side-effect free:
+-// https://github.com/terser/terser/issues/250.
+-const _global: any = (/* @__PURE__ */ (
+-    () => (typeof globalThis !== 'undefined' && globalThis) ||
+-        (typeof global !== 'undefined' && global) || (typeof window !== 'undefined' && window) ||
+-        (typeof self !== 'undefined' && typeof WorkerGlobalScope !== 'undefined' &&
+-         self instanceof WorkerGlobalScope && self))());
++const _global: any = globalThis;
+ 
+ /**
+  * Attention: whenever providing a new value, be sure to add an
+diff --git a/packages/core/testing/src/test_hooks.ts b/packages/core/testing/src/test_hooks.ts
+index 45ea7d3c14..ada3632d42 100644
+--- a/packages/core/testing/src/test_hooks.ts
++++ b/packages/core/testing/src/test_hooks.ts
+@@ -15,21 +15,13 @@
+ import {resetFakeAsyncZone} from './fake_async';
+ import {TestBedImpl} from './test_bed';
+ 
+-declare var global: any;
+-
+-const _global = <any>(typeof window === 'undefined' ? global : window);
+-
+ // Reset the test providers and the fake async zone before each test.
+-if (_global.beforeEach) {
+-  _global.beforeEach(getCleanupHook(false));
+-}
++beforeEach(getCleanupHook(false));
+ 
+ // We provide both a `beforeEach` and `afterEach`, because the updated behavior for
+ // tearing down the module is supposed to run after the test so that we can associate
+ // teardown errors with the correct test.
+-if (_global.afterEach) {
+-  _global.afterEach(getCleanupHook(true));
+-}
++afterEach(getCleanupHook(true));
+ 
+ function getCleanupHook(expectedTeardownValue: boolean) {
+   return () => {
+diff --git a/packages/localize/init/index.ts b/packages/localize/init/index.ts
+index 06ba218d58..59df71ba88 100644
+--- a/packages/localize/init/index.ts
++++ b/packages/localize/init/index.ts
+@@ -5,9 +5,9 @@
+  * Use of this source code is governed by an MIT-style license that can be
+  * found in the LICENSE file at https://angular.io/license
+  */
+-import {ɵ$localize as $localize, ɵ_global as _global, ɵLocalizeFn as LocalizeFn, ɵTranslateFn as TranslateFn} from '@angular/localize';
++import {ɵ$localize as $localize, ɵLocalizeFn as LocalizeFn, ɵTranslateFn as TranslateFn} from '@angular/localize';
+ 
+ export {$localize, LocalizeFn, TranslateFn};
+ 
+ // Attach $localize to the global context, as a side-effect of this module.
+-_global.$localize = $localize;
++(globalThis as any).$localize = $localize;
+diff --git a/packages/localize/private.ts b/packages/localize/private.ts
+index 2ec10633d6..a8eb41f9f8 100644
+--- a/packages/localize/private.ts
++++ b/packages/localize/private.ts
+@@ -8,5 +8,5 @@
+ 
+ // This file exports all the `utils` as private exports so that other parts of `@angular/localize`
+ // can make use of them.
+-export {$localize as ɵ$localize, _global as ɵ_global, LocalizeFn as ɵLocalizeFn, TranslateFn as ɵTranslateFn} from './src/localize';
++export {$localize as ɵ$localize, LocalizeFn as ɵLocalizeFn, TranslateFn as ɵTranslateFn} from './src/localize';
+ export {computeMsgId as ɵcomputeMsgId, findEndOfBlock as ɵfindEndOfBlock, isMissingTranslationError as ɵisMissingTranslationError, makeParsedTranslation as ɵmakeParsedTranslation, makeTemplateObject as ɵmakeTemplateObject, MissingTranslationError as ɵMissingTranslationError, ParsedMessage as ɵParsedMessage, ParsedTranslation as ɵParsedTranslation, ParsedTranslations as ɵParsedTranslations, parseMessage as ɵparseMessage, parseMetadata as ɵparseMetadata, parseTranslation as ɵparseTranslation, SourceLocation as ɵSourceLocation, SourceMessage as ɵSourceMessage, splitBlock as ɵsplitBlock, translate as ɵtranslate} from './src/utils';
+diff --git a/packages/localize/src/localize/index.ts b/packages/localize/src/localize/index.ts
+index b0d13050f8..3d2a91698e 100644
+--- a/packages/localize/src/localize/index.ts
++++ b/packages/localize/src/localize/index.ts
+@@ -5,5 +5,4 @@
+  * Use of this source code is governed by an MIT-style license that can be
+  * found in the LICENSE file at https://angular.io/license
+  */
+-export {_global} from './src/global';
+ export {$localize, LocalizeFn, TranslateFn} from './src/localize';
+diff --git a/packages/localize/src/localize/src/global.ts b/packages/localize/src/localize/src/global.ts
+deleted file mode 100644
+index 0c9c72e5f3..0000000000
+--- a/packages/localize/src/localize/src/global.ts
++++ /dev/null
+@@ -1,36 +0,0 @@
+-/**
+- * @license
+- * Copyright Google LLC All Rights Reserved.
+- *
+- * Use of this source code is governed by an MIT-style license that can be
+- * found in the LICENSE file at https://angular.io/license
+- */
+-
+-// **********************************************************************************************
+-// This code to access the global object is mostly copied from `packages/core/src/util/global.ts`
+-
+-declare global {
+-  // The definition of `WorkerGlobalScope` must be compatible with the one in `lib.webworker.d.ts`,
+-  // because all files under `packages/` are compiled together as part of the
+-  // [legacy-unit-tests-saucelabs][1] CI job, including the `lib.webworker.d.ts` typings brought in
+-  // by [service-worker/worker/src/service-worker.d.ts][2].
+-  //
+-  // [1]:
+-  // https://github.com/angular/angular/blob/ffeea63f43e6a7fd46be4a8cd5a5d254c98dea08/.circleci/config.yml#L681
+-  // [2]:
+-  // https://github.com/angular/angular/blob/316dc2f12ce8931f5ff66fa5f8da21c0d251a337/packages/service-worker/worker/src/service-worker.d.ts#L9
+-  interface WorkerGlobalScope extends EventTarget, WindowOrWorkerGlobalScope {}
+-
+-  var WorkerGlobalScope: {prototype: WorkerGlobalScope; new (): WorkerGlobalScope;};
+-}
+-
+-// Always use __globalThis if available, which is the spec-defined global variable across all
+-// environments, then fallback to __global first, because in Node tests both __global and
+-// __window may be defined and _global should be __global in that case. Note: Typeof/Instanceof
+-// checks are considered side-effects in Terser. We explicitly mark this as side-effect free:
+-// https://github.com/terser/terser/issues/250.
+-export const _global: any = (/* @__PURE__ */ (
+-    () => (typeof globalThis !== 'undefined' && globalThis) ||
+-        (typeof global !== 'undefined' && global) || (typeof window !== 'undefined' && window) ||
+-        (typeof self !== 'undefined' && typeof WorkerGlobalScope !== 'undefined' &&
+-         self instanceof WorkerGlobalScope && self))());
+diff --git a/packages/platform-browser/testing/src/matchers.ts b/packages/platform-browser/testing/src/matchers.ts
+index 672a8b0b6f..42d3b17183 100644
+--- a/packages/platform-browser/testing/src/matchers.ts
++++ b/packages/platform-browser/testing/src/matchers.ts
+@@ -8,7 +8,7 @@
+ 
+ 
+ import {ɵgetDOM as getDOM} from '@angular/common';
+-import {Type, ɵglobal as global} from '@angular/core';
++import {Type} from '@angular/core';
+ import {ComponentFixture} from '@angular/core/testing';
+ import {By} from '@angular/platform-browser';
+ 
+@@ -72,8 +72,6 @@ export interface NgMatchers<T = any> extends jasmine.Matchers<T> {
+   not: NgMatchers<T>;
+ }
+ 
+-const _global = <any>(typeof window === 'undefined' ? global : window);
+-
+ /**
+  * Jasmine matching function with Angular matchers mixed in.
+  *
+@@ -81,9 +79,10 @@ const _global = <any>(typeof window === 'undefined' ? global : window);
+  *
+  * {@example testing/ts/matchers.ts region='toHaveText'}
+  */
+-export const expect: <T = any>(actual: T) => NgMatchers<T> = _global.expect;
++const _expect: <T = any>(actual: T) => NgMatchers<T> = expect as any;
++export {_expect as expect};
+ 
+-_global.beforeEach(function() {
++beforeEach(function() {
+   jasmine.addMatchers({
+     toHaveText: function() {
+       return {

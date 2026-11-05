@@ -1,0 +1,16 @@
+diff --git a/packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts b/packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts
+index 6e9434973491..18c0be103578 100644
+--- a/packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts
++++ b/packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts
+@@ -1275,9 +1275,10 @@ export class ComponentDecoratorHandler implements
+         if (importDecl !== null && this.deferredSymbolTracker.canDefer(importDecl)) {
+           deferBlockDep.isDeferrable = true;
+           deferBlockDep.importPath = (importDecl.moduleSpecifier as ts.StringLiteral).text;
++          deferBlockDep.isDefaultImport = isDefaultImport(importDecl);
+           deferrableTypes.set(deferBlockDep.symbolName, {
+             importPath: deferBlockDep.importPath,
+-            isDefaultImport: isDefaultImport(importDecl),
++            isDefaultImport: deferBlockDep.isDefaultImport,
+           });
+         }
+       }

@@ -1,0 +1,49 @@
+{
+  "repo": "django/django",
+  "number": null,
+  "url": "https://github.com/django/django/commit/55d89e25f4115c5674cdd9b9bcba2bb2bb6d820b",
+  "commit_url": "https://github.com/django/django/commit/55d89e25f4115c5674cdd9b9bcba2bb2bb6d820b",
+  "title": "Fixed CVE-2025-26699 -- Mitigated potential DoS in wordwrap template filter.",
+  "description": "Fixed CVE-2025-26699 -- Mitigated potential DoS in wordwrap template filter.\n\nThanks sw0rd1ight for the report.",
+  "commit_message": "Fixed CVE-2025-26699 -- Mitigated potential DoS in wordwrap template filter.\n\nThanks sw0rd1ight for the report.",
+  "labels": [],
+  "author": "Sarah Boyce",
+  "merged_at": "2025-02-25T09:40:54+01:00",
+  "tickets": [],
+  "base_commit": "9a729fb61add16d89a4b42b491aec2d22f1ae69a",
+  "head_commit": "55d89e25f4115c5674cdd9b9bcba2bb2bb6d820b",
+  "changed_lines": 57,
+  "files": [
+    {
+      "path": "django/utils/text.py",
+      "added": 10,
+      "deleted": 18,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/4.2.20.txt",
+      "added": 6,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.0.13.txt",
+      "added": 6,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "docs/releases/5.1.7.txt",
+      "added": 6,
+      "deleted": 0,
+      "binary": false
+    },
+    {
+      "path": "tests/template_tests/filter_tests/test_wordwrap.py",
+      "added": 11,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

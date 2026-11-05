@@ -1,0 +1,3 @@
+Fixed #36535 -- Ensured compatibility with docutils 0.19 through 0.22.
+
+Regression in 65ab92f6a83644bbb555d0eff3a02d8d9301aba4.

@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-56852",
+  "pr_url": "https://github.com/angular/angular/pull/56852",
+  "kind": "bug",
+  "ground_truth": "In `patchTimer`'s `scheduleTask`, the change stores the native timer's return value in `handleOrId`. When it is not a number, it executes `data.isRefreshable = isFunction(handleOrId.refresh)`. Some environments return null or undefined from `setTimeout`/`setInterval`/`requestAnimationFrame`, for example a browser extension, policy or automation wrapper that blocks the call. The old code explicitly tolerated a nullish handle. With this change, reading `.refresh` on null throws a TypeError synchronously, so calling the patched `setTimeout` crashes instead of returning. The fix uses optional chaining (`handleOrId?.refresh`) so a nullish handle is treated as non-refreshable.",
+  "bug_files": [
+    "packages/zone.js/lib/common/timers.ts"
+  ],
+  "fix_pr": null,
+  "fix_commit": "36c2197539f7275a8688a073161435f56d880b9a",
+  "issue": 70044,
+  "fix_tickets": [],
+  "evidence_url": null
+}

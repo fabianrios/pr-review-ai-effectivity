@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-73df8b54a2",
+  "pr_url": "https://github.com/django/django/pull/17831",
+  "kind": "bug",
+  "ground_truth": "In `Model.refresh_from_db()`, the change makes clearing of cached reverse relations (`_meta.related_objects`) and cached private relations (`_meta.private_fields`, e.g. GenericForeignKey) conditional on `fields is None or field.name in fields`. However, when `refresh_from_db()` is called without `fields` on an instance that has deferred fields, the method's existing code reassigns the local `fields` to the set of non-deferred concrete field attnames. That set never contains reverse-relation or private-field names, so the new condition is always false and these caches are never cleared. For example, loading `Secondary.objects.defer(\"first\").get(...)`, accessing the reverse one-to-one `obj.primary_o2o` (now cached), then calling `obj.refresh_from_db()` leaves the stale related object in place instead of reloading it. A plain full refresh is supposed to clear all relation caches. The fix stops overwriting `fields` and passes the computed attname set directly to `.only()`, so `fields` stays None and all cached relations are cleared again.",
+  "bug_files": [
+    "django/db/models/base.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "2f6b096b83c55317c7ceef2d8d5dc3bee33293dc",
+  "issue": null,
+  "fix_tickets": [
+    35950
+  ],
+  "evidence_url": null
+}

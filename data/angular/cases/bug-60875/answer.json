@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-60875",
+  "pr_url": "https://github.com/angular/angular/pull/60875",
+  "kind": "bug",
+  "ground_truth": "RouterLink on anchor elements now only subscribes to router NavigationEnd events (to recompute `href`) when `subscribeToNavigationEventsIfNecessary` decides the link depends on router state, i.e. only for `preserveFragment` or `queryParamsHandling` 'merge'/'preserve' (plus a clause about the router's default handling). But the href of a relative link also changes whenever navigation changes the ActivatedRoute it resolves against. E.g. `<a [routerLink]=\"['./child']\" queryParamsHandling=\"replace\">` keeps showing `/initial/child` after navigating to `/different`. The optimization's premise is wrong, so hrefs go stale after navigation. The fix removes the condition and always subscribes for anchor elements (effectively rolling back the PR). A finding that only says the default-handling clause is inverted, and implies subscribing in fewer cases, is a different defect: its fix would remove subscriptions that relative links need, the opposite of the real fix.",
+  "bug_files": [
+    "packages/router/src/directives/router_link.ts"
+  ],
+  "fix_pr": 66201,
+  "fix_commit": "bcef77d9507e9778c35a6186ef4a8c1d67cd5992",
+  "issue": null,
+  "fix_tickets": [],
+  "evidence_url": null
+}

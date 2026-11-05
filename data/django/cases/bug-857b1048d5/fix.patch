@@ -1,0 +1,67 @@
+diff --git a/AUTHORS b/AUTHORS
+index a3adeceae1ab..f492b3635757 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -164,6 +164,7 @@ answer newbie questions, and generally made Django that much better:
+     Bhuvnesh Sharma <bhuvnesh875@gmail.com>
+     Bill Fenner <fenner@gmail.com>
+     Bjørn Stabell <bjorn@exoweb.net>
++    Blayze Wilhelm <https://github.com/blayzen-w>
+     Bo Marchman <bo.marchman@gmail.com>
+     Bogdan Mateescu
+     Bojan Mihelac <bmihelac@mihelac.org>
+diff --git a/django/contrib/admin/static/admin/js/SelectFilter2.js b/django/contrib/admin/static/admin/js/SelectFilter2.js
+index 08d47fc29821..970b511b0cf6 100644
+--- a/django/contrib/admin/static/admin/js/SelectFilter2.js
++++ b/django/contrib/admin/static/admin/js/SelectFilter2.js
+@@ -72,7 +72,8 @@ Requires core.js and SelectBox.js.
+                 selector_available,
+                 interpolate(gettext('Choose all %s'), [field_name]),
+                 'id', field_id + '_add_all',
+-                'class', 'selector-chooseall'
++                'class', 'selector-chooseall',
++                'type', 'button'
+             );
+ 
+             // <ul class="selector-chooser">
+@@ -83,14 +84,16 @@ Requires core.js and SelectBox.js.
+                 quickElement('li', selector_chooser),
+                 interpolate(gettext('Choose selected %s'), [field_name]),
+                 'id', field_id + '_add',
+-                'class', 'selector-add'
++                'class', 'selector-add',
++                'type', 'button'
+             );
+             const remove_button = quickElement(
+                 'button',
+                 quickElement('li', selector_chooser),
+                 interpolate(gettext('Remove selected %s'), [field_name]),
+                 'id', field_id + '_remove',
+-                'class', 'selector-remove'
++                'class', 'selector-remove',
++                'type', 'button'
+             );
+ 
+             // <div class="selector-chosen">
+@@ -142,7 +145,8 @@ Requires core.js and SelectBox.js.
+                 selector_chosen,
+                 interpolate(gettext('Remove all %s'), [field_name]),
+                 'id', field_id + '_remove_all',
+-                'class', 'selector-clearall'
++                'class', 'selector-clearall',
++                'type', 'button'
+             );
+ 
+             from_box.name = from_box.name + '_old';
+diff --git a/js_tests/admin/SelectFilter2.test.js b/js_tests/admin/SelectFilter2.test.js
+index 8c1480d2a61d..1fd46bd0ce68 100644
+--- a/js_tests/admin/SelectFilter2.test.js
++++ b/js_tests/admin/SelectFilter2.test.js
+@@ -31,6 +31,7 @@ QUnit.test('init', function(assert) {
+     assert.equal($('.selector-chosen .selector-chosen-title .helptext').text(), 'Remove things by selecting them and then select the "Remove" arrow button.');
+     assert.equal($('.selector-filter label .help-tooltip')[0].getAttribute("aria-label"), "Type into this box to filter down the list of available things.");
+     assert.equal($('.selector-filter label .help-tooltip')[1].getAttribute("aria-label"), "Type into this box to filter down the list of selected things.");
++    assert.equal($('#test button:not([type="button"])').length, 0);
+ });
+ 
+ QUnit.test('filtering available options', function(assert) {

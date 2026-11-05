@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-a16eedcf9c",
+  "pr_url": "https://github.com/django/django/pull/18847",
+  "kind": "bug",
+  "ground_truth": "The new `SQLInsertCompiler.assemble_as_sql` in the PostgreSQL compiler builds each UNNEST placeholder as `(%s)::<db_type>[]`, where `db_type` comes from `field.db_type(self.connection)`. That type string includes the column's parameters, e.g. `varchar(50)` or `numeric(5, 2)`. In PostgreSQL an explicit cast to a length- limited type silently truncates or rounds values instead of raising an error. So `bulk_create()` of two or more objects whose CharField value exceeds `max_length` silently inserts a truncated string, where the regular VALUES insert would fail with a \"value too long\" error. The same applies to rounding of decimals. The fix strips the parameters from the type (`db_type.split(\"(\")[0]`), so the cast is to e.g. `varchar[]` and the column's own constraints apply on insert.",
+  "bug_files": [
+    "django/db/backends/postgresql/compiler.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "d6ae2ed868e43671afc4d433c3d8f4d27f7eb555",
+  "issue": null,
+  "fix_tickets": [
+    33647
+  ],
+  "evidence_url": null
+}

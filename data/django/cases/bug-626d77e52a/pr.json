@@ -1,0 +1,39 @@
+{
+  "repo": "django/django",
+  "number": 19072,
+  "url": "https://github.com/django/django/pull/19072",
+  "commit_url": "https://github.com/django/django/commit/626d77e52a3f247358514bcf51c761283968099c",
+  "title": "Fixed #36116 -- Optimized multi-column ForwardManyToOne prefetching.",
+  "description": "\r\n\r\n#### Trac ticket number\r\n<!-- Replace XXXXX with the corresponding Trac ticket number, or delete the line and write \"N/A\" if this is a trivial PR. -->\r\n\r\nticket-36116\r\n\r\n#### Branch description\r\n\r\nRely on ColPairs and TupleIn as they allows for a single or multiple fields to be specified which delegates multi-column handling to them.\r\n\r\nThanks @jacobtylerwalls for the report.\r\n",
+  "commit_message": "Fixed #36116 -- Optimized multi-column ForwardManyToOne prefetching.\n\nRely on ColPairs and TupleIn which support a single column to be specified\nto avoid special casing ForwardManyToOne.get_prefetch_querysets().\n\nThanks Jacob Walls for the report.",
+  "labels": [],
+  "author": "Simon Charette",
+  "merged_at": "2025-01-19T21:35:50-05:00",
+  "tickets": [
+    36116
+  ],
+  "base_commit": "337c641abb36b3c2501b14e1290b800831bb20ad",
+  "head_commit": "626d77e52a3f247358514bcf51c761283968099c",
+  "changed_lines": 71,
+  "files": [
+    {
+      "path": "django/db/models/fields/related_descriptors.py",
+      "added": 14,
+      "deleted": 16,
+      "binary": false
+    },
+    {
+      "path": "tests/foreign_object/models/person.py",
+      "added": 1,
+      "deleted": 1,
+      "binary": false
+    },
+    {
+      "path": "tests/foreign_object/tests.py",
+      "added": 36,
+      "deleted": 3,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}

@@ -1,0 +1,17 @@
+{
+  "case_id": "bug-1a8fd5cf75",
+  "pr_url": "https://github.com/django/django/pull/20300",
+  "kind": "bug",
+  "ground_truth": "The rewritten `get_geom_placeholder_sql` in `BaseSpatialOperations` and `PostGISOperations` now passes the field's SRID as a query parameter (`params = (*params, f.srid)` / `(value, f.srid)`) instead of interpolating it into the SQL. Before, a spatial field with `srid=None` produced SQL like `ST_Transform(%s, None)`, which failed loudly. Now `None` is bound as SQL NULL, and the transform check (`value.srid != field.srid`) is true for any geometry with a real SRID. So the database runs `ST_Transform(geom, NULL)`, which returns NULL on PostGIS/SpatiaLite. For example, saving `Point(1, 2, srid=4326)` to a geometry field declared with `srid=None` (e.g. on an unmanaged model) silently stores NULL instead of the geometry, which is data loss; lookups against such fields are similarly broken. The fix makes the must-transform check raise `ValueError(\"Cannot transform a spatial value to an undefined SRID.\")` when the field SRID is None, and makes the PostGIS backend use that shared check.",
+  "bug_files": [
+    "django/contrib/gis/db/backends/base/operations.py",
+    "django/contrib/gis/db/backends/postgis/operations.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "08e4c0d8e7db6343567e7b02e25da8ea2226a7e0",
+  "issue": null,
+  "fix_tickets": [
+    37322
+  ],
+  "evidence_url": null
+}

@@ -1,0 +1,509 @@
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.html b/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.html
+index 7926cd17282..3532ef587a9 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.html
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.html
+@@ -71,19 +71,36 @@
+ <mat-tab-nav-panel #tabPanel>
+   @if (!applicationEnvironment.frameSelectorEnabled || frameManager.selectedFrame() !== null) {
+     <div class="tab-content">
++      @let componentsVisible = activeTab() === 'Components';
+       <ng-directive-explorer
++        [hidden]="!componentsVisible"
+         [showCommentNodes]="showCommentNodes()"
+         [isHydrationEnabled]="isHydrationEnabled()"
+-        [class.hidden]="activeTab() !== 'Components'"
+         (toggleInspector)="toggleInspector()"
+       />
+-      <ng-profiler [class.hidden]="activeTab() !== 'Profiler'" />
+-      <ng-router-tree
+-        [snapToRoot]="snapToRoot()"
+-        [routes]="routes()"
+-        [class.hidden]="activeTab() !== 'Router Tree'"
+-      />
+-      <ng-injector-tree [class.hidden]="activeTab() !== 'Injector Tree'" />
++
++      @let profilerVisible = activeTab() === 'Profiler';
++      @defer (when profilerVisible; prefetch on idle) {
++        <ng-profiler [hidden]="!profilerVisible" />
++      }
++
++      @let routerTreeVisible = activeTab() === 'Router Tree';
++      @defer (when routerTreeVisible; prefetch on idle) {
++        <ng-router-tree
++          [hidden]="!routerTreeVisible"
++          [snapToRoot]="snapToRoot()"
++          [routes]="routes()"
++        />
++      }
++
++      @let injectorTreeVisible = activeTab() === 'Injector Tree';
++      @defer (when injectorTreeVisible; prefetch on idle) {
++        <ng-injector-tree
++          [hidden]="!injectorTreeVisible"
++          [componentExplorerView]="componentExplorerView()"
++          [providers]="providers()"
++        />
++      }
+     </div>
+   }
+ </mat-tab-nav-panel>
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.scss b/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.scss
+index 9d28bb998e5..1e8be60d54e 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.scss
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.scss
+@@ -7,17 +7,6 @@
+   display: block;
+ }
+ 
+-.hidden {
+-  display: none;
+-}
+-
+-ng-injector-tree.hidden {
+-  display: block;
+-  visibility: hidden;
+-  position: absolute;
+-  top: 0;
+-}
+-
+ .tab-content {
+   position: relative;
+   height: calc(100% - 31px);
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.ts b/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.ts
+index 368228a1639..0b97d9aaf5c 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.ts
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.ts
+@@ -12,7 +12,15 @@ import {MatMenu, MatMenuItem, MatMenuTrigger} from '@angular/material/menu';
+ import {MatSlideToggle} from '@angular/material/slide-toggle';
+ import {MatTabLink, MatTabNav, MatTabNavPanel} from '@angular/material/tabs';
+ import {MatTooltip} from '@angular/material/tooltip';
+-import {Events, MessageBus, Route, SupportedApis} from '../../../../protocol';
++import {
++  ComponentExplorerView,
++  Events,
++  MessageBus,
++  Route,
++  SerializedInjector,
++  SerializedProviderRecord,
++  SupportedApis,
++} from '../../../../protocol';
+ 
+ import {ApplicationEnvironment, Frame, TOP_LEVEL_FRAME_ID} from '../application-environment/index';
+ import {FrameManager} from '../application-services/frame_manager';
+@@ -59,6 +67,8 @@ export class DevToolsTabsComponent {
+   readonly routerGraphEnabled = signal(false);
+   readonly timingAPIEnabled = signal(false);
+ 
++  readonly componentExplorerView = signal<ComponentExplorerView | null>(null);
++  readonly providers = signal<SerializedProviderRecord[]>([]);
+   readonly routes = signal<Route[]>([]);
+   readonly frameManager = inject(FrameManager);
+ 
+@@ -102,7 +112,7 @@ export class DevToolsTabsComponent {
+   private _messageBus = inject<MessageBus<Events>>(MessageBus);
+ 
+   constructor() {
+-    this._messageBus.on('updateRouterTree', (routes) => {
++    this._messageBus.on('updateRouterTree', (routes: any[]) => {
+       this.routes.set(routes || []);
+     });
+ 
+@@ -113,6 +123,17 @@ export class DevToolsTabsComponent {
+       }
+     });
+ 
++    this._messageBus.on('latestComponentExplorerView', (view: ComponentExplorerView) => {
++      this.componentExplorerView.set(view);
++    });
++
++    this._messageBus.on(
++      'latestInjectorProviders',
++      (_: SerializedInjector, providers: SerializedProviderRecord[]) => {
++        this.providers.set(providers);
++      },
++    );
++
+     if (typeof chrome !== 'undefined' && chrome.runtime !== undefined) {
+       this.extensionVersion.set(chrome.runtime.getManifest().version);
+     }
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.spec.ts b/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.spec.ts
+index fcbdcb8d9be..47907fbddfa 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.spec.ts
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.spec.ts
+@@ -33,11 +33,11 @@ describe('DevtoolsTabsComponent', () => {
+   let applicationEnvironmentMock: ApplicationEnvironment;
+   let comp: DevToolsTabsComponent;
+ 
+-  beforeEach(() => {
++  beforeEach(async () => {
+     messageBusMock = jasmine.createSpyObj('messageBus', ['on', 'once', 'emit', 'destroy']);
+     applicationEnvironmentMock = jasmine.createSpyObj('applicationEnvironment', ['environment']);
+ 
+-    TestBed.configureTestingModule({
++    await TestBed.configureTestingModule({
+       imports: [MatTooltip, MatMenuModule, DevToolsTabsComponent],
+       providers: [
+         TabUpdate,
+@@ -46,10 +46,12 @@ describe('DevtoolsTabsComponent', () => {
+         {provide: ApplicationEnvironment, useValue: applicationEnvironmentMock},
+         {provide: FrameManager, useFactory: () => FrameManager.initialize(123)},
+       ],
+-    }).overrideComponent(DevToolsTabsComponent, {
+-      remove: {imports: [DirectiveExplorerComponent]},
+-      add: {imports: [MockDirectiveExplorerComponent]},
+-    });
++    })
++      .overrideComponent(DevToolsTabsComponent, {
++        remove: {imports: [DirectiveExplorerComponent]},
++        add: {imports: [MockDirectiveExplorerComponent]},
++      })
++      .compileComponents();
+ 
+     const fixture = TestBed.createComponent(DevToolsTabsComponent);
+     comp = fixture.componentInstance;
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.html b/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.html
+index f8968a54875..37b72ec0ddf 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.html
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.html
+@@ -2,65 +2,68 @@
+   <p class="not-supported">
+     This feature is only available on version 17.0.0 or higher of Angular.
+   </p>
+-}
+-<div class="wrapper" [class.hidden]="!diDebugAPIsAvailable()">
+-  <div class="options">
+-    <mat-checkbox (change)="toggleHideInjectorsWithNoProviders()">
+-      Hide injectors with no providers
+-    </mat-checkbox>
+-    <mat-checkbox (change)="toggleHideAngularInjectors()"> Hide framework injectors </mat-checkbox>
+-  </div>
+-  <as-split class="trees" unit="percent" direction="horizontal" [gutterSize]="9">
+-    <as-split-area size="60">
+-      <as-split
+-        [ngResponsiveSplit]="responsiveSplitConfig"
+-        (directionChange)="onResponsiveSplitDirChange($event)"
+-        unit="percent"
+-        [gutterSize]="9"
+-      >
+-        <as-split-area [size]="envHierarchySize()">
+-          <div class="injector-hierarchy">
+-            <h2>
+-              <span>Environment Hierarchy</span>
+-              <a
+-                class="hierarchy-ref"
+-                href="https://angular.dev/guide/di/hierarchical-dependency-injection#types-of-injector-hierarchies"
+-                target="_blank"
+-              >
+-                <mat-icon matTooltip="Open docs reference"> open_in_new </mat-icon>
+-              </a>
+-            </h2>
+-            <section class="injector-graph">
+-              <ng-tree-visualizer-host #environmentTree />
+-            </section>
+-          </div>
+-        </as-split-area>
+-        <as-split-area [size]="elHierarchySize()">
+-          <div class="injector-hierarchy">
+-            <h2>
+-              <span>Element Hierarchy</span>
+-              <a
+-                class="hierarchy-ref"
+-                href="https://angular.dev/guide/di/hierarchical-dependency-injection#types-of-injector-hierarchies"
+-                target="_blank"
+-              >
+-                <mat-icon matTooltip="Open docs reference"> open_in_new </mat-icon>
+-              </a>
+-            </h2>
+-            <section class="injector-graph">
+-              <ng-tree-visualizer-host #elementTree />
+-            </section>
+-          </div>
+-        </as-split-area>
+-      </as-split>
+-    </as-split-area>
+-    @if (selectedNode() && providers().length > 0) {
+-      <as-split-area size="40" [minSize]="25">
+-        <ng-injector-providers
+-          [injector]="selectedNode()!.data.injector"
+-          [providers]="providers()"
+-        />
++} @else {
++  <div class="wrapper">
++    <div class="options">
++      <mat-checkbox (change)="toggleHideInjectorsWithNoProviders()">
++        Hide injectors with no providers
++      </mat-checkbox>
++      <mat-checkbox (change)="toggleHideAngularInjectors()">
++        Hide framework injectors
++      </mat-checkbox>
++    </div>
++    <as-split class="trees" unit="percent" direction="horizontal" [gutterSize]="9">
++      <as-split-area size="60">
++        <as-split
++          [ngResponsiveSplit]="responsiveSplitConfig"
++          (directionChange)="onResponsiveSplitDirChange($event)"
++          unit="percent"
++          [gutterSize]="9"
++        >
++          <as-split-area [size]="envHierarchySize()">
++            <div class="injector-hierarchy">
++              <h2>
++                <span>Environment Hierarchy</span>
++                <a
++                  class="hierarchy-ref"
++                  href="https://angular.dev/guide/di/hierarchical-dependency-injection#types-of-injector-hierarchies"
++                  target="_blank"
++                >
++                  <mat-icon matTooltip="Open docs reference"> open_in_new </mat-icon>
++                </a>
++              </h2>
++              <section class="injector-graph">
++                <ng-tree-visualizer-host #environmentTree />
++              </section>
++            </div>
++          </as-split-area>
++          <as-split-area [size]="elHierarchySize()">
++            <div class="injector-hierarchy">
++              <h2>
++                <span>Element Hierarchy</span>
++                <a
++                  class="hierarchy-ref"
++                  href="https://angular.dev/guide/di/hierarchical-dependency-injection#types-of-injector-hierarchies"
++                  target="_blank"
++                >
++                  <mat-icon matTooltip="Open docs reference"> open_in_new </mat-icon>
++                </a>
++              </h2>
++              <section class="injector-graph">
++                <ng-tree-visualizer-host #elementTree />
++              </section>
++            </div>
++          </as-split-area>
++        </as-split>
+       </as-split-area>
+-    }
+-  </as-split>
+-</div>
++      @if (selectedNode() && providers().length > 0) {
++        <as-split-area size="40" [minSize]="25">
++          <ng-injector-providers
++            [injector]="selectedNode()!.data.injector"
++            [providers]="providers()"
++          />
++        </as-split-area>
++      }
++    </as-split>
++  </div>
++}
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.scss b/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.scss
+index 5c6229d20e3..b39de5c21dc 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.scss
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.scss
+@@ -7,7 +7,8 @@
+   position: relative;
+ 
+   .not-supported {
+-    margin-top: 16px;
++    padding: 1rem;
++    text-align: center;
+   }
+ 
+   .wrapper {
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.ts b/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.ts
+index 71e69e841e2..04708cd84c2 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.ts
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.ts
+@@ -7,12 +7,15 @@
+  */
+ 
+ import {
+-  afterNextRender,
++  afterRenderEffect,
+   Component,
++  computed,
+   ElementRef,
+   inject,
++  input,
+   NgZone,
+   signal,
++  untracked,
+   viewChild,
+ } from '@angular/core';
+ import {MatCheckbox} from '@angular/material/checkbox';
+@@ -69,19 +72,32 @@ const HIERARCHY_HOR_SIZE = 50;
+   styleUrls: ['./injector-tree.component.scss'],
+ })
+ export class InjectorTreeComponent {
+-  private environmentTree = viewChild.required<TreeVisualizerHostComponent>('environmentTree');
+-  private elementTree = viewChild.required<TreeVisualizerHostComponent>('elementTree');
++  private environmentTree = viewChild<TreeVisualizerHostComponent>('environmentTree');
++  private elementTree = viewChild<TreeVisualizerHostComponent>('elementTree');
+ 
+   private _messageBus = inject(MessageBus) as MessageBus<Events>;
+   zone = inject(NgZone);
+ 
+-  firstRender = true;
+   readonly selectedNode = signal<InjectorTreeD3Node | null>(null);
++
++  readonly providers = input.required<SerializedProviderRecord[]>();
++  readonly componentExplorerView = input.required<ComponentExplorerView | null>();
++
++  readonly sortedProviders = computed(() =>
++    Array.from(this.providers()).sort((a, b) => {
++      return a.token.localeCompare(b.token);
++    }),
++  );
++
++  readonly diDebugAPIsAvailable = computed<boolean>(() => {
++    const view = this.componentExplorerView();
++    return !!(view && view.forest.length && view.forest[0].resolutionPath);
++  });
++
++  firstRender = true;
+   rawDirectiveForest: DevToolsNode[] = [];
+   injectorTreeGraph!: InjectorTreeVisualizer;
+   elementInjectorTreeGraph!: InjectorTreeVisualizer;
+-  readonly diDebugAPIsAvailable = signal(false);
+-  readonly providers = signal<SerializedProviderRecord[]>([]);
+   elementToEnvironmentPath: Map<string, SerializedInjector[]> = new Map();
+ 
+   hideInjectorsWithNoProviders = false;
+@@ -97,37 +113,22 @@ export class InjectorTreeComponent {
+   protected readonly elHierarchySize = signal<number>(0);
+ 
+   constructor() {
+-    afterNextRender({
++    afterRenderEffect({
+       write: () => {
++        const view = this.componentExplorerView();
++        if (!this.diDebugAPIsAvailable() || !view) {
++          return;
++        }
++
+         this.init();
+-        this.setUpEnvironmentInjectorVisualizer();
+-        this.setUpElementInjectorVisualizer();
++        this.rawDirectiveForest = view.forest;
++
++        untracked(() => this.updateInjectorTreeVisualization(view.forest));
+       },
+     });
+   }
+ 
+   private init() {
+-    this._messageBus.on('latestComponentExplorerView', (view: ComponentExplorerView) => {
+-      if (view.forest.length === 0) return;
+-
+-      if (!view.forest[0].resolutionPath) return;
+-
+-      this.diDebugAPIsAvailable.set(true);
+-      this.rawDirectiveForest = view.forest;
+-      this.updateInjectorTreeVisualization(view.forest);
+-    });
+-
+-    this._messageBus.on(
+-      'latestInjectorProviders',
+-      (_: SerializedInjector, providers: SerializedProviderRecord[]) => {
+-        this.providers.set(
+-          Array.from(providers).sort((a, b) => {
+-            return a.token.localeCompare(b.token);
+-          }),
+-        );
+-      },
+-    );
+-
+     this._messageBus.on('highlightComponent', (id: number) => {
+       const injectorNode = this.getNodeByComponentId(this.elementInjectorTreeGraph, id);
+       if (injectorNode === null) {
+@@ -136,6 +137,9 @@ export class InjectorTreeComponent {
+ 
+       this.selectInjectorByNode(injectorNode);
+     });
++
++    this.setUpEnvironmentInjectorVisualizer();
++    this.setUpElementInjectorVisualizer();
+   }
+ 
+   toggleHideInjectorsWithNoProviders(): void {
+@@ -282,24 +286,40 @@ export class InjectorTreeComponent {
+   }
+ 
+   setUpEnvironmentInjectorVisualizer(): void {
+-    const svg = this.environmentTree().container().nativeElement;
+-    const g = this.environmentTree().group().nativeElement;
++    const environmentTree = this.environmentTree();
++    if (!environmentTree) {
++      return;
++    }
++
++    const svg = environmentTree.container().nativeElement;
++    const g = environmentTree.group().nativeElement;
+ 
+     this.injectorTreeGraph?.cleanup?.();
+     this.injectorTreeGraph = new InjectorTreeVisualizer(svg, g);
+   }
+ 
+   setUpElementInjectorVisualizer(): void {
+-    const svg = this.elementTree().container().nativeElement;
+-    const g = this.elementTree().group().nativeElement;
++    const elementTree = this.elementTree();
++    if (!elementTree) {
++      return;
++    }
++
++    const svg = elementTree.container().nativeElement;
++    const g = elementTree.group().nativeElement;
+ 
+     this.elementInjectorTreeGraph?.cleanup?.();
+     this.elementInjectorTreeGraph = new InjectorTreeVisualizer(svg, g, {nodeSeparation: () => 1});
+   }
+ 
+   highlightPathFromSelectedInjector(): void {
+-    const envGroup = this.environmentTree().group();
+-    const elementGroup = this.elementTree().group();
++    const environmentTree = this.environmentTree();
++    const elementTree = this.elementTree();
++    if (!environmentTree || !elementTree) {
++      return;
++    }
++
++    const envGroup = environmentTree.group();
++    const elementGroup = elementTree.group();
+ 
+     this.unhighlightAllEdges(elementGroup);
+     this.unhighlightAllNodes(elementGroup);
+diff --git a/devtools/projects/ng-devtools/src/lib/devtools-tabs/router-tree/router-tree.component.ts b/devtools/projects/ng-devtools/src/lib/devtools-tabs/router-tree/router-tree.component.ts
+index 3ec16988dec..a1c98b296ae 100644
+--- a/devtools/projects/ng-devtools/src/lib/devtools-tabs/router-tree/router-tree.component.ts
++++ b/devtools/projects/ng-devtools/src/lib/devtools-tabs/router-tree/router-tree.component.ts
+@@ -56,13 +56,17 @@ export class RouterTreeComponent {
+   routes = input<Route[]>([]);
+   snapToRoot = input(false);
+ 
++  private readonly visualizerReady = signal<boolean>(false);
++
+   constructor() {
+-    effect(() => {
+-      this.renderGraph(this.routes());
++    effect(async () => {
++      if (this.visualizerReady()) {
++        this.renderGraph(this.routes());
++      }
+     });
+ 
+-    effect(() => {
+-      if (this.snapToRoot()) {
++    effect(async () => {
++      if (this.visualizerReady() && this.snapToRoot()) {
+         this.routerTreeVisualizer.snapToRoot(0.6);
+       }
+     });
+@@ -87,6 +91,8 @@ export class RouterTreeComponent {
+     this.routerTreeVisualizer = new RouterTreeVisualizer(container, group, {
+       nodeSeparation: () => 1,
+     });
++
++    this.visualizerReady.set(true);
+   }
+ 
+   searchRoutes(event: Event) {

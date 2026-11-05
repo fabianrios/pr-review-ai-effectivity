@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-c09bceef68",
+  "pr_url": "https://github.com/django/django/pull/19214",
+  "kind": "bug",
+  "ground_truth": "The change removed the keyword-only `single_object` parameter from `LogEntryManager.log_actions()` and replaced the `if single_object and log_entry_list` check with `if len(log_entry_list) == 1`, which returns the bare saved instance. This breaks the public API released in Django 5.1 in two ways. First, third-party code calling `LogEntry.objects.log_actions(..., single_object=True)` now fails with `TypeError: unexpected keyword argument 'single_object'` after a point-release upgrade. Second, callers passing a multi-object queryset that happens to contain exactly one object now get a single `LogEntry` instance instead of a list, so code that iterates or indexes the result breaks. The fix restores the `single_object=False` keyword argument and passes it from `log_addition`/`log_change`. It keeps saving one-element lists via `save()` so signals still fire, but returns `[instance]` unless `single_object` is true.",
+  "bug_files": [
+    "django/contrib/admin/models.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "27b68bcadf1ab2e9f7fd223aed42db352ccdc62d",
+  "issue": null,
+  "fix_tickets": [
+    36234
+  ],
+  "evidence_url": null
+}

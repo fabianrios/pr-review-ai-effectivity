@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-91bebf1adb",
+  "pr_url": "https://github.com/django/django/pull/18971",
+  "kind": "bug",
+  "ground_truth": "In `RelatedObjectLookups.js`, the change rewrote `dismissRelatedLookupPopup` to use `window.relatedWindows.indexOf(win)` and `window.relatedWindows.splice(index, 1)` instead of the IIFE-local `relatedWindows` array. The module never assigns `relatedWindows` to `window`, so in a real admin page `window.relatedWindows` is undefined. Calling `.indexOf` on it throws a TypeError before `win.close()` runs. As a result, picking an object in a raw-id/related lookup popup sets the value but leaves the popup open. The new test hid the bug because it created `window.relatedWindows` itself. The fix went back to the module- local `relatedWindows`, exported it as `window.relatedWindows = relatedWindows`, and removed the test's own initialization.",
+  "bug_files": [
+    "django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js"
+  ],
+  "fix_pr": null,
+  "fix_commit": "a245604277eb9edeba234dacf199890766462709",
+  "issue": null,
+  "fix_tickets": [
+    36284
+  ],
+  "evidence_url": null
+}

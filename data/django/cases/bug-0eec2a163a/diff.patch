@@ -1,0 +1,264 @@
+diff --git a/django/forms/boundfield.py b/django/forms/boundfield.py
+index 97559fe286..5b8e7e5697 100644
+--- a/django/forms/boundfield.py
++++ b/django/forms/boundfield.py
+@@ -192,7 +192,9 @@ class BoundField(RenderableFieldMixin):
+         if id_:
+             id_for_label = widget.id_for_label(id_)
+             if id_for_label:
+-                attrs = {**(attrs or {}), "for": id_for_label}
++                attrs = attrs or {}
++                if tag != "legend":
++                    attrs = {**attrs, "for": id_for_label}
+             if self.field.required and hasattr(self.form, "required_css_class"):
+                 attrs = attrs or {}
+                 if "class" in attrs:
+diff --git a/tests/forms_tests/tests/test_forms.py b/tests/forms_tests/tests/test_forms.py
+index 5b0c4b9a04..8cc1fecf0a 100644
+--- a/tests/forms_tests/tests/test_forms.py
++++ b/tests/forms_tests/tests/test_forms.py
+@@ -3913,7 +3913,7 @@ aria-describedby="id_age_error"></td></tr>""",
+         )
+         self.assertHTMLEqual(
+             f["field"].legend_tag(),
+-            '<legend for="id_field" class="required">Field:</legend>',
++            '<legend class="required">Field:</legend>',
+         )
+         self.assertHTMLEqual(
+             f["field"].label_tag(attrs={"class": "foo"}),
+@@ -3921,14 +3921,14 @@ aria-describedby="id_age_error"></td></tr>""",
+         )
+         self.assertHTMLEqual(
+             f["field"].legend_tag(attrs={"class": "foo"}),
+-            '<legend for="id_field" class="foo required">Field:</legend>',
++            '<legend class="foo required">Field:</legend>',
+         )
+         self.assertHTMLEqual(
+             f["field2"].label_tag(), '<label for="id_field2">Field2:</label>'
+         )
+         self.assertHTMLEqual(
+             f["field2"].legend_tag(),
+-            '<legend for="id_field2">Field2:</legend>',
++            "<legend>Field2:</legend>",
+         )
+ 
+     def test_label_split_datetime_not_displayed(self):
+@@ -4190,31 +4190,47 @@ aria-describedby="id_age_error"></td></tr>""",
+ 
+         boundfield = SomeForm()["field"]
+ 
+-        testcases = [  # (args, kwargs, expected)
+-            # without anything: just print the <label>
+-            ((), {}, '<%(tag)s for="id_field">Field:</%(tag)s>'),
++        testcases = [  # (args, kwargs, expected_label, expected_legend)
++            # without anything: just print the <label>/<legend>
++            ((), {}, '<label for="id_field">Field:</label>', "<legend>Field:</legend>"),
+             # passing just one argument: overrides the field's label
+-            (("custom",), {}, '<%(tag)s for="id_field">custom:</%(tag)s>'),
++            (
++                ("custom",),
++                {},
++                '<label for="id_field">custom:</label>',
++                "<legend>custom:</legend>",
++            ),
+             # the overridden label is escaped
+-            (("custom&",), {}, '<%(tag)s for="id_field">custom&amp;:</%(tag)s>'),
+-            ((mark_safe("custom&"),), {}, '<%(tag)s for="id_field">custom&:</%(tag)s>'),
+-            # Passing attrs to add extra attributes on the <label>
++            (
++                ("custom&",),
++                {},
++                '<label for="id_field">custom&amp;:</label>',
++                "<legend>custom&amp;:</legend>",
++            ),
++            (
++                (mark_safe("custom&"),),
++                {},
++                '<label for="id_field">custom&:</label>',
++                "<legend>custom&:</legend>",
++            ),
++            # Passing attrs to add extra attributes on the <label>/<legend>
+             (
+                 (),
+                 {"attrs": {"class": "pretty"}},
+-                '<%(tag)s for="id_field" class="pretty">Field:</%(tag)s>',
++                '<label for="id_field" class="pretty">Field:</label>',
++                '<legend class="pretty">Field:</legend>',
+             ),
+         ]
+ 
+-        for args, kwargs, expected in testcases:
++        for args, kwargs, expected_label, expected_legend in testcases:
+             with self.subTest(args=args, kwargs=kwargs):
+                 self.assertHTMLEqual(
+                     boundfield.label_tag(*args, **kwargs),
+-                    expected % {"tag": "label"},
++                    expected_label,
+                 )
+                 self.assertHTMLEqual(
+                     boundfield.legend_tag(*args, **kwargs),
+-                    expected % {"tag": "legend"},
++                    expected_legend,
+                 )
+ 
+     def test_boundfield_label_tag_no_id(self):
+@@ -4252,7 +4268,7 @@ aria-describedby="id_age_error"></td></tr>""",
+         )
+         self.assertHTMLEqual(
+             form["custom"].legend_tag(),
+-            '<legend for="custom_id_custom">Custom:</legend>',
++            "<legend>Custom:</legend>",
+         )
+         self.assertHTMLEqual(form["empty"].label_tag(), "<label>Empty:</label>")
+         self.assertHTMLEqual(form["empty"].legend_tag(), "<legend>Empty:</legend>")
+@@ -4266,7 +4282,7 @@ aria-describedby="id_age_error"></td></tr>""",
+         self.assertHTMLEqual(boundfield.label_tag(), '<label for="id_field"></label>')
+         self.assertHTMLEqual(
+             boundfield.legend_tag(),
+-            '<legend for="id_field"></legend>',
++            "<legend></legend>",
+         )
+ 
+     def test_boundfield_id_for_label(self):
+@@ -4339,7 +4355,7 @@ aria-describedby="id_age_error"></td></tr>""",
+         )
+         self.assertHTMLEqual(
+             boundfield.legend_tag(label_suffix="$"),
+-            '<legend for="id_field">Field$</legend>',
++            "<legend>Field$</legend>",
+         )
+ 
+     def test_error_dict(self):
+@@ -4879,7 +4895,7 @@ aria-describedby="id_age_error"></td></tr>""",
+         )
+         self.assertEqual(
+             field.legend_tag(),
+-            '<legend for="id_first_name">First name:</legend>',
++            "<legend>First name:</legend>",
+         )
+ 
+     @override_settings(USE_THOUSAND_SEPARATOR=True)
+@@ -4892,7 +4908,7 @@ aria-describedby="id_age_error"></td></tr>""",
+         )
+         self.assertHTMLEqual(
+             field.legend_tag(attrs={"number": 9999}),
+-            '<legend number="9999" for="id_first_name">First name:</legend>',
++            '<legend number="9999">First name:</legend>',
+         )
+ 
+     def test_remove_cached_field(self):
+@@ -5204,12 +5220,12 @@ class TemplateTests(SimpleTestCase):
+         self.assertHTMLEqual(
+             t.render(Context({"form": f})),
+             "<form>"
+-            '<p><legend for="id_username">Username:</legend>'
++            "<p><legend>Username:</legend>"
+             '<input id="id_username" type="text" name="username" maxlength="10" '
+             'aria-describedby="id_username_helptext" required></p>'
+-            '<p><legend for="id_password1">Password1:</legend>'
++            "<p><legend>Password1:</legend>"
+             '<input type="password" name="password1" id="id_password1" required></p>'
+-            '<p><legend for="id_password2">Password2:</legend>'
++            "<p><legend>Password2:</legend>"
+             '<input type="password" name="password2" id="id_password2" required></p>'
+             '<input type="submit" required>'
+             "</form>",
+diff --git a/tests/forms_tests/tests/test_i18n.py b/tests/forms_tests/tests/test_i18n.py
+index 5da0c0e3d0..5b8d92c0f6 100644
+--- a/tests/forms_tests/tests/test_i18n.py
++++ b/tests/forms_tests/tests/test_i18n.py
+@@ -59,14 +59,14 @@ class FormsI18nTests(SimpleTestCase):
+         )
+         self.assertHTMLEqual(
+             f["field_1"].legend_tag(),
+-            '<legend for="id_field_1">field_1:</legend>',
++            "<legend>field_1:</legend>",
+         )
+         self.assertHTMLEqual(
+             f["field_2"].label_tag(), '<label for="field_2_id">field_2:</label>'
+         )
+         self.assertHTMLEqual(
+             f["field_2"].legend_tag(),
+-            '<legend for="field_2_id">field_2:</legend>',
++            "<legend>field_2:</legend>",
+         )
+ 
+     def test_non_ascii_choices(self):
+diff --git a/tests/forms_tests/widget_tests/test_clearablefileinput.py b/tests/forms_tests/widget_tests/test_clearablefileinput.py
+index 8d3bff4b45..8f2d951966 100644
+--- a/tests/forms_tests/widget_tests/test_clearablefileinput.py
++++ b/tests/forms_tests/widget_tests/test_clearablefileinput.py
+@@ -248,12 +248,12 @@ class ClearableFileInputTest(WidgetTest):
+         form = TestForm()
+         self.assertIs(self.widget.use_fieldset, True)
+         self.assertHTMLEqual(
+-            '<div><fieldset><legend for="id_field">Field:</legend>'
++            "<div><fieldset><legend>Field:</legend>"
+             '<input id="id_field" name="field" type="file" required></fieldset></div>'
+-            '<div><fieldset><legend for="id_with_file">With file:</legend>Currently: '
++            "<div><fieldset><legend>With file:</legend>Currently: "
+             '<a href="something">something</a><br>Change:<input type="file" '
+             'name="with_file" id="id_with_file"></fieldset></div>'
+-            '<div><fieldset><legend for="id_clearable_file">Clearable file:</legend>'
++            "<div><fieldset><legend>Clearable file:</legend>"
+             'Currently: <a href="something">something</a><input '
+             'type="checkbox" name="clearable_file-clear" id="clearable_file-clear_id">'
+             '<label for="clearable_file-clear_id">Clear</label><br>Change:'
+diff --git a/tests/forms_tests/widget_tests/test_selectdatewidget.py b/tests/forms_tests/widget_tests/test_selectdatewidget.py
+index 017e90f5f6..ff1f59a46c 100644
+--- a/tests/forms_tests/widget_tests/test_selectdatewidget.py
++++ b/tests/forms_tests/widget_tests/test_selectdatewidget.py
+@@ -718,7 +718,7 @@ class SelectDateWidgetTest(WidgetTest):
+         form = TestForm()
+         self.assertIs(self.widget.use_fieldset, True)
+         self.assertHTMLEqual(
+-            '<div><fieldset><legend for="id_field_month">Field:</legend>'
++            "<div><fieldset><legend>Field:</legend>"
+             '<select name="field_month" required id="id_field_month">'
+             '<option value="1">January</option><option value="2">February</option>'
+             '<option value="3">March</option><option value="4">April</option>'
+diff --git a/tests/model_forms/tests.py b/tests/model_forms/tests.py
+index 129ce56c7a..7783b817d5 100644
+--- a/tests/model_forms/tests.py
++++ b/tests/model_forms/tests.py
+@@ -977,15 +977,15 @@ class TestFieldOverridesByFormMeta(SimpleTestCase):
+         )
+         self.assertHTMLEqual(
+             form["name"].legend_tag(),
+-            '<legend for="id_name">Title:</legend>',
++            "<legend>Title:</legend>",
+         )
+         self.assertHTMLEqual(
+             form["url"].legend_tag(),
+-            '<legend for="id_url">The URL:</legend>',
++            "<legend>The URL:</legend>",
+         )
+         self.assertHTMLEqual(
+             form["slug"].legend_tag(),
+-            '<legend for="id_slug">Slug:</legend>',
++            "<legend>Slug:</legend>",
+         )
+ 
+     def test_help_text_overrides(self):
+diff --git a/tests/model_formsets/tests.py b/tests/model_formsets/tests.py
+index cd60795fc8..4e5c0e39c5 100644
+--- a/tests/model_formsets/tests.py
++++ b/tests/model_formsets/tests.py
+@@ -2161,7 +2161,7 @@ class TestModelFormsetOverridesTroughFormMeta(TestCase):
+         )
+         self.assertHTMLEqual(
+             form["title"].legend_tag(),
+-            '<legend for="id_title">Name:</legend>',
++            "<legend>Name:</legend>",
+         )
+ 
+     def test_inlineformset_factory_labels_overrides(self):
+@@ -2174,7 +2174,7 @@ class TestModelFormsetOverridesTroughFormMeta(TestCase):
+         )
+         self.assertHTMLEqual(
+             form["title"].legend_tag(),
+-            '<legend for="id_title">Name:</legend>',
++            "<legend>Name:</legend>",
+         )
+ 
+     def test_modelformset_factory_help_text_overrides(self):

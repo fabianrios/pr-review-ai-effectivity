@@ -1,0 +1,294 @@
+# Hand-verified bug cases. One entry per culprit PR from data/candidates.jsonl.
+#
+# Inclusion rule: a later fix commit/PR (or a maintainer comment on an issue that a fix then closed)
+# explicitly attributes the bug to this PR, AND the faulty code is visibly present in this PR's diff,
+# AND the bug is a behavioral defect (not a style, docs, build-config or internal-only CI breakage).
+# Ground truth is written from the fix commit/PR and its diff, describing what goes wrong and where.
+#
+# status: include | exclude | backup
+# Ground truths below were drafted by Claude Code from the cited fix diffs; pending author confirmation.
+
+bugs:
+  - culprit_pr: 60875
+    status: include
+    fix_pr: 66201
+    fix_commit: bcef77d9507e9778c35a6186ef4a8c1d67cd5992
+    bug_files: [packages/router/src/directives/router_link.ts]
+    ground_truth: >
+      RouterLink on anchor elements now only subscribes to router NavigationEnd events (to recompute `href`)
+      when `subscribeToNavigationEventsIfNecessary` decides the link depends on router state, i.e. only for
+      `preserveFragment` or `queryParamsHandling` 'merge'/'preserve' (plus a clause about the router's default
+      handling). But the href of a relative link also changes whenever navigation changes the ActivatedRoute it
+      resolves against. E.g. `<a [routerLink]="['./child']" queryParamsHandling="replace">` keeps showing
+      `/initial/child` after navigating to `/different`. The optimization's premise is wrong, so hrefs go stale
+      after navigation. The fix removes the condition and always subscribes for anchor elements (effectively
+      rolling back the PR). A finding that only says the default-handling clause is inverted, and implies
+      subscribing in fewer cases, is a different defect: its fix would remove subscriptions that relative links
+      need, the opposite of the real fix.
+    decision: "2026-11-04 author: inverted default-handling clause alone does not count (priority_review.md #1)"
+
+  - culprit_pr: 63485
+    status: include
+    fix_pr: 63546
+    fix_commit: 4c36659ba982d5d26ced14d3854cbd16703f6c01
+    bug_files: [packages/router/src/recognize.ts]
+    ground_truth: >
+      The PR replaces `.toPromise()` with a custom `firstValueFrom` (built on rxjs `first()`) in route
+      recognition (`matchWithChecks`, `runCanLoadGuards`, `loadChildren`). Unlike `toPromise()`, which resolves
+      `undefined` when an observable completes without emitting, `first()` errors with an EmptyError. Guards or
+      matchers whose observables complete without emitting now throw EmptyError instead of being treated as
+      "no match"; the recognizer's catch only skips NoMatch errors, so navigation fails instead of moving on to
+      the next route. Fixed by also treating EmptyError as a non-match in recognize.ts.
+    decision: "2026-11-04 author: a finding on the new first_value_from.ts helper that names the first()/EmptyError mechanism counts (priority_review.md #2)"
+
+  - culprit_pr: 50063
+    status: include
+    fix_pr: 51394
+    fix_commit: a9b3c006f8593e0187298df21418644070312a40
+    issue: 51382
+    bug_files: [packages/core/testing/src/test_hooks.ts]
+    ground_truth: >
+      While replacing `global` with `globalThis`, the PR removed the guards around the Jasmine/Jest hooks in
+      `@angular/core/testing` test_hooks.ts: `if (_global.beforeEach) {...}` became an unconditional
+      `beforeEach(...)` / `afterEach(...)`. When this module is evaluated outside a test runner (e.g. it ends up
+      in an application bundle), `beforeEach` is undefined and loading the module throws a ReferenceError.
+      Fixed by calling `globalThis.beforeEach?.(...)` / `globalThis.afterEach?.(...)`.
+
+  - culprit_pr: 69309
+    status: include
+    fix_pr: 70105
+    fix_commit: 03f1758e2ae7e033c14360a72583d51825993217
+    issue: 70104
+    bug_files: [devtools/projects/shell-browser/src/app/chrome-application-operations.ts]
+    ground_truth: >
+      To escape code injected into the inspected page, the PR changes `findConstructorByPosition('${position}')`
+      and `findDomElementByPosition('${position}')` to pass `stringifyAndEscape(position)`. `position` is an
+      array, so it used to be serialized implicitly as a comma-separated string ("0,1,2"); now it is passed as a
+      JSON array string ("[0,1,2]"). The backend that parses this serialized id still expects the
+      comma-separated format, so "view source" and "select DOM element" from the component tree break. The fix
+      updates the backend (component-tree.ts) to the new format; the PR changed the wire format without
+      updating its consumer.
+
+  - culprit_pr: 67032
+    status: include
+    fix_commit: 6b5616b2c7745ff4777f8d2ea038ebd297aeeb38
+    issue: 69291
+    bug_files: [packages/core/src/animation/utils.ts, packages/core/src/render3/node_manipulation.ts]
+    ground_truth: >
+      `cancelLeavingNodes` now force-removes any element tracked as leaving for the same TNode whenever it sits in
+      a different DOM parent than the newly inserted element (added to de-duplicate dynamic components
+      re-rendered into a fresh overlay pane). `leavingNodes` is keyed by TNode, which is shared by every instance
+      of a template, so distinct sibling instances (e.g. an accordion where opening section B collapses section A
+      in another parent) are also "different parent": the still-animating element is removed synchronously and
+      its `animate.leave` animation is skipped. Fixed by tracking the declaration view of each leaving element
+      and only doing the cross-parent removal for the same logical view.
+
+  - culprit_pr: 48558
+    status: include
+    fix_pr: 49118
+    fix_commit: 0198d21231565f5eeaa27a871b9bb9e950b4a869
+    issue: 49100
+    bug_files: [packages/compiler/src/shadow_css.ts]
+    ground_truth: >
+      To avoid treating the space in an escaped selector (".\fc ber") as a combinator, the PR skips a separator
+      when the preceding part matches `_placeholderRe` (`__ph-N__`) and the next character is a hex digit. But
+      SafeSelector uses the same `__ph-N__` placeholder for attribute selectors and other content, not only for
+      escape sequences. In minified CSS without spaces, e.g. `:host[foo]>div`, the `>` separator is skipped
+      because the part contains an attribute placeholder and the next char 'd' is hex, so the selector is scoped
+      incorrectly and styles on :host attributes break in production builds. Fixed by giving escapes their own
+      `__esc-ph-N__` placeholder and checking only for that.
+
+  - culprit_pr: 48063
+    status: include
+    fix_pr: 49572
+    fix_commit: fa3909e8b4b982423357a6e3d6c1d719ea6fa378
+    issue: 49567
+    bug_files: [packages/router/src/provide_router.ts]
+    ground_truth: >
+      In the bootstrap listener the PR replaces `bootstrapDone.next(); bootstrapDone.complete();` with
+      `if (!bootstrapDone.closed) { bootstrapDone.next(); bootstrapDone.unsubscribe(); }`. `unsubscribe()` on a
+      Subject does not complete it, so the initial navigation (with `initialNavigation: 'enabledBlocking'`),
+      which waits on `bootstrapDone`, never completes and its `finalize` never clears the router's current
+      navigation; later navigations (e.g. re-navigating from a component's init) misbehave. Fixed by completing
+      the subject again and taking only one emission in the navigation transition.
+
+  - culprit_pr: 46096
+    status: include
+    fix_pr: 46807
+    fix_commit: 93d17ee888fc14c740daad5c74f17f0863cddddd
+    issue: 46747
+    bug_files: [packages/compiler-cli/src/ngtsc/typecheck/src/tcb_util.ts, packages/compiler-cli/src/ngtsc/typecheck/src/context.ts]
+    ground_truth: >
+      `requiresInlineTypeCheckBlock` now requires an inline type-check block whenever any pipe in its `usedPipes`
+      argument cannot be referenced from the TCB environment (`env.canReferenceType`, stricter than the previous
+      "is exported" check). But the caller in context.ts passes `pipes`, the map of all pipes in the component's
+      scope, not just those used in the template. Components that merely have an unreferenceable pipe in scope
+      are now forced to inline, which errors where inlining is unsupported (e.g. the language service reports
+      spurious errors). Fixed by passing only the pipes the template actually uses.
+    decision: "2026-11-04 author: keep; tagged needs-file-context, since `pipes` is declared outside the diff (priority_review.md #5)"
+
+  - culprit_pr: 53695
+    status: include
+    fix_pr: 54495
+    fix_commit: 0c8744c73e3d8d68463f726c41b134223dc324b1
+    issue: 54491
+    bug_files: [packages/compiler-cli/src/ngtsc/annotations/component/src/handler.ts]
+    ground_truth: >
+      The PR adds support for default imports in `@defer` dependencies and records `isDefaultImport` in the
+      `deferrableTypes` map, but never sets `deferBlockDep.isDefaultImport` on the per-block dependency objects
+      (they keep the initial `isDefaultImport: false`). The generated dependency loader function for the defer
+      block reads that flag, so for a default-imported component it emits `m.ComponentName` instead of
+      `m.default`, and loading the deferred block yields undefined. Fixed by setting
+      `deferBlockDep.isDefaultImport = isDefaultImport(importDecl)` in `collectDeferredSymbols`.
+
+  - culprit_pr: 55796
+    status: include
+    fix_pr: 70432
+    fix_commit: 4c4a705ce38d08e087b599fc243a9d7dc40966a5
+    issue: 70431
+    bug_files: [packages/zone.js/lib/common/events.ts]
+    ground_truth: >
+      To avoid mutating readonly/frozen listener options, the PR copies them with `{...options}` in
+      `copyEventListenerOptions` before passing them to the native `addEventListener` (special-casing only
+      `signal`). Object spread copies only own enumerable data properties, while the native call reads each option
+      via [[Get]]. Options supplied as getters, on the prototype, or as non-enumerable properties are silently
+      dropped: `capture: true` becomes bubbling, `once: true` fires repeatedly, and the MDN `passive`
+      feature-detection getter is never invoked. Fixed by also reading `capture`, `once`, `passive` and `signal`
+      from the source object when the spread did not copy them.
+
+  # ---------------------------------------------------------------- not included
+  - culprit_pr: 42763
+    status: backup
+    fix_pr: 48436
+    fix_commit: c86484507f
+    issue: 48246
+    notes: >
+      Real bug (author admits it in #48246), but the fix landed 17 months later on substantially changed code,
+      and the exact failure mode (dash-case vs camelCase style keys in state() styles) is harder to state
+      precisely. Use if a confirmed case is rejected.
+  - culprit_pr: 66891
+    status: exclude
+    notes: >
+      Misattributed. Fix e95d84684f says "regression introduced by #66891", but the removed `other` grammar pattern
+      was added by e850643b1b (feat(compiler): Support comments in html element), not by #66891.
+  - culprit_pr: 58493
+    status: exclude
+    notes: Fix 1fe001e18b reworks the migration's output (injection context) rather than fixing a clear defect.
+  - culprit_pr: 67381
+    status: exclude
+    notes: Real regression (backticks not escaped in TCB template literals, fix 2bd708fb6b), but diff is 2421 lines.
+  - culprit_pr: 63754
+    status: exclude
+    notes: Performance regression only (fix 49377d274a); kept out of the first 10 to stay with functional bugs.
+  - culprit_pr: 62994
+    status: exclude
+    notes: >
+      Real bug (toPromise on non-completing redirect observables, fixed in #63485), excluded so the first 10 do
+      not contain two links of the same chain; candidate for the 30-50 scale-up.
+
+  # ---------------------------------------------------------------- scaleup-2026-11
+  # Drafted by claude-opus-5-5 (`bench-eval draft`, data/DRAFTS.md) and checked by `bench-eval gtcheck`.
+  # Author sign-off 2026-11-05: reviewed the judgment-call shortlist; dropped angular/bug-62083 (build
+  # tooling), kept the rest. Labels themselves were model-checked (gtcheck), not expert-checked.
+  - culprit_pr: 49144
+    status: exclude
+    batch: scaleup-2026-11
+    notes: "The fix is a plain revert citing only 'a number of regressions', so the drafted mechanism is a reconstruction (gtcheck: minor). Reverts are a poor label source."
+    fix_commit: cb31dbc75ca4141d61cec3ba6e60505198208a0a
+    issue: 50457
+    bug_files: [packages/zone.js/lib/node/promise.ts, packages/zone.js/lib/node/rollup-main-node-bundle.ts, packages/zone.js/bundles.bzl]
+    ground_truth: >
+      The new `lib/node/promise.ts`, now used as the `zone-node` entry point, replaces ZoneAwarePromise with a
+      patch of `Promise.prototype.then` only. Its `makeResolver` wraps every onResolve/onReject callback in
+      `zone.runGuarded(() => task.invoke())`. `runGuarded` catches exceptions and passes them to the zone's
+      `onHandleError`. When that hook returns false, as Angular's NgZone does, the exception is swallowed and the
+      wrapper returns `undefined` to the native `then`. So inside NgZone, `p.then(() => { throw err;
+      }).catch(handler)` never reaches `handler`; the chained promise resolves with `undefined` instead of
+      rejecting, breaking error propagation (e.g. in SSR). In addition, native `await` and other engine-internal
+      promise reactions bypass the patched `then`, so they no longer take part in zone tracking the way they did
+      with ZoneAwarePromise. The fix reverted the change and went back to patching the whole Promise
+      (ZoneAwarePromise) in the `zone-node` bundle.
+  - culprit_pr: 56852
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 36c2197539f7275a8688a073161435f56d880b9a
+    issue: 70044
+    bug_files: [packages/zone.js/lib/common/timers.ts]
+    diff_range_from_case: ctl-56852  # former control, not in candidates.jsonl
+    ground_truth: >
+      In `patchTimer`'s `scheduleTask`, the change stores the native timer's return value in `handleOrId`. When it
+      is not a number, it executes `data.isRefreshable = isFunction(handleOrId.refresh)`. Some environments return
+      null or undefined from `setTimeout`/`setInterval`/`requestAnimationFrame`, for example a browser extension,
+      policy or automation wrapper that blocks the call. The old code explicitly tolerated a nullish handle. With
+      this change, reading `.refresh` on null throws a TypeError synchronously, so calling the patched
+      `setTimeout` crashes instead of returning. The fix uses optional chaining (`handleOrId?.refresh`) so a
+      nullish handle is treated as non-refreshable.
+  - culprit_pr: 57796
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 549a00d18b9060b7bae35a715e233021ef34a39a
+    issue: 58399
+    bug_files: [packages/compiler/src/shadow_css.ts]
+    ground_truth: >
+      In `ShadowCss._scopeSelector`/`_applySelectorScope`, the change replaced the simple `/ ?, ?/` comma split
+      and the combinator separator with regexes that do not split inside parentheses. A selector part like
+      `.foo:is(.a,\n.b)` therefore now reaches `_scopeSelectorPart` as a single string that can contain newlines.
+      That function splits the part with `/([^:]*)(:*)(.*)/`, both in the newly added pseudo-function `:host`
+      branch (`scopedP.match(...)`) and in the non-host branch (`t.match(...)`). Because `.` does not match a
+      newline, everything after the first newline is silently dropped. For example, a component style
+      `.foo:is(.a,\n.b) {}` is emitted as `.foo[contenta]:is(.a,`, with the rest of the selector and the closing
+      parenthesis lost, which breaks the stylesheet. The fix changed the trailing group of both regexes to
+      `([\s\S]*)` so content after newlines is kept.
+  - culprit_pr: 60206
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: 7f85d184b04530aad90f1465b5eb9b47abcc1b2b
+    bug_files: [devtools/projects/ng-devtools-backend/src/lib/component-tree.ts]
+    ground_truth: >
+      In `getLatestComponentState` (component-tree.ts), the change wraps `metadata.dependencies =
+      getDependenciesForDirective(...)` in `if (injector)`. Previously `dependencies` was always assigned on the
+      directive metadata. Now `getInjectorFromElementNode` returns null whenever `ng.getInjector` is not supported
+      (or returns nothing), and in that case `dependencies` is left `undefined`. The DevTools property view
+      template evaluates `controller().directiveMetadata?.dependencies.length > 0`. The optional chain only guards
+      `directiveMetadata`, not `dependencies`. So when an app's global `ng` lacks `getInjector`, selecting a
+      component throws a TypeError reading `length` of undefined and the property panel breaks. The fix guards the
+      template by first checking that `dependencies` exists before reading its `length`.
+  - culprit_pr: 61241
+    status: include
+    batch: scaleup-2026-11
+    fix_commit: be2747eb262adb4b10501a37538baf3e1458b56b
+    bug_files: [devtools/projects/ng-devtools/src/lib/devtools-tabs/injector-tree/injector-tree.component.ts, devtools/projects/ng-devtools/src/lib/devtools-tabs/devtools-tabs.component.html]
+    ground_truth: >
+      This change rewrites `InjectorTreeComponent` to render from an `afterRenderEffect` that runs whenever the
+      `componentExplorerView` input changes. The effect calls `init()` and
+      `updateInjectorTreeVisualization(view.forest)` without checking whether the tab is visible. The change also
+      hides the deferred `ng-injector-tree` with `[hidden]` (display:none) and removes the old `ng-injector-
+      tree.hidden` CSS, which had kept the element laid out with `visibility: hidden`. So once the Injector Tree
+      tab has been opened and the user switches to another tab, every new component explorer view re-runs the
+      effect. D3 then tries to lay out, translate and snap SVG trees inside an element with no layout, which
+      throws errors. `init()` also runs on every effect execution, re-registering the `highlightComponent`
+      listener and recreating the visualizers each time. The fix adds a `hidden` input bound to the host's
+      `[hidden]`, returns early from the effect when it is true (read untracked), and calls `init()` only once,
+      when the visualizers do not exist yet.
+  - culprit_pr: 62083
+    status: exclude
+    batch: scaleup-2026-11
+    decision: "2026-11-05 author: drop; Bazel build-config change (build tooling under the inclusion rule)"
+    fix_commit: 29223931da94f92366cdab4f923fc2e7dfb87956
+    bug_files: [devtools/src/BUILD.bazel, devtools/projects/shell-browser/src/BUILD.bazel]
+    ground_truth: >
+      The change switches the zone.js dependency in `devtools/src/BUILD.bazel` (the `devapp` pkg_web) and
+      `devtools/projects/shell-browser/src/BUILD.bazel` (the static files filegroup). It goes from
+      `@npm//:node_modules/zone.js/bundles/zone.umd.min.js` to the workspace target `//:node_modules/zone.js`.
+      That moves the packaged file from `./npm/node_modules/zone.js/...` to `./node_modules/zone.js/...`. The
+      change updated the `<script>` tag only in `demo-standalone/src/index.html`. `devtools/src/index.html` and
+      `devtools/projects/shell-browser/src/index.html` still reference
+      `./npm/node_modules/zone.js/bundles/zone.umd.min.js`. In both the DevTools dev app and the production
+      browser-extension build, that script 404s and zone.js is never loaded, so the zone-based Angular app fails
+      to bootstrap or run correctly. The fix updated both index.html files to load
+      `./node_modules/zone.js/bundles/zone.umd.min.js`.
+
+# Policy notes
+# - Reverts (source: revert) are not used in the first 10: most angular reverts are due to internal (g3) breakages
+#   whose reason is not public, so a precise ground truth cannot be written from public data.
+# - Docs/link fixes and build/CI breakages are excluded.

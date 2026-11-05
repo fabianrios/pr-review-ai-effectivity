@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-faeb92ea13",
+  "pr_url": "https://github.com/django/django/pull/17936",
+  "kind": "bug",
+  "ground_truth": "The rewritten `Options._property_names` iterates over `self.model.__mro__` and adds every name whose value in some `klass.__dict__` is a `property`. It does not check whether a class earlier in the MRO already shadows that name with a non-property attribute. Example: an abstract parent model defines `foo` as a `@property` and a child model overrides `foo` with a plain attribute or a field. `foo` is still reported in the child's `_property_names`. Code that relies on this set then treats the name as a property and mishandles it, for example `Model.__init__`/`_prepare_related_fields` kwargs handling and `QuerySet` create/update_or_create validation. The old `inspect.getattr_static` version resolved the attribute as normal lookup would. The fix tracks names already seen in earlier MRO classes and only counts a property if its name was not defined in a more-derived class.",
+  "bug_files": [
+    "django/db/models/options.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "7646b9023da7e1f6f3a871959db027b3ea36eebb",
+  "issue": null,
+  "fix_tickets": [
+    35301
+  ],
+  "evidence_url": null
+}

@@ -1,0 +1,628 @@
+diff --git a/django/contrib/admin/static/admin/css/responsive.css b/django/contrib/admin/static/admin/css/responsive.css
+index 932e824c1c..7d296b150f 100644
+--- a/django/contrib/admin/static/admin/css/responsive.css
++++ b/django/contrib/admin/static/admin/css/responsive.css
+@@ -299,7 +299,7 @@ input[type="submit"], button {
+         background-position: 0 -80px;
+     }
+ 
+-    a.selector-chooseall, a.selector-clearall {
++    .selector-chooseall, .selector-clearall {
+         align-self: center;
+     }
+ 
+@@ -649,6 +649,7 @@ input[type="submit"], button {
+ 
+     .related-widget-wrapper .selector {
+         order: 1;
++        flex: 1 0 auto;
+     }
+ 
+     .related-widget-wrapper > a {
+diff --git a/django/contrib/admin/static/admin/css/rtl.css b/django/contrib/admin/static/admin/css/rtl.css
+index b8f60e0a34..5b55b63013 100644
+--- a/django/contrib/admin/static/admin/css/rtl.css
++++ b/django/contrib/admin/static/admin/css/rtl.css
+@@ -235,19 +235,19 @@ fieldset .fieldBox {
+   background-position: 0 -112px;
+ }
+ 
+-a.selector-chooseall {
++.selector-chooseall {
+     background: url(../img/selector-icons.svg) right -128px no-repeat;
+ }
+ 
+-a.active.selector-chooseall:focus, a.active.selector-chooseall:hover {
++.active.selector-chooseall:focus, .active.selector-chooseall:hover {
+     background-position: 100% -144px;
+ }
+ 
+-a.selector-clearall {
++.selector-clearall {
+     background: url(../img/selector-icons.svg) 0 -160px no-repeat;
+ }
+ 
+-a.active.selector-clearall:focus, a.active.selector-clearall:hover {
++.active.selector-clearall:focus, .active.selector-clearall:hover {
+     background-position: 0 -176px;
+ }
+ 
+diff --git a/django/contrib/admin/static/admin/css/widgets.css b/django/contrib/admin/static/admin/css/widgets.css
+index cc64811a2b..c8bf90b3b2 100644
+--- a/django/contrib/admin/static/admin/css/widgets.css
++++ b/django/contrib/admin/static/admin/css/widgets.css
+@@ -2,7 +2,7 @@
+ 
+ .selector {
+     display: flex;
+-    flex-grow: 1;
++    flex: 1;
+     gap: 0 10px;
+ }
+ 
+@@ -14,17 +14,20 @@
+ }
+ 
+ .selector-available, .selector-chosen {
+-    text-align: center;
+     display: flex;
+     flex-direction: column;
+     flex: 1 1;
+ }
+ 
+-.selector-available h2, .selector-chosen h2 {
++.selector-available-title, .selector-chosen-title {
+     border: 1px solid var(--border-color);
+     border-radius: 4px 4px 0 0;
+ }
+ 
++.selector .helptext {
++    font-size: 0.6875rem;
++}
++
+ .selector-chosen .list-footer-display {
+     border: 1px solid var(--border-color);
+     border-top: none;
+@@ -40,14 +43,20 @@
+     color: var(--breadcrumbs-fg);
+ }
+ 
+-.selector-chosen h2 {
++.selector-chosen-title {
+     background: var(--secondary);
+     color: var(--header-link-color);
++    padding: 8px;
+ }
+ 
+-.selector .selector-available h2 {
++.selector-chosen-title label {
++    color: var(--header-link-color);
++}
++
++.selector-available-title {
+     background: var(--darkened-bg);
+     color: var(--body-quiet-color);
++    padding: 8px;
+ }
+ 
+ .selector .selector-filter {
+@@ -121,6 +130,7 @@
+     overflow: hidden;
+     cursor: default;
+     opacity: 0.55;
++    border: none;
+ }
+ 
+ .active.selector-add, .active.selector-remove {
+@@ -147,7 +157,7 @@
+     background-position: 0 -80px;
+ }
+ 
+-a.selector-chooseall, a.selector-clearall {
++.selector-chooseall, .selector-clearall {
+     display: inline-block;
+     height: 16px;
+     text-align: left;
+@@ -158,38 +168,39 @@ a.selector-chooseall, a.selector-clearall {
+     color: var(--body-quiet-color);
+     text-decoration: none;
+     opacity: 0.55;
++    border: none;
+ }
+ 
+-a.active.selector-chooseall:focus, a.active.selector-clearall:focus,
+-a.active.selector-chooseall:hover, a.active.selector-clearall:hover {
++.active.selector-chooseall:focus, .active.selector-clearall:focus,
++.active.selector-chooseall:hover, .active.selector-clearall:hover {
+     color: var(--link-fg);
+ }
+ 
+-a.active.selector-chooseall, a.active.selector-clearall {
++.active.selector-chooseall, .active.selector-clearall {
+     opacity: 1;
+ }
+ 
+-a.active.selector-chooseall:hover, a.active.selector-clearall:hover {
++.active.selector-chooseall:hover, .active.selector-clearall:hover {
+     cursor: pointer;
+ }
+ 
+-a.selector-chooseall {
++.selector-chooseall {
+     padding: 0 18px 0 0;
+     background: url(../img/selector-icons.svg) right -160px no-repeat;
+     cursor: default;
+ }
+ 
+-a.active.selector-chooseall:focus, a.active.selector-chooseall:hover {
++.active.selector-chooseall:focus, .active.selector-chooseall:hover {
+     background-position: 100% -176px;
+ }
+ 
+-a.selector-clearall {
++.selector-clearall {
+     padding: 0 0 0 18px;
+     background: url(../img/selector-icons.svg) 0 -128px no-repeat;
+     cursor: default;
+ }
+ 
+-a.active.selector-clearall:focus, a.active.selector-clearall:hover {
++.active.selector-clearall:focus, .active.selector-clearall:hover {
+     background-position: 0 -144px;
+ }
+ 
+diff --git a/django/contrib/admin/static/admin/js/SelectFilter2.js b/django/contrib/admin/static/admin/js/SelectFilter2.js
+index 133d809d52..7f0cfef8c9 100644
+--- a/django/contrib/admin/static/admin/js/SelectFilter2.js
++++ b/django/contrib/admin/static/admin/js/SelectFilter2.js
+@@ -15,6 +15,7 @@ Requires core.js and SelectBox.js.
+             const from_box = document.getElementById(field_id);
+             from_box.id += '_from'; // change its ID
+             from_box.className = 'filtered';
++            from_box.setAttribute('aria-labelledby', field_id + '_from_title');
+ 
+             for (const p of from_box.parentNode.getElementsByTagName('p')) {
+                 if (p.classList.contains("info")) {
+@@ -38,18 +39,15 @@ Requires core.js and SelectBox.js.
+             // <div class="selector-available">
+             const selector_available = quickElement('div', selector_div);
+             selector_available.className = 'selector-available';
+-            const title_available = quickElement('h2', selector_available, interpolate(gettext('Available %s') + ' ', [field_name]));
++            const selector_available_title = quickElement('div', selector_available);
++            selector_available_title.id = field_id + '_from_title';
++            selector_available_title.className = 'selector-available-title';
++            quickElement('label', selector_available_title, interpolate(gettext('Available %s') + ' ', [field_name]), 'for', field_id + '_from');
+             quickElement(
+-                'span', title_available, '',
+-                'class', 'help help-tooltip help-icon',
+-                'title', interpolate(
+-                    gettext(
+-                        'This is the list of available %s. You may choose some by ' +
+-                        'selecting them in the box below and then clicking the ' +
+-                        '"Choose" arrow between the two boxes.'
+-                    ),
+-                    [field_name]
+-                )
++                'p',
++                selector_available_title,
++                interpolate(gettext('Choose %s by selecting them and then select the "Choose" arrow button.'), [field_name]),
++                'class', 'helptext'
+             );
+ 
+             const filter_p = quickElement('p', selector_available, '', 'id', field_id + '_filter');
+@@ -60,7 +58,7 @@ Requires core.js and SelectBox.js.
+             quickElement(
+                 'span', search_filter_label, '',
+                 'class', 'help-tooltip search-label-icon',
+-                'title', interpolate(gettext("Type into this box to filter down the list of available %s."), [field_name])
++                'aria-label', interpolate(gettext("Type into this box to filter down the list of available %s."), [field_name])
+             );
+ 
+             filter_p.appendChild(document.createTextNode(' '));
+@@ -69,32 +67,44 @@ Requires core.js and SelectBox.js.
+             filter_input.id = field_id + '_input';
+ 
+             selector_available.appendChild(from_box);
+-            const choose_all = quickElement('a', selector_available, gettext('Choose all'), 'title', interpolate(gettext('Click to choose all %s at once.'), [field_name]), 'href', '#', 'id', field_id + '_add_all_link');
+-            choose_all.className = 'selector-chooseall';
++            const choose_all = quickElement(
++                'button',
++                selector_available,
++                interpolate(gettext('Choose all %s'), [field_name]),
++                'id', field_id + '_add_all',
++                'class', 'selector-chooseall'
++            );
+ 
+             // <ul class="selector-chooser">
+             const selector_chooser = quickElement('ul', selector_div);
+             selector_chooser.className = 'selector-chooser';
+-            const add_link = quickElement('a', quickElement('li', selector_chooser), gettext('Choose'), 'title', gettext('Choose'), 'href', '#', 'id', field_id + '_add_link');
+-            add_link.className = 'selector-add';
+-            const remove_link = quickElement('a', quickElement('li', selector_chooser), gettext('Remove'), 'title', gettext('Remove'), 'href', '#', 'id', field_id + '_remove_link');
+-            remove_link.className = 'selector-remove';
++            const add_button = quickElement(
++                'button',
++                quickElement('li', selector_chooser),
++                interpolate(gettext('Choose selected %s'), [field_name]),
++                'id', field_id + '_add',
++                'class', 'selector-add'
++            );
++            const remove_button = quickElement(
++                'button',
++                quickElement('li', selector_chooser),
++                interpolate(gettext('Remove selected chosen %s'), [field_name]),
++                'id', field_id + '_remove',
++                'class', 'selector-remove'
++            );
+ 
+             // <div class="selector-chosen">
+             const selector_chosen = quickElement('div', selector_div, '', 'id', field_id + '_selector_chosen');
+             selector_chosen.className = 'selector-chosen';
+-            const title_chosen = quickElement('h2', selector_chosen, interpolate(gettext('Chosen %s') + ' ', [field_name]));
++            const selector_chosen_title = quickElement('div', selector_chosen);
++            selector_chosen_title.className = 'selector-chosen-title';
++            selector_chosen_title.id = field_id + '_to_title';
++            quickElement('label', selector_chosen_title, interpolate(gettext('Chosen %s') + ' ', [field_name]), 'for', field_id + '_to');
+             quickElement(
+-                'span', title_chosen, '',
+-                'class', 'help help-tooltip help-icon',
+-                'title', interpolate(
+-                    gettext(
+-                        'This is the list of chosen %s. You may remove some by ' +
+-                        'selecting them in the box below and then clicking the ' +
+-                        '"Remove" arrow between the two boxes.'
+-                    ),
+-                    [field_name]
+-                )
++                'p',
++                selector_chosen_title,
++                interpolate(gettext('Remove %s by selecting them and then select the "Remove" arrow button.'), [field_name]),
++                'class', 'helptext'
+             );
+             
+             const filter_selected_p = quickElement('p', selector_chosen, '', 'id', field_id + '_filter_selected');
+@@ -105,7 +115,7 @@ Requires core.js and SelectBox.js.
+             quickElement(
+                 'span', search_filter_selected_label, '',
+                 'class', 'help-tooltip search-label-icon',
+-                'title', interpolate(gettext("Type into this box to filter down the list of selected %s."), [field_name])
++                'aria-label', interpolate(gettext("Type into this box to filter down the list of selected %s."), [field_name])
+             );
+ 
+             filter_selected_p.appendChild(document.createTextNode(' '));
+@@ -113,15 +123,27 @@ Requires core.js and SelectBox.js.
+             const filter_selected_input = quickElement('input', filter_selected_p, '', 'type', 'text', 'placeholder', gettext("Filter"));
+             filter_selected_input.id = field_id + '_selected_input';
+ 
+-            const to_box = quickElement('select', selector_chosen, '', 'id', field_id + '_to', 'multiple', '', 'size', from_box.size, 'name', from_box.name);
+-            to_box.className = 'filtered';
+-            
++            quickElement(
++                'select',
++                selector_chosen,
++                '',
++                'id', field_id + '_to',
++                'multiple', '',
++                'size', from_box.size,
++                'name', from_box.name,
++                'aria-labelledby', field_id + '_to_title',
++                'class', 'filtered'
++            );
+             const warning_footer = quickElement('div', selector_chosen, '', 'class', 'list-footer-display');
+             quickElement('span', warning_footer, '', 'id', field_id + '_list-footer-display-text');
+             quickElement('span', warning_footer, ' ' + gettext('(click to clear)'), 'class', 'list-footer-display__clear');
+-            
+-            const clear_all = quickElement('a', selector_chosen, gettext('Remove all'), 'title', interpolate(gettext('Click to remove all chosen %s at once.'), [field_name]), 'href', '#', 'id', field_id + '_remove_all_link');
+-            clear_all.className = 'selector-clearall';
++            const clear_all = quickElement(
++                'button',
++                selector_chosen,
++                interpolate(gettext('Remove all %s'), [field_name]),
++                'id', field_id + '_remove_all',
++                'class', 'selector-clearall'
++            );
+ 
+             from_box.name = from_box.name + '_old';
+ 
+@@ -138,10 +160,10 @@ Requires core.js and SelectBox.js.
+             choose_all.addEventListener('click', function(e) {
+                 move_selection(e, this, SelectBox.move_all, field_id + '_from', field_id + '_to');
+             });
+-            add_link.addEventListener('click', function(e) {
++            add_button.addEventListener('click', function(e) {
+                 move_selection(e, this, SelectBox.move, field_id + '_from', field_id + '_to');
+             });
+-            remove_link.addEventListener('click', function(e) {
++            remove_button.addEventListener('click', function(e) {
+                 move_selection(e, this, SelectBox.move, field_id + '_to', field_id + '_from');
+             });
+             clear_all.addEventListener('click', function(e) {
+@@ -227,11 +249,11 @@ Requires core.js and SelectBox.js.
+             const from = document.getElementById(field_id + '_from');
+             const to = document.getElementById(field_id + '_to');
+             // Active if at least one item is selected
+-            document.getElementById(field_id + '_add_link').classList.toggle('active', SelectFilter.any_selected(from));
+-            document.getElementById(field_id + '_remove_link').classList.toggle('active', SelectFilter.any_selected(to));
++            document.getElementById(field_id + '_add').classList.toggle('active', SelectFilter.any_selected(from));
++            document.getElementById(field_id + '_remove').classList.toggle('active', SelectFilter.any_selected(to));
+             // Active if the corresponding box isn't empty
+-            document.getElementById(field_id + '_add_all_link').classList.toggle('active', from.querySelector('option'));
+-            document.getElementById(field_id + '_remove_all_link').classList.toggle('active', to.querySelector('option'));
++            document.getElementById(field_id + '_add_all').classList.toggle('active', from.querySelector('option'));
++            document.getElementById(field_id + '_remove_all').classList.toggle('active', to.querySelector('option'));
+             SelectFilter.refresh_filtered_warning(field_id);
+         },
+         filter_key_press: function(event, field_id, source, target) {
+diff --git a/js_tests/admin/SelectFilter2.test.js b/js_tests/admin/SelectFilter2.test.js
+index 0b1317cff5..af227c0c1e 100644
+--- a/js_tests/admin/SelectFilter2.test.js
++++ b/js_tests/admin/SelectFilter2.test.js
+@@ -12,13 +12,25 @@ QUnit.test('init', function(assert) {
+     SelectFilter.init('id', 'things', 0);
+     assert.equal($('#test').children().first().prop("tagName"), "DIV");
+     assert.equal($('#test').children().first().attr("class"), "selector");
+-    assert.equal($('.selector-available h2').text().trim(), "Available things");
+-    assert.equal($('.selector-chosen h2').text().trim(), "Chosen things");
++    assert.equal($('.selector-available label').text().trim(), "Available things");
++    assert.equal($('.selector-chosen label').text().trim(), "Chosen things");
+     assert.equal($('.selector-chosen select')[0].getAttribute('multiple'), '');
+-    assert.equal($('.selector-chooseall').text(), "Choose all");
+-    assert.equal($('.selector-add').text(), "Choose");
+-    assert.equal($('.selector-remove').text(), "Remove");
+-    assert.equal($('.selector-clearall').text(), "Remove all");
++    assert.equal($('.selector-chooseall').text(), "Choose all things");
++    assert.equal($('.selector-chooseall').prop("tagName"), "BUTTON");
++    assert.equal($('.selector-add').text(), "Choose selected things");
++    assert.equal($('.selector-add').prop("tagName"), "BUTTON");
++    assert.equal($('.selector-remove').text(), "Remove selected chosen things");
++    assert.equal($('.selector-remove').prop("tagName"), "BUTTON");
++    assert.equal($('.selector-clearall').text(), "Remove all things");
++    assert.equal($('.selector-clearall').prop("tagName"), "BUTTON");
++    assert.equal($('.selector-available .filtered').attr("aria-labelledby"), "id_from_title");
++    assert.equal($('.selector-available .selector-available-title label').text(), "Available things ");
++    assert.equal($('.selector-available .selector-available-title .helptext').text(), 'Choose things by selecting them and then select the "Choose" arrow button.');
++    assert.equal($('.selector-chosen .filtered').attr("aria-labelledby"), "id_to_title");
++    assert.equal($('.selector-chosen .selector-chosen-title label').text(), "Chosen things ");
++    assert.equal($('.selector-chosen .selector-chosen-title .helptext').text(), 'Remove things by selecting them and then select the "Remove" arrow button.');
++    assert.equal($('.selector-filter label .help-tooltip')[0].getAttribute("aria-label"), "Type into this box to filter down the list of available things.");
++    assert.equal($('.selector-filter label .help-tooltip')[1].getAttribute("aria-label"), "Type into this box to filter down the list of selected things.");
+ });
+ 
+ QUnit.test('filtering available options', function(assert) {
+diff --git a/tests/admin_inlines/tests.py b/tests/admin_inlines/tests.py
+index 9c32f6fb8e..b08ab3a52a 100644
+--- a/tests/admin_inlines/tests.py
++++ b/tests/admin_inlines/tests.py
+@@ -2420,31 +2420,43 @@ class SeleniumTests(AdminSeleniumTestCase):
+             "admin:admin_inlines_courseproxy1_add",
+             "admin:admin_inlines_courseproxy2_add",
+         ]
+-        css_selector = ".dynamic-class_set#class_set-%s h2"
++        css_available_selector = (
++            ".dynamic-class_set#class_set-%s .selector-available-title"
++        )
++        css_chosen_selector = ".dynamic-class_set#class_set-%s .selector-chosen-title"
+ 
+         for url_name in tests:
+             with self.subTest(url=url_name):
+                 self.selenium.get(self.live_server_url + reverse(url_name))
+                 # First inline shows the verbose_name.
+-                available, chosen = self.selenium.find_elements(
+-                    By.CSS_SELECTOR, css_selector % 0
++                available = self.selenium.find_element(
++                    By.CSS_SELECTOR, css_available_selector % 0
++                )
++                chosen = self.selenium.find_element(
++                    By.CSS_SELECTOR, css_chosen_selector % 0
+                 )
+-                self.assertEqual(available.text, "AVAILABLE ATTENDANT")
+-                self.assertEqual(chosen.text, "CHOSEN ATTENDANT")
++                self.assertIn("Available attendant", available.text)
++                self.assertIn("Chosen attendant", chosen.text)
+                 # Added inline should also have the correct verbose_name.
+                 self.selenium.find_element(By.LINK_TEXT, "Add another Class").click()
+-                available, chosen = self.selenium.find_elements(
+-                    By.CSS_SELECTOR, css_selector % 1
++                available = self.selenium.find_element(
++                    By.CSS_SELECTOR, css_available_selector % 1
+                 )
+-                self.assertEqual(available.text, "AVAILABLE ATTENDANT")
+-                self.assertEqual(chosen.text, "CHOSEN ATTENDANT")
++                chosen = self.selenium.find_element(
++                    By.CSS_SELECTOR, css_chosen_selector % 1
++                )
++                self.assertIn("Available attendant", available.text)
++                self.assertIn("Chosen attendant", chosen.text)
+                 # Third inline should also have the correct verbose_name.
+                 self.selenium.find_element(By.LINK_TEXT, "Add another Class").click()
+-                available, chosen = self.selenium.find_elements(
+-                    By.CSS_SELECTOR, css_selector % 2
++                available = self.selenium.find_element(
++                    By.CSS_SELECTOR, css_available_selector % 2
++                )
++                chosen = self.selenium.find_element(
++                    By.CSS_SELECTOR, css_chosen_selector % 2
+                 )
+-                self.assertEqual(available.text, "AVAILABLE ATTENDANT")
+-                self.assertEqual(chosen.text, "CHOSEN ATTENDANT")
++                self.assertIn("Available attendant", available.text)
++                self.assertIn("Chosen attendant", chosen.text)
+ 
+     def test_tabular_inline_layout(self):
+         from selenium.webdriver.common.by import By
+diff --git a/tests/admin_views/test_related_object_lookups.py b/tests/admin_views/test_related_object_lookups.py
+index 4b2171a09f..b591117460 100644
+--- a/tests/admin_views/test_related_object_lookups.py
++++ b/tests/admin_views/test_related_object_lookups.py
+@@ -162,7 +162,7 @@ class SeleniumTests(AdminSeleniumTestCase):
+ 
+         # Move the new value to the from box.
+         self.selenium.find_element(By.XPATH, "//*[@id='id_m2m_to']/option").click()
+-        self.selenium.find_element(By.XPATH, "//*[@id='id_m2m_remove_link']").click()
++        self.selenium.find_element(By.XPATH, "//*[@id='id_m2m_remove']").click()
+ 
+         self.assertHTMLEqual(
+             m2m_box.get_attribute("innerHTML"),
+@@ -172,7 +172,7 @@ class SeleniumTests(AdminSeleniumTestCase):
+ 
+         # Move the new value to the to box.
+         self.selenium.find_element(By.XPATH, "//*[@id='id_m2m_from']/option").click()
+-        self.selenium.find_element(By.XPATH, "//*[@id='id_m2m_add_link']").click()
++        self.selenium.find_element(By.XPATH, "//*[@id='id_m2m_add']").click()
+ 
+         self.assertHTMLEqual(m2m_box.get_attribute("innerHTML"), "")
+         self.assertHTMLEqual(
+diff --git a/tests/admin_views/tests.py b/tests/admin_views/tests.py
+index 3f106f6814..1ff29fc3db 100644
+--- a/tests/admin_views/tests.py
++++ b/tests/admin_views/tests.py
+@@ -6225,9 +6225,7 @@ class SeleniumTests(AdminSeleniumTestCase):
+         self.take_screenshot("selectbox-available-perms-some-selected")
+ 
+         # Move permissions to the "Chosen" list, but none is selected yet.
+-        self.selenium.find_element(
+-            By.CSS_SELECTOR, "#id_user_permissions_add_link"
+-        ).click()
++        self.selenium.find_element(By.CSS_SELECTOR, "#id_user_permissions_add").click()
+         self.take_screenshot("selectbox-chosen-perms-none-selected")
+ 
+         # Select some permissions from the "Chosen" list.
+diff --git a/tests/admin_widgets/tests.py b/tests/admin_widgets/tests.py
+index 5da4adf8c9..a81f5802d1 100644
+--- a/tests/admin_widgets/tests.py
++++ b/tests/admin_widgets/tests.py
+@@ -1257,15 +1257,19 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+     def assertActiveButtons(
+         self, mode, field_name, choose, remove, choose_all=None, remove_all=None
+     ):
+-        choose_link = "#id_%s_add_link" % field_name
+-        choose_all_link = "#id_%s_add_all_link" % field_name
+-        remove_link = "#id_%s_remove_link" % field_name
+-        remove_all_link = "#id_%s_remove_all_link" % field_name
+-        self.assertEqual(self.has_css_class(choose_link, "active"), choose)
+-        self.assertEqual(self.has_css_class(remove_link, "active"), remove)
++        choose_button = "#id_%s_add" % field_name
++        choose_all_button = "#id_%s_add_all" % field_name
++        remove_button = "#id_%s_remove" % field_name
++        remove_all_button = "#id_%s_remove_all" % field_name
++        self.assertEqual(self.has_css_class(choose_button, "active"), choose)
++        self.assertEqual(self.has_css_class(remove_button, "active"), remove)
+         if mode == "horizontal":
+-            self.assertEqual(self.has_css_class(choose_all_link, "active"), choose_all)
+-            self.assertEqual(self.has_css_class(remove_all_link, "active"), remove_all)
++            self.assertEqual(
++                self.has_css_class(choose_all_button, "active"), choose_all
++            )
++            self.assertEqual(
++                self.has_css_class(remove_all_button, "active"), remove_all
++            )
+ 
+     def execute_basic_operations(self, mode, field_name):
+         from selenium.webdriver.common.by import By
+@@ -1274,10 +1278,10 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+ 
+         from_box = "#id_%s_from" % field_name
+         to_box = "#id_%s_to" % field_name
+-        choose_link = "id_%s_add_link" % field_name
+-        choose_all_link = "id_%s_add_all_link" % field_name
+-        remove_link = "id_%s_remove_link" % field_name
+-        remove_all_link = "id_%s_remove_all_link" % field_name
++        choose_button = "id_%s_add" % field_name
++        choose_all_button = "id_%s_add_all" % field_name
++        remove_button = "id_%s_remove" % field_name
++        remove_all_button = "id_%s_remove_all" % field_name
+ 
+         # Initial positions ---------------------------------------------------
+         self.assertSelectOptions(
+@@ -1296,7 +1300,7 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+ 
+         # Click 'Choose all' --------------------------------------------------
+         if mode == "horizontal":
+-            self.selenium.find_element(By.ID, choose_all_link).click()
++            self.selenium.find_element(By.ID, choose_all_button).click()
+         elif mode == "vertical":
+             # There 's no 'Choose all' button in vertical mode, so individually
+             # select all options and click 'Choose'.
+@@ -1304,7 +1308,7 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+                 By.CSS_SELECTOR, from_box + " > option"
+             ):
+                 option.click()
+-            self.selenium.find_element(By.ID, choose_link).click()
++            self.selenium.find_element(By.ID, choose_button).click()
+         self.assertSelectOptions(from_box, [])
+         self.assertSelectOptions(
+             to_box,
+@@ -1323,7 +1327,7 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+ 
+         # Click 'Remove all' --------------------------------------------------
+         if mode == "horizontal":
+-            self.selenium.find_element(By.ID, remove_all_link).click()
++            self.selenium.find_element(By.ID, remove_all_button).click()
+         elif mode == "vertical":
+             # There 's no 'Remove all' button in vertical mode, so individually
+             # select all options and click 'Remove'.
+@@ -1331,7 +1335,7 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+                 By.CSS_SELECTOR, to_box + " > option"
+             ):
+                 option.click()
+-            self.selenium.find_element(By.ID, remove_link).click()
++            self.selenium.find_element(By.ID, remove_button).click()
+         self.assertSelectOptions(
+             from_box,
+             [
+@@ -1364,7 +1368,7 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+         self.select_option(from_box, str(self.bob.id))
+         self.select_option(from_box, str(self.john.id))
+         self.assertActiveButtons(mode, field_name, True, False, True, False)
+-        self.selenium.find_element(By.ID, choose_link).click()
++        self.selenium.find_element(By.ID, choose_button).click()
+         self.assertActiveButtons(mode, field_name, False, False, True, True)
+ 
+         self.assertSelectOptions(
+@@ -1399,7 +1403,7 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+         self.select_option(to_box, str(self.lisa.id))
+         self.select_option(to_box, str(self.bob.id))
+         self.assertActiveButtons(mode, field_name, False, True, True, True)
+-        self.selenium.find_element(By.ID, remove_link).click()
++        self.selenium.find_element(By.ID, remove_button).click()
+         self.assertActiveButtons(mode, field_name, False, False, True, True)
+ 
+         self.assertSelectOptions(
+@@ -1418,7 +1422,7 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+         # Choose some more options --------------------------------------------
+         self.select_option(from_box, str(self.arthur.id))
+         self.select_option(from_box, str(self.cliff.id))
+-        self.selenium.find_element(By.ID, choose_link).click()
++        self.selenium.find_element(By.ID, choose_button).click()
+ 
+         self.assertSelectOptions(
+             from_box,
+@@ -1445,7 +1449,7 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+ 
+         # Confirm they're selected after clicking inactive buttons: ticket #26575
+         self.assertSelectedOptions(from_box, [str(self.peter.id), str(self.lisa.id)])
+-        self.selenium.find_element(By.ID, remove_link).click()
++        self.selenium.find_element(By.ID, remove_button).click()
+         self.assertSelectedOptions(from_box, [str(self.peter.id), str(self.lisa.id)])
+ 
+         # Unselect the options ------------------------------------------------
+@@ -1458,7 +1462,7 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+ 
+         # Confirm they're selected after clicking inactive buttons: ticket #26575
+         self.assertSelectedOptions(to_box, [str(self.jason.id), str(self.john.id)])
+-        self.selenium.find_element(By.ID, choose_link).click()
++        self.selenium.find_element(By.ID, choose_button).click()
+         self.assertSelectedOptions(to_box, [str(self.jason.id), str(self.john.id)])
+ 
+         # Unselect the options ------------------------------------------------
+@@ -1520,8 +1524,8 @@ class HorizontalVerticalFilterSeleniumTests(AdminWidgetSeleniumTestCase):
+             for field_name in ["students", "alumni"]:
+                 from_box = "#id_%s_from" % field_name
+                 to_box = "#id_%s_to" % field_name
+-                choose_link = "id_%s_add_link" % field_name
+-                remove_link = "id_%s_remove_link" % field_name
++                choose_link = "id_%s_add" % field_name
++                remove_link = "id_%s_remove" % field_name
+                 input = self.selenium.find_element(By.ID, "id_%s_input" % field_name)
+                 # Initial values.
+                 self.assertSelectOptions(

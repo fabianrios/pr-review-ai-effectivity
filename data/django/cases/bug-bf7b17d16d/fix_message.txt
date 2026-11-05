@@ -1,0 +1,5 @@
+Refs #36075 -- Adjusted MTI handling of _non_pk_concrete_field_names.
+
+Regression in bf7b17d16d3978b2e1cee4a0f7ce8840bd1a8dc4.
+
+Thanks Sage Abdullah for the report.

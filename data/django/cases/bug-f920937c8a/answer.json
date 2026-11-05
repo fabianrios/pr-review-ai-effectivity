@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-f920937c8a",
+  "pr_url": "https://github.com/django/django/pull/18270",
+  "kind": "bug",
+  "ground_truth": "To skip the regex for converter-less routes, `RoutePattern.match()` now compares the path with `self._route` using string operations (`==`, `startswith`, `removeprefix`). `_route` can be a lazy translation object (`gettext_lazy()` routes, e.g. with i18n URL patterns). Lazy proxies don't behave like `str` for `str.startswith()` / `str.removeprefix()`, so such routes fail to match or raise. Fixed by coercing the route with `str(self._route)` at match time.",
+  "bug_files": [
+    "django/urls/resolvers.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "7bf3ac3ee255bcfe329e3203c7a2555b1275d506",
+  "issue": null,
+  "fix_tickets": [
+    36796
+  ],
+  "evidence_url": null
+}

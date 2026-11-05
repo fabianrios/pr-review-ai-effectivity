@@ -1,0 +1,571 @@
+diff --git a/packages/compiler-cli/test/compliance/test_cases/r3_compiler_compliance/elements/TEST_CASES.json b/packages/compiler-cli/test/compliance/test_cases/r3_compiler_compliance/elements/TEST_CASES.json
+index aeed83f7aa..8c57978716 100644
+--- a/packages/compiler-cli/test/compliance/test_cases/r3_compiler_compliance/elements/TEST_CASES.json
++++ b/packages/compiler-cli/test/compliance/test_cases/r3_compiler_compliance/elements/TEST_CASES.json
+@@ -253,8 +253,7 @@
+         {
+           "failureMessage": "Incorrect generated template."
+         }
+-      ],
+-      "skipForTemplatePipeline": true
++      ]
+     }
+   ]
+-}
+\ No newline at end of file
++}
+diff --git a/packages/compiler/src/render3/view/compiler.ts b/packages/compiler/src/render3/view/compiler.ts
+index 395ea80d49..b5c2b0e5c9 100644
+--- a/packages/compiler/src/render3/view/compiler.ts
++++ b/packages/compiler/src/render3/view/compiler.ts
+@@ -606,7 +606,7 @@ function createHostBindingsFunction(
+           events: eventBindings,
+           attributes: hostBindingsMetadata.attributes,
+         },
+-        bindingParser, constantPool);
++        constantPool);
+     transform(hostJob, CompilationJobKind.Host);
+ 
+     definitionMap.set('hostAttrs', hostJob.root.attributes);
+diff --git a/packages/compiler/src/template/pipeline/ir/src/enums.ts b/packages/compiler/src/template/pipeline/ir/src/enums.ts
+index 41a79f4135..7c62382394 100644
+--- a/packages/compiler/src/template/pipeline/ir/src/enums.ts
++++ b/packages/compiler/src/template/pipeline/ir/src/enums.ts
+@@ -350,6 +350,11 @@ export enum ExpressionKind {
+    */
+   SanitizerExpr,
+ 
++  /**
++   * An expression representing a function to create trusted values.
++   */
++  TrustedValueFnExpr,
++
+   /**
+    * An expression that will cause a literal slot index to be emitted.
+    */
+@@ -417,18 +422,6 @@ export enum CompatibilityMode {
+   TemplateDefinitionBuilder,
+ }
+ 
+-/**
+- * Represents functions used to sanitize different pieces of a template.
+- */
+-export enum SanitizerFn {
+-  Html,
+-  Script,
+-  Style,
+-  Url,
+-  ResourceUrl,
+-  IframeAttribute,
+-}
+-
+ /**
+  * Enumeration of the different kinds of `@defer` secondary blocks.
+  */
+diff --git a/packages/compiler/src/template/pipeline/ir/src/expression.ts b/packages/compiler/src/template/pipeline/ir/src/expression.ts
+index 143a21a7bd..4e39d4b1f6 100644
+--- a/packages/compiler/src/template/pipeline/ir/src/expression.ts
++++ b/packages/compiler/src/template/pipeline/ir/src/expression.ts
+@@ -10,7 +10,7 @@ import * as o from '../../../../output/output_ast';
+ import type {ParseSourceSpan} from '../../../../parse_util';
+ 
+ import * as t from '../../../../render3/r3_ast';
+-import {DerivedRepeaterVarIdentity, ExpressionKind, OpKind, SanitizerFn} from './enums';
++import {DerivedRepeaterVarIdentity, ExpressionKind, OpKind} from './enums';
+ import {SlotHandle} from './handle';
+ import type {XrefId} from './operations';
+ import type {CreateOp} from './ops/create';
+@@ -24,7 +24,7 @@ export type Expression = LexicalReadExpr|ReferenceExpr|ContextExpr|NextContextEx
+     GetCurrentViewExpr|RestoreViewExpr|ResetViewExpr|ReadVariableExpr|PureFunctionExpr|
+     PureFunctionParameterExpr|PipeBindingExpr|PipeBindingVariadicExpr|SafePropertyReadExpr|
+     SafeKeyedReadExpr|SafeInvokeFunctionExpr|EmptyExpr|AssignTemporaryExpr|ReadTemporaryExpr|
+-    SanitizerExpr|SlotLiteralExpr|ConditionalCaseExpr|DerivedRepeaterVarExpr|ConstCollectedExpr;
++    SlotLiteralExpr|ConditionalCaseExpr|DerivedRepeaterVarExpr|ConstCollectedExpr;
+ 
+ /**
+  * Transformer type which converts expressions into general `o.Expression`s (which may be an
+@@ -732,30 +732,6 @@ export class ReadTemporaryExpr extends ExpressionBase {
+   }
+ }
+ 
+-export class SanitizerExpr extends ExpressionBase {
+-  override readonly kind = ExpressionKind.SanitizerExpr;
+-
+-  constructor(public fn: SanitizerFn) {
+-    super();
+-  }
+-
+-  override visitExpression(visitor: o.ExpressionVisitor, context: any): any {}
+-
+-  override isEquivalent(e: Expression): boolean {
+-    return e instanceof SanitizerExpr && e.fn === this.fn;
+-  }
+-
+-  override isConstant() {
+-    return true;
+-  }
+-
+-  override clone(): SanitizerExpr {
+-    return new SanitizerExpr(this.fn);
+-  }
+-
+-  override transformInternalExpressions(): void {}
+-}
+-
+ export class SlotLiteralExpr extends ExpressionBase {
+   override readonly kind = ExpressionKind.SlotLiteralExpr;
+ 
+@@ -968,6 +944,8 @@ export function transformExpressionsInOp(
+     case OpKind.ExtractedAttribute:
+       op.expression =
+           op.expression && transformExpressionsInExpression(op.expression, transform, flags);
++      op.trustedValueFn = op.trustedValueFn &&
++          transformExpressionsInExpression(op.trustedValueFn, transform, flags);
+       break;
+     case OpKind.RepeaterCreate:
+       op.track = transformExpressionsInExpression(op.track, transform, flags);
+@@ -1087,6 +1065,10 @@ export function transformExpressionsInExpression(
+     }
+   } else if (expr instanceof o.NotExpr) {
+     expr.condition = transformExpressionsInExpression(expr.condition, transform, flags);
++  } else if (expr instanceof o.TaggedTemplateExpr) {
++    expr.tag = transformExpressionsInExpression(expr.tag, transform, flags);
++    expr.template.expressions =
++        expr.template.expressions.map(e => transformExpressionsInExpression(e, transform, flags));
+   } else if (
+       expr instanceof o.ReadVarExpr || expr instanceof o.ExternalExpr ||
+       expr instanceof o.LiteralExpr) {
+diff --git a/packages/compiler/src/template/pipeline/ir/src/ops/create.ts b/packages/compiler/src/template/pipeline/ir/src/ops/create.ts
+index 46042d5c3c..5815c6a113 100644
+--- a/packages/compiler/src/template/pipeline/ir/src/ops/create.ts
++++ b/packages/compiler/src/template/pipeline/ir/src/ops/create.ts
+@@ -6,6 +6,7 @@
+  * found in the LICENSE file at https://angular.io/license
+  */
+ 
++import {SecurityContext} from '../../../../../core';
+ import * as i18n from '../../../../../i18n/i18n_ast';
+ import * as o from '../../../../../output/output_ast';
+ import {ParseSourceSpan} from '../../../../../parse_util';
+@@ -660,6 +661,16 @@ export interface ExtractedAttributeOp extends Op<CreateOp> {
+    */
+   i18nContext: XrefId|null;
+ 
++  /**
++   * The security context of the binding.
++   */
++  securityContext: SecurityContext;
++
++  /**
++   * The trusted value function for this property.
++   */
++  trustedValueFn: o.Expression|null;
++
+   i18nMessage: i18n.Message|null;
+ }
+ 
+@@ -668,7 +679,8 @@ export interface ExtractedAttributeOp extends Op<CreateOp> {
+  */
+ export function createExtractedAttributeOp(
+     target: XrefId, bindingKind: BindingKind, name: string, expression: o.Expression|null,
+-    i18nContext: XrefId|null, i18nMessage: i18n.Message|null): ExtractedAttributeOp {
++    i18nContext: XrefId|null, i18nMessage: i18n.Message|null,
++    securityContext: SecurityContext): ExtractedAttributeOp {
+   return {
+     kind: OpKind.ExtractedAttribute,
+     target,
+@@ -677,6 +689,8 @@ export function createExtractedAttributeOp(
+     expression,
+     i18nContext,
+     i18nMessage,
++    securityContext,
++    trustedValueFn: null,
+     ...NEW_OP,
+   };
+ }
+diff --git a/packages/compiler/src/template/pipeline/src/ingest.ts b/packages/compiler/src/template/pipeline/src/ingest.ts
+index 95456e3e4e..fe63285eb9 100644
+--- a/packages/compiler/src/template/pipeline/src/ingest.ts
++++ b/packages/compiler/src/template/pipeline/src/ingest.ts
+@@ -16,7 +16,7 @@ import {ParseSourceSpan} from '../../../parse_util';
+ import * as t from '../../../render3/r3_ast';
+ import {R3DeferBlockMetadata} from '../../../render3/view/api';
+ import {icuFromI18nMessage, isSingleI18nIcu} from '../../../render3/view/i18n/util';
+-import {BindingParser} from '../../../template_parser/binding_parser';
++import {DomElementSchemaRegistry} from '../../../schema/dom_element_schema_registry';
+ import * as ir from '../ir';
+ 
+ import {CompilationUnit, ComponentCompilationJob, HostBindingCompilationJob, type CompilationJob, type ViewCompilationUnit} from './compilation';
+@@ -24,6 +24,12 @@ import {BINARY_OPERATORS, namespaceForKey, prefixWithNamespace} from './conversi
+ 
+ const compatibilityMode = ir.CompatibilityMode.TemplateDefinitionBuilder;
+ 
++// Schema containing DOM elements and their properties.
++const domSchema = new DomElementSchemaRegistry();
++
++// Tag name of the `ng-template` element.
++const NG_TEMPLATE_TAG_NAME = 'ng-template';
++
+ /**
+  * Process a template AST and convert it into a `ComponentCompilation` in the intermediate
+  * representation.
+@@ -52,8 +58,7 @@ export interface HostBindingInput {
+  * representation.
+  */
+ export function ingestHostBinding(
+-    input: HostBindingInput, bindingParser: BindingParser,
+-    constantPool: ConstantPool): HostBindingCompilationJob {
++    input: HostBindingInput, constantPool: ConstantPool): HostBindingCompilationJob {
+   const job = new HostBindingCompilationJob(input.componentName, constantPool, compatibilityMode);
+   for (const property of input.properties ?? []) {
+     ingestHostProperty(job, property, false);
+@@ -250,9 +255,10 @@ function ingestContent(unit: ViewCompilationUnit, content: t.Content): void {
+   const op = ir.createProjectionOp(
+       unit.job.allocateXrefId(), content.selector, content.i18n, attrs, content.sourceSpan);
+   for (const attr of content.attributes) {
++    const securityContext = domSchema.securityContext(content.name, attr.name, true);
+     unit.update.push(ir.createBindingOp(
+-        op.xref, ir.BindingKind.Attribute, attr.name, o.literal(attr.value), null,
+-        SecurityContext.NONE, true, false, null, asMessage(attr.i18n), attr.sourceSpan));
++        op.xref, ir.BindingKind.Attribute, attr.name, o.literal(attr.value), null, securityContext,
++        true, false, null, asMessage(attr.i18n), attr.sourceSpan));
+   }
+   unit.create.push(op);
+ }
+@@ -790,7 +796,7 @@ const BINDING_KINDS = new Map<e.BindingType, ir.BindingKind>([
+  * | `<ng-template *ngIf>` (structural) | null               |
+  */
+ function isPlainTemplate(tmpl: t.Template) {
+-  return splitNsName(tmpl.tagName ?? '')[1] === 'ng-template';
++  return splitNsName(tmpl.tagName ?? '')[1] === NG_TEMPLATE_TAG_NAME;
+ }
+ 
+ /**
+@@ -816,10 +822,11 @@ function ingestElementBindings(
+ 
+   for (const attr of element.attributes) {
+     // Attribute literal bindings, such as `attr.foo="bar"`.
++    const securityContext = domSchema.securityContext(element.name, attr.name, true);
+     bindings.push(ir.createBindingOp(
+         op.xref, ir.BindingKind.Attribute, attr.name,
+-        convertAstWithInterpolation(unit.job, attr.value, attr.i18n), null, SecurityContext.NONE,
+-        true, false, null, asMessage(attr.i18n), attr.sourceSpan));
++        convertAstWithInterpolation(unit.job, attr.value, attr.i18n), null, securityContext, true,
++        false, null, asMessage(attr.i18n), attr.sourceSpan));
+   }
+ 
+   for (const input of element.inputs) {
+@@ -865,8 +872,9 @@ function ingestTemplateBindings(
+ 
+   for (const attr of template.templateAttrs) {
+     if (attr instanceof t.TextAttribute) {
++      const securityContext = domSchema.securityContext(NG_TEMPLATE_TAG_NAME, attr.name, true);
+       bindings.push(createTemplateBinding(
+-          unit, op.xref, e.BindingType.Attribute, attr.name, attr.value, null, SecurityContext.NONE,
++          unit, op.xref, e.BindingType.Attribute, attr.name, attr.value, null, securityContext,
+           true, templateKind, asMessage(attr.i18n), attr.sourceSpan));
+     } else {
+       bindings.push(createTemplateBinding(
+@@ -877,9 +885,10 @@ function ingestTemplateBindings(
+ 
+   for (const attr of template.attributes) {
+     // Attribute literal bindings, such as `attr.foo="bar"`.
++    const securityContext = domSchema.securityContext(NG_TEMPLATE_TAG_NAME, attr.name, true);
+     bindings.push(createTemplateBinding(
+-        unit, op.xref, e.BindingType.Attribute, attr.name, attr.value, null, SecurityContext.NONE,
+-        false, templateKind, asMessage(attr.i18n), attr.sourceSpan));
++        unit, op.xref, e.BindingType.Attribute, attr.name, attr.value, null, securityContext, false,
++        templateKind, asMessage(attr.i18n), attr.sourceSpan));
+   }
+ 
+   for (const input of template.inputs) {
+@@ -907,8 +916,9 @@ function ingestTemplateBindings(
+     if (templateKind === ir.TemplateKind.Structural &&
+         output.type !== e.ParsedEventType.Animation) {
+       // Animation bindings are excluded from the structural template's const array.
++      const securityContext = domSchema.securityContext(NG_TEMPLATE_TAG_NAME, output.name, true);
+       unit.create.push(ir.createExtractedAttributeOp(
+-          op.xref, ir.BindingKind.Property, output.name, null, null, null));
++          op.xref, ir.BindingKind.Property, output.name, null, null, null, securityContext));
+     }
+   }
+ 
+@@ -965,7 +975,7 @@ function createTemplateBinding(
+       // the ng-template's consts (e.g. for the purposes of directive matching). However, we should
+       // not generate an update instruction for it.
+       return ir.createExtractedAttributeOp(
+-          xref, ir.BindingKind.Property, name, null, null, i18nMessage);
++          xref, ir.BindingKind.Property, name, null, null, i18nMessage, securityContext);
+     }
+ 
+     if (!isTextBinding && (type === e.BindingType.Attribute || type === e.BindingType.Animation)) {
+@@ -1123,15 +1133,16 @@ function ingestControlFlowInsertionPoint(
+   // and they can be used in directive matching (in the case of `Template.templateAttrs`).
+   if (root !== null) {
+     for (const attr of root.attributes) {
++      const securityContext = domSchema.securityContext(NG_TEMPLATE_TAG_NAME, attr.name, true);
+       unit.update.push(ir.createBindingOp(
+-          xref, ir.BindingKind.Attribute, attr.name, o.literal(attr.value), null,
+-          SecurityContext.NONE, true, false, null, asMessage(attr.i18n), attr.sourceSpan));
++          xref, ir.BindingKind.Attribute, attr.name, o.literal(attr.value), null, securityContext,
++          true, false, null, asMessage(attr.i18n), attr.sourceSpan));
+     }
+ 
+     const tagName = root instanceof t.Element ? root.name : root.tagName;
+ 
+     // Don't pass along `ng-template` tag name since it enables directive matching.
+-    return tagName === 'ng-template' ? null : tagName;
++    return tagName === NG_TEMPLATE_TAG_NAME ? null : tagName;
+   }
+ 
+   return null;
+diff --git a/packages/compiler/src/template/pipeline/src/phases/attribute_extraction.ts b/packages/compiler/src/template/pipeline/src/phases/attribute_extraction.ts
+index 018ed3f7fd..0bf2d91411 100644
+--- a/packages/compiler/src/template/pipeline/src/phases/attribute_extraction.ts
++++ b/packages/compiler/src/template/pipeline/src/phases/attribute_extraction.ts
+@@ -7,6 +7,7 @@
+  */
+ 
+ 
++import {SecurityContext} from '../../../../core';
+ import * as ir from '../../ir';
+ import {CompilationJobKind, type CompilationJob, type CompilationUnit} from '../compilation';
+ import {createOpXrefMap} from '../util/elements';
+@@ -38,7 +39,9 @@ export function extractAttributes(job: CompilationJob): void {
+ 
+             ir.OpList.insertBefore<ir.CreateOp>(
+                 // Deliberaly null i18nMessage value
+-                ir.createExtractedAttributeOp(op.target, bindingKind, op.name, null, null, null),
++                ir.createExtractedAttributeOp(
++                    op.target, bindingKind, op.name, /* expression */ null, /* i18nContext */ null,
++                    /* i18nMessage */ null, op.securityContext),
+                 lookupElement(elements, op.target));
+           }
+           break;
+@@ -53,14 +56,18 @@ export function extractAttributes(job: CompilationJob): void {
+               op.expression instanceof ir.EmptyExpr) {
+             ir.OpList.insertBefore<ir.CreateOp>(
+                 ir.createExtractedAttributeOp(
+-                    op.target, ir.BindingKind.Property, op.name, null, null, null),
++                    op.target, ir.BindingKind.Property, op.name, /* expression */ null,
++                    /* i18nContext */ null,
++                    /* i18nMessage */ null, SecurityContext.STYLE),
+                 lookupElement(elements, op.target));
+           }
+           break;
+         case ir.OpKind.Listener:
+           if (!op.isAnimationListener) {
+             const extractedAttributeOp = ir.createExtractedAttributeOp(
+-                op.target, ir.BindingKind.Property, op.name, null, null, null);
++                op.target, ir.BindingKind.Property, op.name, /* expression */ null,
++                /* i18nContext */ null,
++                /* i18nMessage */ null, SecurityContext.NONE);
+             if (job.kind === CompilationJobKind.Host) {
+               // This attribute will apply to the enclosing host binding compilation unit, so order
+               // doesn't matter.
+@@ -120,7 +127,7 @@ function extractAttributeOp(
+     const extractedAttributeOp = ir.createExtractedAttributeOp(
+         op.target,
+         op.isStructuralTemplateAttribute ? ir.BindingKind.Template : ir.BindingKind.Attribute,
+-        op.name, op.expression, op.i18nContext, op.i18nMessage);
++        op.name, op.expression, op.i18nContext, op.i18nMessage, op.securityContext);
+     if (unit.job.kind === CompilationJobKind.Host) {
+       // This attribute will apply to the enclosing host binding compilation unit, so order doesn't
+       // matter.
+diff --git a/packages/compiler/src/template/pipeline/src/phases/const_collection.ts b/packages/compiler/src/template/pipeline/src/phases/const_collection.ts
+index 893fe0e3a6..0e82c6a2b6 100644
+--- a/packages/compiler/src/template/pipeline/src/phases/const_collection.ts
++++ b/packages/compiler/src/template/pipeline/src/phases/const_collection.ts
+@@ -6,10 +6,12 @@
+  * found in the LICENSE file at https://angular.io/license
+  */
+ 
++
+ import * as core from '../../../../core';
+ import {splitNsName} from '../../../../ml_parser/tags';
+ import * as o from '../../../../output/output_ast';
+ import * as ir from '../../ir';
++
+ import {ComponentCompilationJob, HostBindingCompilationJob, type CompilationJob} from '../compilation';
+ import {literalOrArrayLiteral} from '../conversion';
+ 
+@@ -25,7 +27,7 @@ export function collectElementConsts(job: CompilationJob): void {
+       if (op.kind === ir.OpKind.ExtractedAttribute) {
+         const attributes = allElementAttributes.get(op.target) || new ElementAttributes();
+         allElementAttributes.set(op.target, attributes);
+-        attributes.add(op.bindingKind, op.name, op.expression);
++        attributes.add(op.bindingKind, op.name, op.expression, op.trustedValueFn);
+         ir.OpList.remove<ir.CreateOp>(op);
+       }
+     }
+@@ -100,7 +102,8 @@ class ElementAttributes {
+     return this.byKind.get(ir.BindingKind.I18n) ?? FLYWEIGHT_ARRAY;
+   }
+ 
+-  add(kind: ir.BindingKind, name: string, value: o.Expression|null): void {
++  add(kind: ir.BindingKind, name: string, value: o.Expression|null,
++      trustedValueFn: o.Expression|null): void {
+     if (this.known.has(name)) {
+       return;
+     }
+@@ -123,7 +126,16 @@ class ElementAttributes {
+       if (value === null) {
+         throw Error('Attribute, i18n attribute, & style element attributes must have a value');
+       }
+-      array.push(value);
++      if (trustedValueFn !== null) {
++        if (!ir.isStringLiteral(value)) {
++          throw Error('AssertionError: extracted attribute value should be string literal');
++        }
++        array.push(o.taggedTemplate(
++            trustedValueFn, new o.TemplateLiteral([new o.TemplateLiteralElement(value.value)], []),
++            undefined, value.sourceSpan));
++      } else {
++        array.push(value);
++      }
+     }
+   }
+ 
+diff --git a/packages/compiler/src/template/pipeline/src/phases/parse_extracted_styles.ts b/packages/compiler/src/template/pipeline/src/phases/parse_extracted_styles.ts
+index 8864f46c5f..6e385faea8 100644
+--- a/packages/compiler/src/template/pipeline/src/phases/parse_extracted_styles.ts
++++ b/packages/compiler/src/template/pipeline/src/phases/parse_extracted_styles.ts
+@@ -6,9 +6,11 @@
+  * found in the LICENSE file at https://angular.io/license
+  */
+ 
++import {SecurityContext} from '../../../../core';
+ import * as o from '../../../../output/output_ast';
+ import {parse as parseStyle} from '../../../../render3/view/style_parser';
+ import * as ir from '../../ir';
++
+ import type {CompilationJob} from '../compilation';
+ 
+ /**
+@@ -26,7 +28,7 @@ export function parseExtractedStyles(job: CompilationJob) {
+             ir.OpList.insertBefore<ir.CreateOp>(
+                 ir.createExtractedAttributeOp(
+                     op.target, ir.BindingKind.StyleProperty, parsedStyles[i],
+-                    o.literal(parsedStyles[i + 1]), null, null),
++                    o.literal(parsedStyles[i + 1]), null, null, SecurityContext.STYLE),
+                 op);
+           }
+           ir.OpList.remove<ir.CreateOp>(op);
+@@ -35,7 +37,8 @@ export function parseExtractedStyles(job: CompilationJob) {
+           for (const parsedClass of parsedClasses) {
+             ir.OpList.insertBefore<ir.CreateOp>(
+                 ir.createExtractedAttributeOp(
+-                    op.target, ir.BindingKind.ClassName, parsedClass, null, null, null),
++                    op.target, ir.BindingKind.ClassName, parsedClass, null, null, null,
++                    SecurityContext.NONE),
+                 op);
+           }
+           ir.OpList.remove<ir.CreateOp>(op);
+diff --git a/packages/compiler/src/template/pipeline/src/phases/reify.ts b/packages/compiler/src/template/pipeline/src/phases/reify.ts
+index 2b30dffceb..ac790d3e9e 100644
+--- a/packages/compiler/src/template/pipeline/src/phases/reify.ts
++++ b/packages/compiler/src/template/pipeline/src/phases/reify.ts
+@@ -7,22 +7,10 @@
+  */
+ 
+ import * as o from '../../../../output/output_ast';
+-import {Identifiers} from '../../../../render3/r3_identifiers';
+ import * as ir from '../../ir';
+ import {ViewCompilationUnit, type CompilationJob, type CompilationUnit} from '../compilation';
+ import * as ng from '../instruction';
+ 
+-/**
+- * Map of sanitizers to their identifier.
+- */
+-const sanitizerIdentifierMap = new Map<ir.SanitizerFn, o.ExternalReference>([
+-  [ir.SanitizerFn.Html, Identifiers.sanitizeHtml],
+-  [ir.SanitizerFn.IframeAttribute, Identifiers.validateIframeAttribute],
+-  [ir.SanitizerFn.ResourceUrl, Identifiers.sanitizeResourceUrl],
+-  [ir.SanitizerFn.Script, Identifiers.sanitizeScript],
+-  [ir.SanitizerFn.Style, Identifiers.sanitizeStyle], [ir.SanitizerFn.Url, Identifiers.sanitizeUrl]
+-]);
+-
+ /**
+  * Compiles semantic operations across all views and generates output `o.Statement`s with actual
+  * runtime calls in their place.
+@@ -415,8 +403,6 @@ function reifyIrExpression(expr: o.Expression): o.Expression {
+       return ng.pipeBind(expr.targetSlot.slot!, expr.varOffset!, expr.args);
+     case ir.ExpressionKind.PipeBindingVariadic:
+       return ng.pipeBindV(expr.targetSlot.slot!, expr.varOffset!, expr.args);
+-    case ir.ExpressionKind.SanitizerExpr:
+-      return o.importExpr(sanitizerIdentifierMap.get(expr.fn)!);
+     case ir.ExpressionKind.SlotLiteralExpr:
+       return o.literal(expr.slot.slot!);
+     default:
+diff --git a/packages/compiler/src/template/pipeline/src/phases/resolve_sanitizers.ts b/packages/compiler/src/template/pipeline/src/phases/resolve_sanitizers.ts
+index 6105d9d73e..280ead81ed 100644
+--- a/packages/compiler/src/template/pipeline/src/phases/resolve_sanitizers.ts
++++ b/packages/compiler/src/template/pipeline/src/phases/resolve_sanitizers.ts
+@@ -7,18 +7,29 @@
+  */
+ 
+ import {SecurityContext} from '../../../../core';
++import * as o from '../../../../output/output_ast';
++import {Identifiers} from '../../../../render3/r3_identifiers';
+ import {isIframeSecuritySensitiveAttr} from '../../../../schema/dom_security_schema';
+ import * as ir from '../../ir';
+ import {ComponentCompilationJob} from '../compilation';
+ import {createOpXrefMap} from '../util/elements';
+ 
+ /**
+- * Mapping of security contexts to sanitizer function for that context.
++ * Map of security contexts to their sanitizer function.
+  */
+-const sanitizers = new Map<SecurityContext, ir.SanitizerFn|null>([
+-  [SecurityContext.HTML, ir.SanitizerFn.Html], [SecurityContext.SCRIPT, ir.SanitizerFn.Script],
+-  [SecurityContext.STYLE, ir.SanitizerFn.Style], [SecurityContext.URL, ir.SanitizerFn.Url],
+-  [SecurityContext.RESOURCE_URL, ir.SanitizerFn.ResourceUrl]
++const sanitizerFns = new Map<SecurityContext, o.ExternalReference>([
++  [SecurityContext.HTML, Identifiers.sanitizeHtml],
++  [SecurityContext.RESOURCE_URL, Identifiers.sanitizeResourceUrl],
++  [SecurityContext.SCRIPT, Identifiers.sanitizeScript],
++  [SecurityContext.STYLE, Identifiers.sanitizeStyle], [SecurityContext.URL, Identifiers.sanitizeUrl]
++]);
++
++/**
++ * Map of security contexts to their trusted value function.
++ */
++const trustedValueFns = new Map<SecurityContext, o.ExternalReference>([
++  [SecurityContext.HTML, Identifiers.trustConstantHtml],
++  [SecurityContext.RESOURCE_URL, Identifiers.trustConstantResourceUrl],
+ ]);
+ 
+ /**
+@@ -27,13 +38,20 @@ const sanitizers = new Map<SecurityContext, ir.SanitizerFn|null>([
+ export function resolveSanitizers(job: ComponentCompilationJob): void {
+   for (const unit of job.units) {
+     const elements = createOpXrefMap(unit);
+-    let sanitizerFn: ir.SanitizerFn|null;
++
++    for (const op of unit.create) {
++      if (op.kind === ir.OpKind.ExtractedAttribute) {
++        const trustedValueFn = trustedValueFns.get(op.securityContext) ?? null;
++        op.trustedValueFn = trustedValueFn !== null ? o.importExpr(trustedValueFn) : null;
++      }
++    }
++
+     for (const op of unit.update) {
+       switch (op.kind) {
+         case ir.OpKind.Property:
+         case ir.OpKind.Attribute:
+-          sanitizerFn = sanitizers.get(op.securityContext) || null;
+-          op.sanitizer = sanitizerFn ? new ir.SanitizerExpr(sanitizerFn) : null;
++          const sanitizerFn = sanitizerFns.get(op.securityContext) ?? null;
++          op.sanitizer = sanitizerFn !== null ? o.importExpr(sanitizerFn) : null;
+           // If there was no sanitization function found based on the security context of an
+           // attribute/property, check whether this attribute/property is one of the
+           // security-sensitive <iframe> attributes (and that the current element is actually an
+@@ -44,7 +62,7 @@ export function resolveSanitizers(job: ComponentCompilationJob): void {
+               throw Error('Property should have an element-like owner');
+             }
+             if (isIframeElement(ownerOp) && isIframeSecuritySensitiveAttr(op.name)) {
+-              op.sanitizer = new ir.SanitizerExpr(ir.SanitizerFn.IframeAttribute);
++              op.sanitizer = o.importExpr(Identifiers.validateIframeAttribute);
+             }
+           }
+           break;

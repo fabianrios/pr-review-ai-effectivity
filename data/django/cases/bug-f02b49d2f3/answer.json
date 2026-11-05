@@ -1,0 +1,14 @@
+{
+  "case_id": "bug-f02b49d2f3",
+  "pr_url": "https://github.com/django/django/pull/19405",
+  "kind": "bug",
+  "ground_truth": "In the new `RenamePermission._rename`, the code reads `db = schema_editor.connection.alias` but never applies it to the lookups. `ContentType.objects.filter(...)` and `Permission.objects.filter(content_type_id__in=...)` therefore run against the default (router-chosen) database rather than the one being migrated. Running `migrate --database=other` on an app with a `RenameModel` reads and renames permissions in the default database, or finds nothing there. Meanwhile the permissions in the database actually being migrated keep their old codenames and names. The fix adds `.using(db)` to both the ContentType and Permission querysets so the operation works on the migration's database connection.",
+  "bug_files": [
+    "django/contrib/auth/management/__init__.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "6e89271a8507fe272d11814975500a1b40303a04",
+  "issue": null,
+  "fix_tickets": [],
+  "evidence_url": null
+}

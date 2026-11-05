@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-1a9fba7a6c",
+  "pr_url": "https://github.com/django/django/pull/22039",
+  "kind": "bug",
+  "ground_truth": "The new lexer regexes for raw blocks require at least one whitespace character after `{%`: `_raw_start_re` uses `\\s+` before comment/verbatim, and the end regexes use `[^\\S\\n]+` before endcomment/endverbatim. Django accepts tags written without spaces, e.g. `{%comment%}`, `{%verbatim%}` and `{%endverbatim%}`. Those are no longer recognized as raw-block delimiters, so their contents are tokenized and parsed as template code (wrong output or TemplateSyntaxError). Fixed by changing `+` to `*`.",
+  "bug_files": [
+    "django/template/base.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "45fe4636d8d147b87040170a6cee4ab036ed2324",
+  "issue": null,
+  "fix_tickets": [
+    37450
+  ],
+  "evidence_url": null
+}

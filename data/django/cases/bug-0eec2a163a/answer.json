@@ -1,0 +1,16 @@
+{
+  "case_id": "bug-0eec2a163a",
+  "pr_url": "https://github.com/django/django/pull/20080",
+  "kind": "bug",
+  "ground_truth": "Previously `label_tag()` built a fresh dict (`{**(attrs or {}), \"for\": ...}`) before adding the required CSS class. To omit \"for\" on <legend> tags, the commit uses `attrs = attrs or {}` and only copies when `tag != \"legend\"`. For legends (`legend_tag()`) the caller's own dict is kept, and the following `attrs[\"class\"] += \" \" + required_css_class` mutates it in place. The caller's attrs dict is modified and the class accumulates on repeated rendering. Fixed by always copying attrs first.",
+  "bug_files": [
+    "django/forms/boundfield.py"
+  ],
+  "fix_pr": null,
+  "fix_commit": "817df1c4d6d38f416460d7d9354d7deab9d35139",
+  "issue": null,
+  "fix_tickets": [
+    37463
+  ],
+  "evidence_url": null
+}

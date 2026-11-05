@@ -1,0 +1,35 @@
+{
+  "repo": "django/django",
+  "number": 18270,
+  "url": "https://github.com/django/django/pull/18270",
+  "commit_url": "https://github.com/django/django/commit/f920937c8a63df6bea220e4386f59cdb45b2e355",
+  "title": "Fixed #35518 -- Used simpler string operations for converter-less routes",
+  "description": "# Trac ticket number\r\n\r\nticket-35518\r\n\r\n# Branch description\r\n\r\nThe `RoutePattern` assumes all routes provided include some form of converter, and so needs to change it into a regex for matching. However, if no converters are included in the string, the additional overhead of using a regex vs simpler string operations is unnecessary.\r\n\r\nReplacing this with a simpler string comparison results in between a 50 and 75% reduction in match time, which stacks up quickly as an application generally has numerous URLs, because `RoutePattern.match` is called once per defined route per request.\r\n\r\n**Before**\r\n\r\n```python\r\nIn [2]: endpoint_pattern = RoutePattern(\"foo/\", \"name\", is_endpoint=True)\r\n\r\nIn [3]: pattern = RoutePattern(\"foo/\", \"name\", is_endpoint=False)\r\n\r\nIn [4]: %timeit pattern.match(\"foo/\")\r\n441 ns ± 2.68 ns per loop (mean ± std. dev. of 7 runs, 1,000,000 loops each)\r\n\r\nIn [5]: %timeit endpoint_pattern.match(\"foo/\")\r\n435 ns ± 0.974 ns per loop (mean ± std. dev. of 7 runs, 1,000,000 loops each)\r\n```\r\n\r\n**After**\r\n\r\n```python\r\nIn [4]: %timeit pattern.match(\"foo/\")\r\n187 ns ± 1.84 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)\r\n\r\nIn [5]: %timeit endpoint_pattern.match(\"foo/\")\r\n103 ns ± 0.192 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)\r\n```\r\n\r\n(Benchmarked on Python 3.12, running `main`)\r\n\r\nTheoretically, these improvements get better based on the length of the route pattern (although at this scale, not notably).\r\n\r\nThis optimisation could be done by adding a different kind of pattern (eg `LiteralPattern`), but the added complexity to a project probably isn't necessary, not to mention the migration effort to take advantage of this.\r\n\r\n# Checklist\r\n- [x] This PR targets the `main` branch. <!-- Backports will be evaluated and done by mergers, when necessary. -->\r\n- [x] The commit message is written in past tense, mentions the ticket number, and ends with a period.\r\n- [x] I have checked the \"Has patch\" ticket flag in the Trac system.\r\n- [x] I have added or updated relevant tests.\r\n- [ ] I have added or updated relevant docs, including release notes if applicable.\r\n- [ ] I have attached screenshots in both light and dark modes for any UI changes.\r\n",
+  "commit_message": "Fixed #35518 -- Optimized RoutePattern by using string operations for converter-less routes.",
+  "labels": [
+    "benchmark"
+  ],
+  "author": "Jake Howard",
+  "merged_at": "2024-06-10T17:32:08+01:00",
+  "tickets": [
+    35518
+  ],
+  "base_commit": "f66c79e93d41d2cd32be244170b54080c0796584",
+  "head_commit": "f920937c8a63df6bea220e4386f59cdb45b2e355",
+  "changed_lines": 36,
+  "files": [
+    {
+      "path": "django/urls/resolvers.py",
+      "added": 19,
+      "deleted": 11,
+      "binary": false
+    },
+    {
+      "path": "tests/urlpatterns/test_resolvers.py",
+      "added": 6,
+      "deleted": 0,
+      "binary": false
+    }
+  ],
+  "license": "see data/django/LICENSE.txt"
+}
