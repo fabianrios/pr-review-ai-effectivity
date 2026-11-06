@@ -1,0 +1,12 @@
+{
+  "name": "pr-review-ai-effectivity-notebook",
+  "private": true,
+  "description": "Write-up of the benchmark as an Observable notebook (Notebook Kit), published to GitHub Pages",
+  "scripts": {
+    "build": "notebooks build --root . --empty -- index.html",
+    "preview": "notebooks preview --root ."
+  },
+  "devDependencies": {
+    "@observablehq/notebook-kit": "1.6.0"
+  }
+}

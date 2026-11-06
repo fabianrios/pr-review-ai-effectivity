@@ -1,0 +1,227 @@
+<!doctype html>
+<notebook theme="air" readonly>
+  <title>Four levers for better AI code review</title>
+  <script id="1" type="text/markdown">
+    # Four levers for better AI code review, tested on real bugs
+
+    Claude already catches bugs in code review. The useful question is **what makes it catch more, with less noise**.
+    I tested four levers: what the reviewer reads, how much context it gets, how its confidence is used, and how
+    often it reviews.
+
+    The test set is 47 real changes from `angular/angular` and `django/django` that a later fix explicitly blamed
+    for a bug, plus 19 clean changes as controls. That's 404 reviews by `claude-sonnet-5-5`, graded by an
+    independent model judge and cross-checked by a second one (87/87 agreement on the original set).
+
+    | lever | what helped | what didn't |
+    |---|---|---|
+    | What it reads first | diff before description: avoids being talked out of a real concern | the description itself: 54% vs 52% on average |
+    | How much context | — | whole files: more confidence and more false alarms, no extra bugs |
+    | How confidence is used | ≥ 0.8 as a high-precision tier: 0 false alarms | treating every finding the same |
+    | How often it reviews | merging 4 independent passes: 54% → 63% of bugs | a single pass |
+
+    Code, data, prompts and every verdict: [github.com/fabianrios/pr-review-ai-effectivity](https://github.com/fabianrios/pr-review-ai-effectivity).
+  </script>
+  <script id="2" type="module">
+    // Shared settings: the palette is validated for colour-vision deficiency (blue, orange, aqua).
+    const colors = {A: "#2a78d6", B: "#eb6834", C: "#1baf7a"};
+  </script>
+  <script id="3" type="module">
+    const conditionNames = {A: "A: diff only", B: "B: + description", C: "C: + full files"};
+  </script>
+  <script id="4" type="module">
+    // 95% Wilson interval for k successes out of n
+    const wilson = (k, n, z = 1.96) => {
+      const p = k / n, d = 1 + z * z / n;
+      const c = (p + z * z / (2 * n)) / d;
+      const h = (z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))) / d;
+      return [Math.max(0, c - h), Math.min(1, c + h)];
+    };
+  </script>
+  <script id="5" type="text/markdown">
+    ## Lever 1: what the reviewer reads first
+
+    Does the PR description help the reviewer, or steer it? On the first 10 Angular cases, adding the title and
+    description **lowered** detection from 60% to 40%, in every one of 4 repeated samples. On 27 new cases picked the
+    same way, the gap vanished: 54% vs 52%. **On average, the description neither helps nor hurts.** Each dot is a
+    detection rate over all reviews in that set; the bar is its 95% interval.
+  </script>
+  <script id="6" type="module">
+    const replication = [
+      {set: "First 10 cases", condition: "A", k: 24, n: 40},
+      {set: "First 10 cases", condition: "B", k: 16, n: 40},
+      {set: "27 new cases", condition: "A", k: 58, n: 108},
+      {set: "27 new cases", condition: "B", k: 56, n: 108}
+    ].map(d => {
+      const [lo, hi] = wilson(d.k, d.n);
+      return {...d, rate: d.k / d.n, lo, hi, label: conditionNames[d.condition]};
+    });
+  </script>
+  <script id="7" type="module">
+    Plot.plot({
+      width: 640,
+      height: 200,
+      marginLeft: 120,
+      marginRight: 70,
+      x: {domain: [0, 1], tickFormat: "%", label: "Bugs detected (share of reviews) →", grid: true},
+      y: {axis: null, domain: ["A", "B"], inset: 6},
+      fy: {label: null, domain: ["First 10 cases", "27 new cases"]},
+      color: {domain: ["A", "B"], range: [colors.A, colors.B], legend: true,
+              tickFormat: d => conditionNames[d]},
+      marks: [
+        Plot.ruleY(replication, {fy: "set", y: "condition", x1: "lo", x2: "hi", stroke: "condition", strokeWidth: 2}),
+        Plot.dot(replication, {fy: "set", y: "condition", x: "rate", fill: "condition", r: 6, stroke: "white", strokeWidth: 2,
+          tip: true, title: d => `${d.label}\n${d.k} of ${d.n} reviews (${Math.round(d.rate * 100)}%)\n95% CI ${Math.round(d.lo * 100)}–${Math.round(d.hi * 100)}%`}),
+        Plot.text(replication, {fy: "set", y: "condition", x: "hi", text: d => `${d.condition}: ${Math.round(d.rate * 100)}%`, dx: 8,
+          textAnchor: "start", fill: "currentColor"})
+      ]
+    })
+  </script>
+  <script id="8" type="text/markdown">
+    ### …but on some cases it anchors the reviewer
+
+    Every bug case was reviewed 4 times with the diff only (**A**) and 4 times with the description (**B**). Where the
+    two dots sit together, both conditions scored the same. Most cases don't move. Where they do, the clearest drops
+    follow a **confident description**:
+
+    - **bug-63485:** from the diff alone, the reviewer flags the `EmptyError` that `first()` throws, in 4 of 4 runs.
+      When the description argues that the change is needed, it stays silent in 4 of 4.
+
+    Cases also move the other way (B finds it, A doesn't), for example an API break that the description makes
+    visible.
+
+    **Improvement:** review the diff first, then read the description and check its claims against the code.
+  </script>
+  <script id="9" type="module">
+    const perCase = [{"set":"original","repo":"angular","case":"bug-46096","A":0,"B":0},{"set":"original","repo":"angular","case":"bug-48063","A":0,"B":0},{"set":"original","repo":"angular","case":"bug-48558","A":4,"B":4},{"set":"original","repo":"angular","case":"bug-50063","A":4,"B":4},{"set":"original","repo":"angular","case":"bug-53695","A":3,"B":0},{"set":"original","repo":"angular","case":"bug-55796","A":1,"B":0},{"set":"original","repo":"angular","case":"bug-60875","A":0,"B":0},{"set":"original","repo":"angular","case":"bug-63485","A":4,"B":0},{"set":"original","repo":"angular","case":"bug-67032","A":4,"B":4},{"set":"original","repo":"angular","case":"bug-69309","A":4,"B":4},{"set":"new","repo":"angular","case":"bug-56852","A":4,"B":4},{"set":"new","repo":"angular","case":"bug-57796","A":0,"B":0},{"set":"new","repo":"angular","case":"bug-60206","A":0,"B":0},{"set":"new","repo":"angular","case":"bug-61241","A":4,"B":4},{"set":"new","repo":"django","case":"bug-1a8fd5cf75","A":0,"B":0},{"set":"new","repo":"django","case":"bug-4b2b4bf0ac","A":4,"B":4},{"set":"new","repo":"django","case":"bug-4cecf30395","A":2,"B":3},{"set":"new","repo":"django","case":"bug-55d89e25f4","A":4,"B":4},{"set":"new","repo":"django","case":"bug-5d911f2d2f","A":4,"B":4},{"set":"new","repo":"django","case":"bug-626d77e52a","A":3,"B":0},{"set":"new","repo":"django","case":"bug-65ab92f6a8","A":3,"B":3},{"set":"new","repo":"django","case":"bug-73df8b54a2","A":0,"B":0},{"set":"new","repo":"django","case":"bug-857b1048d5","A":1,"B":1},{"set":"new","repo":"django","case":"bug-8638d8bf74","A":4,"B":3},{"set":"new","repo":"django","case":"bug-91bebf1adb","A":4,"B":4},{"set":"new","repo":"django","case":"bug-94680437a4","A":0,"B":0},{"set":"new","repo":"django","case":"bug-9e9792228a","A":3,"B":4},{"set":"new","repo":"django","case":"bug-a16eedcf9c","A":0,"B":0},{"set":"new","repo":"django","case":"bug-aba0e541ca","A":0,"B":1},{"set":"new","repo":"django","case":"bug-bf7b17d16d","A":0,"B":0},{"set":"new","repo":"django","case":"bug-c09bceef68","A":0,"B":2},{"set":"new","repo":"django","case":"bug-ca2be7724e","A":0,"B":0},{"set":"new","repo":"django","case":"bug-cd0479ff76","A":4,"B":4},{"set":"new","repo":"django","case":"bug-ec7d69035a","A":4,"B":4},{"set":"new","repo":"django","case":"bug-f02b49d2f3","A":4,"B":3},{"set":"new","repo":"django","case":"bug-faeb92ea13","A":4,"B":4},{"set":"new","repo":"django","case":"bug-fd569dd45b","A":2,"B":0}];
+  </script>
+  <script id="10" type="module">
+    const perCaseLong = perCase
+      .map(d => ({...d, diff: d.A - d.B, setLabel: d.set === "original" ? "First 10 cases" : "27 new cases",
+                  id: `${d.repo}/${d.case}`}))
+      .sort((a, b) => b.diff - a.diff || b.A - a.A || a.id.localeCompare(b.id));
+  </script>
+  <script id="11" type="module">
+    // One chart per set (each has its own list of cases)
+    const caseChart = (setLabel) => {
+      const data = perCaseLong.filter(d => d.setLabel === setLabel);
+      return Plot.plot({
+        width: 640,
+        height: 50 + data.length * 18,
+        marginLeft: 170,
+        title: setLabel,
+        x: {domain: [0, 4], ticks: 5, inset: 8, label: "Reviews that caught the bug (out of 4) →", grid: true},
+        y: {label: null, domain: data.map(d => d.id)},
+        color: {domain: ["A", "B"], range: [colors.A, colors.B], legend: true, tickFormat: d => conditionNames[d]},
+        marks: [
+          Plot.ruleY(data, {y: "id", x1: "A", x2: "B", stroke: "#9b9a95", strokeWidth: 2}),
+          Plot.dot(data, {y: "id", x: "A", fill: colors.A, r: 5, dy: -3, stroke: "white", strokeWidth: 2}),
+          Plot.dot(data, {y: "id", x: "B", fill: colors.B, r: 5, dy: 3, stroke: "white", strokeWidth: 2}),
+          Plot.tip(data, Plot.pointerY({y: "id", x: d => Math.max(d.A, d.B),
+            title: d => `${d.id}\nA (diff only): ${d.A}/4\nB (+ description): ${d.B}/4`}))
+        ]
+      });
+    };
+  </script>
+  <script id="12" type="module">
+    caseChart("First 10 cases")
+  </script>
+  <script id="13" type="module">
+    caseChart("27 new cases")
+  </script>
+  <script id="14" type="text/markdown">
+    ## Levers 2 and 3: how much context, and how to use confidence
+
+    This is the main run: 20 bug cases and 19 clean changes, one review each. Each line is a context condition. The
+    lines show the share of bugs detected, and the share of clean changes falsely flagged, counting only findings at or
+    above each confidence level.
+
+    - **Whole files don't help.** C finds the same bugs as A and B. It raises the reviewer's confidence and its false
+      alarms, and it was about three quarters of the cost. Context has to be **targeted** (callers, overrides, related
+      queries), not dumped.
+    - **Confidence works as tiers.** At ≥ 0.8 there are **no** false alarms, but only 10–25% of bugs reach that level.
+      Most correct findings sit at 0.3–0.6. Surface ≥ 0.8 prominently and show the rest as "worth a look"; don't drop
+      them.
+  </script>
+  <script id="15" type="module">
+    const mainRun = (() => {
+      const raw = {
+        A: {detection: [13, 9, 5], false_alarm: [1, 1, 0]},
+        B: {detection: [13, 9, 2], false_alarm: [2, 0, 0]},
+        C: {detection: [13, 12, 4], false_alarm: [4, 1, 0]}
+      };
+      const thresholds = ["any", "≥ 0.5", "≥ 0.8"];
+      return Object.entries(raw).flatMap(([condition, m]) =>
+        Object.entries(m).flatMap(([metric, ks]) => ks.map((k, i) => {
+          const n = metric === "detection" ? 20 : 19;
+          const [lo, hi] = wilson(k, n);
+          return {condition, metric: metric === "detection" ? "Bugs detected (of 20)" : "False alarms (of 19 clean changes)",
+                  threshold: thresholds[i], k, n, rate: k / n, lo, hi};
+        })));
+    })();
+  </script>
+  <script id="16" type="module">
+    Plot.plot({
+      width: 640,
+      height: 300,
+      marginRight: 110,
+      x: {domain: ["any", "≥ 0.5", "≥ 0.8"], label: "Reviewer confidence counted", padding: 0.2},
+      y: {domain: [0, 1], tickFormat: "%", label: "↑ Share", grid: true},
+      fx: {label: null, domain: ["Bugs detected (of 20)", "False alarms (of 19 clean changes)"]},
+      color: {domain: ["A", "B", "C"], range: [colors.A, colors.B, colors.C], legend: true, tickFormat: d => conditionNames[d]},
+      marks: [
+        Plot.line(mainRun, {fx: "metric", x: "threshold", y: "rate", stroke: "condition", strokeWidth: 2}),
+        Plot.dot(mainRun, {fx: "metric", x: "threshold", y: "rate", fill: "condition", r: 4.5, stroke: "white", strokeWidth: 2,
+          tip: true, title: d => `${conditionNames[d.condition]}, confidence ${d.threshold}\n${d.k} of ${d.n} (${Math.round(d.rate * 100)}%)\n95% CI ${Math.round(d.lo * 100)}–${Math.round(d.hi * 100)}%`}),
+        Plot.text(mainRun, Plot.selectLast({fx: "metric", x: "threshold", y: "rate", z: "condition",
+          filter: d => d.metric.startsWith("Bugs"), text: d => d.condition, dx: 10, textAnchor: "start", fill: "currentColor"}))
+      ]
+    })
+  </script>
+  <script id="17" type="text/markdown">
+    ## Lever 4: how often it reviews
+
+    Many bugs are caught in some runs and missed in others. On the 27 new cases (diff only), merging several
+    independent reviews raises detection from 54% with one review to 63% with four. **If recall matters more than
+    noise, run the review more than once and merge the findings.** The false-alarm cost of merging was not measured:
+    the new set has no controls.
+  </script>
+  <script id="18" type="module">
+    const repeats = [
+      {reviews: 1, rate: 0.54},
+      {reviews: 2, rate: 0.59},
+      {reviews: 4, rate: 0.63}
+    ];
+  </script>
+  <script id="19" type="module">
+    Plot.plot({
+      width: 640,
+      height: 220,
+      x: {domain: [1, 4], ticks: [1, 2, 3, 4], tickFormat: "d", inset: 24, label: "Independent reviews merged →"},
+      y: {domain: [0, 1], tickFormat: "%", label: "↑ Bugs caught by at least one", grid: true},
+      marks: [
+        Plot.line(repeats, {x: "reviews", y: "rate", stroke: colors.A, strokeWidth: 2}),
+        Plot.dot(repeats, {x: "reviews", y: "rate", fill: colors.A, r: 5, stroke: "white", strokeWidth: 2,
+          tip: true, title: d => `${d.reviews} review${d.reviews > 1 ? "s" : ""}: ${Math.round(d.rate * 100)}% of bugs`}),
+        Plot.text(repeats, {x: "reviews", y: "rate", text: d => `${Math.round(d.rate * 100)}%`, dy: -14, fill: "currentColor"})
+      ]
+    })
+  </script>
+  <script id="20" type="text/markdown">
+    ## What I'd change in an AI review setup
+
+    1. **Diff first, description second.** Tell the reviewer to verify the author's claims, not to accept them.
+    2. **Targeted context, not whole files.**
+    3. **Confidence tiers**: ≥ 0.8 is high precision, the rest is "worth a look".
+    4. **Two or more passes** when a missed bug is expensive.
+    5. **Treat flagged "clean" code seriously.** One flagged control turned out to be a real bug that Angular fixed
+       months later.
+
+    **About 30% of the bugs were never caught**, mostly because they need knowledge outside the diff (database cast
+    semantics, inheritance, parser edge cases). That's the next experiment: does targeted context retrieval close
+    that gap?
+
+    **Limitations.** Small numbers (most intervals are ±20 points). Labels are checked by two models, not by
+    maintainers. One reviewer model. Public code may be in the training data. Full write-up and data:
+    [github.com/fabianrios/pr-review-ai-effectivity](https://github.com/fabianrios/pr-review-ai-effectivity).
+  </script>
+</notebook>

@@ -1,5 +1,7 @@
 # pr-review-bench
 
+**Interactive write-up with charts:** https://fabianrios.github.io/pr-review-ai-effectivity/ (source: `notebook/`)
+
 **Question.** When Claude reviews a pull request that later turned out to introduce a bug, how often does it
 catch the bug, how does that change with the amount of context it gets, and how well calibrated is its confidence?
 
