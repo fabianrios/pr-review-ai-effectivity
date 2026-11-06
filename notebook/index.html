@@ -16,7 +16,7 @@
     |---|---|---|
     | What it reads first | diff before description: avoids being talked out of a real concern | the description itself: 54% vs 52% on average |
     | How much context | — | whole files: more confidence and more false alarms, no extra bugs |
-    | How confidence is used | ≥ 0.8 as a high-precision tier: 0 false alarms | treating every finding the same |
+    | How confidence is used | very sure findings (≥ 0.8) were always right | hiding the less sure ones: most real bugs are there |
     | How often it reviews | merging 4 independent passes: 54% → 63% of bugs | a single pass |
 
     Code, data, prompts and every verdict: [github.com/fabianrios/pr-review-ai-effectivity](https://github.com/fabianrios/pr-review-ai-effectivity).
@@ -138,9 +138,10 @@
     - **Whole files don't help.** C finds the same bugs as A and B. It raises the reviewer's confidence and its false
       alarms, and it was about three quarters of the cost. Context has to be **targeted** (callers, overrides, related
       queries), not dumped.
-    - **Confidence works as tiers.** At ≥ 0.8 there are **no** false alarms, but only 10–25% of bugs reach that level.
-      Most correct findings sit at 0.3–0.6. Surface ≥ 0.8 prominently and show the rest as "worth a look"; don't drop
-      them.
+    - **Use its confidence.** Every finding comes with a confidence score from 0 to 1. When the reviewer was very sure
+      (≥ 0.8), it was always right: no false alarms. But only 10–25% of the bugs reached that level; most real bugs
+      were found at 0.3–0.6. So flag the very sure findings clearly, and show the less sure ones as "worth a look"
+      instead of hiding them.
   </script>
   <script id="15" type="module">
     const mainRun = (() => {
@@ -211,10 +212,11 @@
 
     1. **Diff first, description second.** Tell the reviewer to verify the author's claims, not to accept them.
     2. **Targeted context, not whole files.**
-    3. **Confidence tiers**: ≥ 0.8 is high precision, the rest is "worth a look".
+    3. **Use its confidence.** When it's very sure (≥ 0.8), it was always right, so flag those clearly. Show the less
+       sure findings as "worth a look" instead of hiding them; most real bugs are in that group.
     4. **Two or more passes** when a missed bug is expensive.
-    5. **Treat flagged "clean" code seriously.** One flagged control turned out to be a real bug that Angular fixed
-       months later.
+    5. **Don't dismiss a repeated warning.** One change I'd labelled "bug-free" was flagged every time. Angular later
+       fixed exactly that bug. Sometimes the AI is right and the label is wrong.
 
     **About 30% of the bugs were never caught**, mostly because they need knowledge outside the diff (database cast
     semantics, inheritance, parser edge cases). That's the next experiment: does targeted context retrieval close
